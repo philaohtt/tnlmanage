@@ -1,0 +1,2714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Directory System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase Configuration -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDdx6QyXzCWz7BRZInLu16LGnYBKvFO1CM",
+            authDomain: "tnl-management-app.firebaseapp.com",
+            projectId: "tnl-management-app",
+            storageBucket: "tnl-management-app.firebasestorage.app",
+            messagingSenderId: "710843379828",
+            appId: "1:710843379828:web:76978490616ebe41bf2121",
+            measurementId: "G-8W29VX7WTP"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center">
+                <div class="bg-blue-100 p-3 rounded-lg mr-4">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-semibold text-gray-900 mb-1 flex items-center">
+                        <span class="text-2xl mr-2">🎓</span> Student Directory System
+                    </h1>
+                    <p class="text-gray-600 text-sm">Complete student lifecycle management platform</p>
+                </div>
+            </div>
+            
+            <!-- Sync Status -->
+            <div id="syncIndicator" class="flex items-center px-3 py-2 rounded-lg text-xs border">
+                <div id="syncIcon" class="w-2 h-2 rounded-full mr-2"></div>
+                <span id="syncText">Connected</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Dashboard Overview -->
+    <div class="bg-white rounded-lg shadow-sm border mb-6 p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div class="flex items-center">
+                <h2 class="text-lg font-semibold text-gray-900 mr-4">Dashboard Overview</h2>
+                <span class="text-sm text-gray-500">📊 <span id="totalStudents">0</span> students • <span id="activeStudents">0</span> active • <span id="classesCount">0</span> classes</span>
+            </div>
+            
+            <div class="flex flex-wrap gap-3">
+                <button onclick="showCreateForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add Student
+                </button>
+                <button onclick="importStudents()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                    </svg>
+                    Import
+                </button>
+                <button onclick="exportStudents()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Tabs -->
+    <div class="bg-white rounded-lg shadow-sm border mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="flex space-x-8 px-6">
+                <button onclick="switchMainTab('students')" id="studentsMainTab" class="py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">
+                    👥 Students
+                </button>
+                <button onclick="switchMainTab('classes')" id="classesMainTab" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                    📚 Classes
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Students Section -->
+    <div id="studentsSection" class="bg-white rounded-lg shadow-sm border">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex flex-col justify-between items-start space-y-4">
+                <div class="flex justify-between items-center w-full">
+                    <h2 class="text-lg font-semibold text-gray-900">Student Directory</h2>
+                    <div class="flex space-x-2">
+                        <button id="bulkActionBtn" onclick="toggleBulkActions()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 hidden">
+                            Bulk Actions
+                        </button>
+                        <button onclick="selectAll()" id="selectAllBtn" class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 hidden">
+                            Select All
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Quick Search and Filter Toggle -->
+                <div class="w-full space-y-3">
+                    <!-- Quick Search Row -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex-1">
+                            <input type="text" id="searchInput" placeholder="🔍 Search by name, ID, contact, school..." onkeyup="searchStudents()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="toggleFilters()" id="filterToggleBtn" class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                </svg>
+                                Filters
+                            </button>
+                            <button onclick="clearFilters()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Expandable Filter Panel -->
+                    <div id="filterPanel" class="hidden bg-gray-50 p-4 rounded-lg border">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                            <!-- Status Filter -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                                <select id="statusFilter" onchange="applyFilters()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">All Statuses</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="Finished">Finished</option>
+                                    <option value="Dropped">Dropped</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Class Filter -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Class</label>
+                                <select id="classFilter" onchange="applyFilters()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">All Classes</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Enrollment Year Filter -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Enrolled</label>
+                                <select id="enrollmentYearFilter" onchange="applyFilters()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">All Years</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Finished Year Filter -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Finished</label>
+                                <select id="finishedYearFilter" onchange="applyFilters()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">All Years</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Sort Options -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Sort By</label>
+                                <select id="sortBy" onchange="applyFilters()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="name-asc">Name (A-Z)</option>
+                                    <option value="name-desc">Name (Z-A)</option>
+                                    <option value="id-asc">Student ID (A-Z)</option>
+                                    <option value="id-desc">Student ID (Z-A)</option>
+                                    <option value="date-newest">Newest First</option>
+                                    <option value="date-oldest">Oldest First</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="mt-4">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8 overflow-x-auto">
+                        <button onclick="switchTab('active')" id="activeTab" class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">
+                            Active Students (<span id="activeTabCount">0</span>)
+                        </button>
+                        <button onclick="switchTab('inactive')" id="inactiveTab" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            Inactive/Finished (<span id="inactiveTabCount">0</span>)
+                        </button>
+                        <button onclick="switchTab('dropped')" id="droppedTab" class="whitespace-nowrap py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            Dropped (<span id="droppedTabCount">0</span>)
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-3 py-3 text-left">
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        </th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">DOB</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">School</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Class</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Year Enrolled</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Year Finished</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">Contact</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Students will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Classes Section -->
+    <div id="classesSection" class="bg-white rounded-lg shadow-sm border hidden">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-gray-900">Class Management</h2>
+                <button onclick="addClass()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add Class
+                </button>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class Code</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Students</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student List</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="classesTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Classes will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+<!-- Import Modal -->
+<div id="importModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Import Students</h3>
+                    <button onclick="closeImportModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Import Method Tabs -->
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8 px-6">
+                    <button onclick="switchImportTab('bulk')" id="bulkImportTab" class="py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">
+                        📝 Bulk Add
+                    </button>
+                    <button onclick="switchImportTab('file')" id="fileImportTab" class="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                        📄 File Import
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Bulk Add Content -->
+            <div id="bulkImportContent" class="p-6">
+                <div class="mb-4">
+                    <h4 class="text-md font-medium text-gray-900 mb-2">Bulk Add Students</h4>
+                    <p class="text-sm text-gray-600 mb-4">Enter student information in the format below, one student per line:</p>
+                    <div class="bg-gray-50 p-3 rounded-lg text-xs font-mono mb-4">
+                        <strong>Format:</strong> StudentID | Full Name | Date of Birth (YYYY-MM-DD) | School | Class | Status<br>
+                        <strong>Example:</strong><br>
+                        STU001 | John Smith | 2005-03-15 | Lincoln High | Math-101 | Active<br>
+                        STU002 | Jane Doe | 2004-11-22 | Washington High | Science-201 | Active
+                    </div>
+                </div>
+                
+                <form id="bulkImportForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Student Data</label>
+                        <textarea id="bulkStudentData" rows="10" placeholder="Enter student data here..." class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm"></textarea>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-500">
+                            <span id="bulkPreviewCount">0</span> students ready to import
+                        </div>
+                        <div class="flex space-x-3">
+                            <button type="button" onclick="previewBulkImport()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Preview</button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Import Students</button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Preview Area -->
+                <div id="bulkPreviewArea" class="hidden mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h5 class="font-medium text-gray-900 mb-3">Import Preview</h5>
+                    <div id="bulkPreviewList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <!-- File Import Content -->
+            <div id="fileImportContent" class="p-6 hidden">
+                <div class="mb-4">
+                    <h4 class="text-md font-medium text-gray-900 mb-2">Import from File</h4>
+                    <p class="text-sm text-gray-600 mb-4">Upload a CSV or Excel file with student data. The file should have the following columns:</p>
+                    <div class="bg-gray-50 p-3 rounded-lg text-sm mb-4">
+                        <strong>Required columns:</strong> Student ID, Full Name, Date of Birth<br>
+                        <strong>Optional columns:</strong> School, Class Assignment, Status, Year Enrolled, Year Finished, Student Phone, Parent Name, Parent Phone, Emergency Contact
+                    </div>
+                </div>
+                
+                <form id="fileImportForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select File</label>
+                        <input type="file" id="importFile" accept=".csv,.xlsx,.xls" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        <p class="text-xs text-gray-500 mt-1">Supported formats: CSV, Excel (.xlsx, .xls)</p>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-500">
+                            <span id="filePreviewCount">0</span> students detected
+                        </div>
+                        <div class="flex space-x-3">
+                            <button type="button" onclick="previewFileImport()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Preview</button>
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Import Students</button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- File Preview Area -->
+                <div id="filePreviewArea" class="hidden mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h5 class="font-medium text-gray-900 mb-3">File Preview</h5>
+                    <div id="filePreviewList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Class Modal -->
+<div id="classModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900" id="classModalTitle">Add New Class</h3>
+                    <button onclick="closeClassModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="classForm" class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Class Code *</label>
+                        <input type="text" id="classCode" required class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., MATH-101, SCI-201">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Class Type *</label>
+                        <input type="text" id="classType" required class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., Core Subject, Elective, Advanced Placement">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+                        <select id="classStatus" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                        <textarea id="classDescription" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Brief description of the class..."></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200 mt-6">
+                    <button type="button" onclick="closeClassModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Student Modal -->
+<div id="studentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900" id="modalTitle">Add New Student</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="studentForm" class="p-6">
+                <!-- Profile Tabs -->
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="flex space-x-8">
+                        <button type="button" onclick="switchProfileTab('basic')" id="basicProfileTab" class="py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">
+                            📋 Basic Info
+                        </button>
+                        <button type="button" onclick="switchProfileTab('contact')" id="contactProfileTab" class="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            📞 Contact
+                        </button>
+                        <button type="button" onclick="switchProfileTab('progress')" id="progressProfileTab" class="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            📈 Learning Progress
+                        </button>
+
+                        <button type="button" onclick="switchProfileTab('notes')" id="notesProfileTab" class="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                            📝 Notes
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Basic Information Tab -->
+                <div id="basicProfileContent" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Student ID *</label>
+                            <input type="text" id="studentId" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                            <input type="text" id="fullName" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+                            <input type="date" id="dateOfBirth" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">School</label>
+                            <input type="text" id="school" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Assignment</label>
+                            <input type="text" id="classAssignment" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select id="status" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Finished">Finished</option>
+                                <option value="Dropped">Dropped</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Year Enrolled</label>
+                            <input type="number" id="yearEnrolled" min="2000" max="2030" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Year Finished</label>
+                            <input type="number" id="yearFinished" min="2000" max="2030" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information Tab -->
+                <div id="contactProfileContent" class="space-y-4 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Student Phone</label>
+                            <input type="tel" id="studentPhone" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Parent/Guardian Name</label>
+                            <input type="text" id="parentName" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Parent/Guardian Phone</label>
+                            <input type="tel" id="parentPhone" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Emergency Contact</label>
+                            <input type="tel" id="emergencyContact" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- Learning Progress Tab -->
+                <div id="progressProfileContent" class="space-y-4 hidden">
+                    <!-- Student Overview Banner -->
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <h4 class="font-semibold text-gray-900" id="progressStudentName">Student Name</h4>
+                                <p class="text-sm text-gray-600" id="progressStudentId">Student ID</p>
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1" id="progressStudentStatus">Status</span>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">First Lesson</p>
+                                <p class="font-medium" id="progressFirstLesson">Not available</p>
+                                <p class="text-sm text-gray-600 mt-2">Recent Lesson</p>
+                                <p class="font-medium" id="progressRecentLesson">Not available</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Total Lessons</p>
+                                <p class="font-medium text-lg" id="progressTotalLessons">0</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Total Assessments</p>
+                                <div class="flex items-center mt-1">
+                                    <span class="text-2xl font-bold" id="progressOverallScore">--</span>
+                                    <span class="text-sm text-gray-500 ml-1">assessments</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">General Progress & Performance Notes</label>
+                            <textarea id="generalProgress" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Enter general progress observations and performance notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Course Progress Tabs -->
+                    <div class="border-b border-gray-200">
+                        <nav class="flex space-x-8">
+                            <button type="button" onclick="switchCourseProgressTab('inprogress')" id="inprogressCourseTab" class="py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">
+                                📚 In Progress (<span id="inprogressCourseCount">0</span>)
+                            </button>
+                            <button type="button" onclick="switchCourseProgressTab('upcoming')" id="upcomingCourseTab" class="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                                📅 Upcoming (<span id="upcomingCourseCount">0</span>)
+                            </button>
+                            <button type="button" onclick="switchCourseProgressTab('finished')" id="finishedCourseTab" class="py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm">
+                                ✅ Finished (<span id="finishedCourseCount">0</span>)
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Course Progress Content -->
+                    <div id="inprogressCourseContent" class="space-y-2">
+                        <div id="inprogressCoursesList">
+                            <!-- In progress courses will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div id="upcomingCourseContent" class="space-y-2 hidden">
+                        <div id="upcomingCoursesList">
+                            <!-- Upcoming courses will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div id="finishedCourseContent" class="space-y-2 hidden">
+                        <div id="finishedCoursesList">
+                            <!-- Finished courses will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- Additional Notes Tab -->
+                <div id="notesProfileContent" class="space-y-4 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Other Notes & Observations</label>
+                        <textarea id="otherNotes" rows="6" class="w-full border border-gray-300 rounded-lg px-3 py-2"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+<script>
+let students = [];
+let classes = [];
+let editingStudentId = null;
+let editingClassCode = null;
+let currentTab = 'active';
+let selectedStudents = new Set();
+let currentMainTab = 'students';
+let currentProfileTab = 'basic';
+let currentImportTab = 'bulk';
+let currentCourseProgressTab = 'inprogress';
+
+// Vietnamese text normalization for search
+function normalizeVietnamese(text) {
+    if (!text) return '';
+    
+    const vietnameseMap = {
+        'à': 'a', 'á': 'a', 'ạ': 'a', 'ả': 'a', 'ã': 'a', 'â': 'a', 'ầ': 'a', 'ấ': 'a', 'ậ': 'a', 'ẩ': 'a', 'ẫ': 'a', 'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ặ': 'a', 'ẳ': 'a', 'ẵ': 'a',
+        'è': 'e', 'é': 'e', 'ẹ': 'e', 'ẻ': 'e', 'ẽ': 'e', 'ê': 'e', 'ề': 'e', 'ế': 'e', 'ệ': 'e', 'ể': 'e', 'ễ': 'e',
+        'ì': 'i', 'í': 'i', 'ị': 'i', 'ỉ': 'i', 'ĩ': 'i',
+        'ò': 'o', 'ó': 'o', 'ọ': 'o', 'ỏ': 'o', 'õ': 'o', 'ô': 'o', 'ồ': 'o', 'ố': 'o', 'ộ': 'o', 'ổ': 'o', 'ỗ': 'o', 'ơ': 'o', 'ờ': 'o', 'ớ': 'o', 'ợ': 'o', 'ở': 'o', 'ỡ': 'o',
+        'ù': 'u', 'ú': 'u', 'ụ': 'u', 'ủ': 'u', 'ũ': 'u', 'ư': 'u', 'ừ': 'u', 'ứ': 'u', 'ự': 'u', 'ử': 'u', 'ữ': 'u',
+        'ỳ': 'y', 'ý': 'y', 'ỵ': 'y', 'ỷ': 'y', 'ỹ': 'y',
+        'đ': 'd',
+        'À': 'A', 'Á': 'A', 'Ạ': 'A', 'Ả': 'A', 'Ã': 'A', 'Â': 'A', 'Ầ': 'A', 'Ấ': 'A', 'Ậ': 'A', 'Ẩ': 'A', 'Ẫ': 'A', 'Ă': 'A', 'Ằ': 'A', 'Ắ': 'A', 'Ặ': 'A', 'Ẳ': 'A', 'Ẵ': 'A',
+        'È': 'E', 'É': 'E', 'Ẹ': 'E', 'Ẻ': 'E', 'Ẽ': 'E', 'Ê': 'E', 'Ề': 'E', 'Ế': 'E', 'Ệ': 'E', 'Ể': 'E', 'Ễ': 'E',
+        'Ì': 'I', 'Í': 'I', 'Ị': 'I', 'Ỉ': 'I', 'Ĩ': 'I',
+        'Ò': 'O', 'Ó': 'O', 'Ọ': 'O', 'Ỏ': 'O', 'Õ': 'O', 'Ô': 'O', 'Ồ': 'O', 'Ố': 'O', 'Ộ': 'O', 'Ổ': 'O', 'Ỗ': 'O', 'Ơ': 'O', 'Ờ': 'O', 'Ớ': 'O', 'Ợ': 'O', 'Ở': 'O', 'Ỡ': 'O',
+        'Ù': 'U', 'Ú': 'U', 'Ụ': 'U', 'Ủ': 'U', 'Ũ': 'U', 'Ư': 'U', 'Ừ': 'U', 'Ứ': 'U', 'Ự': 'U', 'Ử': 'U', 'Ữ': 'U',
+        'Ỳ': 'Y', 'Ý': 'Y', 'Ỵ': 'Y', 'Ỷ': 'Y', 'Ỹ': 'Y',
+        'Đ': 'D'
+    };
+    
+    return text.split('').map(char => vietnameseMap[char] || char).join('').toLowerCase();
+}
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+    loadStudents();
+    updateAnalytics();
+    updateSyncStatus('connected');
+    initializeFilters();
+    
+    // Set up listeners for external data changes to refresh progress data
+    setupProgressDataListeners();
+});
+
+// Set up listeners for external database changes
+function setupProgressDataListeners() {
+    console.log('🔧 Setting up progress data listeners...');
+    
+    // Listen for attendance changes
+    db.collection('attendance').onSnapshot((snapshot) => {
+        console.log('📊 Attendance data changed, refreshing affected students...');
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added' || change.type === 'modified' || change.type === 'removed') {
+                const data = change.doc.data();
+                const studentId = data.studentId;
+                if (studentId) {
+                    refreshStudentProgressData(studentId);
+                }
+            }
+        });
+    }, (error) => {
+        console.log('❌ Error listening to attendance changes:', error);
+    });
+    
+    // Listen for performance changes
+    db.collection('performance').onSnapshot((snapshot) => {
+        console.log('🎯 Performance data changed, refreshing affected students...');
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added' || change.type === 'modified' || change.type === 'removed') {
+                const data = change.doc.data();
+                const studentId = data.studentId;
+                if (studentId) {
+                    refreshStudentProgressData(studentId);
+                }
+            }
+        });
+    }, (error) => {
+        console.log('❌ Error listening to performance changes:', error);
+    });
+    
+    // Listen for enrollment changes
+    db.collection('enrollment').onSnapshot((snapshot) => {
+        console.log('📄 Enrollment data changed, refreshing affected students...');
+        snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added' || change.type === 'modified' || change.type === 'removed') {
+                const data = change.doc.data();
+                const studentId = data.studentId;
+                if (studentId) {
+                    refreshStudentProgressData(studentId);
+                }
+            }
+        });
+    }, (error) => {
+        console.log('❌ Error listening to enrollment changes:', error);
+    });
+    
+    // Listen for course changes
+    db.collection('courses').onSnapshot((snapshot) => {
+        console.log('📚 Course data changed, refreshing all student progress...');
+        // Course changes might affect all students, so refresh all cached progress data
+        refreshAllStudentProgressData();
+    }, (error) => {
+        console.log('❌ Error listening to course changes:', error);
+    });
+}
+
+// Refresh progress data for a specific student
+async function refreshStudentProgressData(studentId) {
+    console.log('🔄 Refreshing progress data for student ID:', studentId);
+    
+    // Find student by studentId field (not document ID)
+    const student = students.find(s => s.studentId === studentId);
+    if (!student) {
+        console.log('❌ Student not found for refresh:', studentId);
+        return;
+    }
+    
+    try {
+        // Load fresh progress data
+        await loadFreshProgressData(student);
+        console.log('✅ Progress data refreshed for student:', studentId);
+        
+        // If the student profile is currently open, refresh the display
+        if (editingStudentId === student.id) {
+            console.log('🔄 Refreshing currently open student profile...');
+            loadStudentProgress(student.id);
+        }
+    } catch (error) {
+        console.log('❌ Error refreshing student progress data:', error);
+    }
+}
+
+// Refresh progress data for all students
+async function refreshAllStudentProgressData() {
+    console.log('🔄 Refreshing progress data for all students...');
+    
+    // Use a delay to avoid overwhelming the system
+    for (let i = 0; i < students.length; i++) {
+        const student = students[i];
+        try {
+            await loadFreshProgressData(student);
+            console.log(`✅ Progress data refreshed for student ${i + 1}/${students.length}: ${student.studentId}`);
+            
+            // Add a small delay between refreshes
+            if (i < students.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        } catch (error) {
+            console.log(`❌ Error refreshing progress for student ${student.studentId}:`, error);
+        }
+    }
+    
+    console.log('✅ All student progress data refresh completed');
+    
+    // If any student profile is currently open, refresh the display
+    if (editingStudentId) {
+        console.log('🔄 Refreshing currently open student profile...');
+        loadStudentProgress(editingStudentId);
+    }
+}
+
+// Generate next student document ID
+async function generateStudentId() {
+    try {
+        const snapshot = await db.collection('students').get();
+        let maxNumber = 0;
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.documentId && data.documentId.startsWith('student_')) {
+                const number = parseInt(data.documentId.replace('student_', ''));
+                if (number > maxNumber) {
+                    maxNumber = number;
+                }
+            }
+        });
+        
+        const nextNumber = maxNumber + 1;
+        return `student_${nextNumber.toString().padStart(4, '0')}`;
+    } catch (error) {
+        console.error('Error generating student ID:', error);
+        return `student_${Date.now()}`;
+    }
+}
+
+// Update sync status
+function updateSyncStatus(status) {
+    const syncIcon = document.getElementById('syncIcon');
+    const syncText = document.getElementById('syncText');
+    const syncIndicator = document.getElementById('syncIndicator');
+    
+    switch (status) {
+        case 'connected':
+            syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-green-500';
+            syncText.textContent = 'Connected';
+            syncIndicator.className = 'flex items-center px-3 py-2 rounded-lg text-xs border border-green-200 bg-green-50 text-green-700';
+            break;
+        case 'syncing':
+            syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-yellow-500 animate-pulse';
+            syncText.textContent = 'Syncing...';
+            syncIndicator.className = 'flex items-center px-3 py-2 rounded-lg text-xs border border-yellow-200 bg-yellow-50 text-yellow-700';
+            break;
+        case 'error':
+            syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-red-500';
+            syncText.textContent = 'Error';
+            syncIndicator.className = 'flex items-center px-3 py-2 rounded-lg text-xs border border-red-200 bg-red-50 text-red-700';
+            break;
+    }
+}
+
+// Load students from Firebase
+async function loadStudents() {
+    try {
+        updateSyncStatus('syncing');
+        const snapshot = await db.collection('students').orderBy('fullName').get();
+        students = [];
+        snapshot.forEach(doc => {
+            students.push({ id: doc.id, ...doc.data() });
+        });
+        displayStudents();
+        updateAnalytics();
+        updateTabCounts();
+        updateFilterOptions();
+        updateSyncStatus('connected');
+    } catch (error) {
+        console.error('Error loading students:', error);
+        updateSyncStatus('error');
+        alert('Error loading students. Please try again.');
+    }
+}
+
+// Initialize filter dropdowns
+function initializeFilters() {
+    updateFilterOptions();
+}
+
+// Update filter dropdown options based on current data
+function updateFilterOptions() {
+    // Update class filter
+    const classFilter = document.getElementById('classFilter');
+    const classes = [...new Set(students.filter(s => s.classAssignment).map(s => s.classAssignment))].sort();
+    classFilter.innerHTML = '<option value="">All Classes</option>';
+    classes.forEach(className => {
+        const option = document.createElement('option');
+        option.value = className;
+        option.textContent = className;
+        classFilter.appendChild(option);
+    });
+    
+    // Update enrollment year filter
+    const enrollmentYearFilter = document.getElementById('enrollmentYearFilter');
+    const enrollmentYears = [...new Set(students.filter(s => s.yearEnrolled).map(s => s.yearEnrolled))].sort((a, b) => b - a);
+    enrollmentYearFilter.innerHTML = '<option value="">All Years</option>';
+    enrollmentYears.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        enrollmentYearFilter.appendChild(option);
+    });
+    
+    // Update finished year filter
+    const finishedYearFilter = document.getElementById('finishedYearFilter');
+    const finishedYears = [...new Set(students.filter(s => s.yearFinished).map(s => s.yearFinished))].sort((a, b) => b - a);
+    finishedYearFilter.innerHTML = '<option value="">All Years</option>';
+    finishedYears.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        finishedYearFilter.appendChild(option);
+    });
+}
+
+// Get filtered students based on current tab and filters
+function getFilteredStudents() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const classFilter = document.getElementById('classFilter').value;
+    const enrollmentYearFilter = document.getElementById('enrollmentYearFilter').value;
+    const finishedYearFilter = document.getElementById('finishedYearFilter').value;
+    const sortBy = document.getElementById('sortBy').value;
+    
+    let filteredStudents = students;
+    
+    // Filter by tab (only if no status filter is applied)
+    if (!statusFilter) {
+        switch (currentTab) {
+            case 'active':
+                filteredStudents = students.filter(s => s.status === 'Active');
+                break;
+            case 'inactive':
+                filteredStudents = students.filter(s => s.status === 'Inactive' || s.status === 'Finished');
+                break;
+            case 'dropped':
+                filteredStudents = students.filter(s => s.status === 'Dropped');
+                break;
+        }
+    }
+    
+    // Apply status filter
+    if (statusFilter) {
+        filteredStudents = filteredStudents.filter(s => s.status === statusFilter);
+    }
+    
+    // Apply class filter
+    if (classFilter) {
+        filteredStudents = filteredStudents.filter(s => s.classAssignment === classFilter);
+    }
+    
+    // Apply enrollment year filter
+    if (enrollmentYearFilter) {
+        filteredStudents = filteredStudents.filter(s => s.yearEnrolled == enrollmentYearFilter);
+    }
+    
+    // Apply finished year filter
+    if (finishedYearFilter) {
+        filteredStudents = filteredStudents.filter(s => s.yearFinished == finishedYearFilter);
+    }
+    
+    // Apply search filter with Vietnamese normalization
+    if (searchTerm) {
+        const normalizedSearchTerm = normalizeVietnamese(searchTerm);
+        filteredStudents = filteredStudents.filter(student => {
+            const searchableFields = [
+                student.fullName,
+                student.studentId,
+                student.school,
+                student.classAssignment,
+                student.studentPhone,
+                student.parentName,
+                student.parentPhone,
+                student.emergencyContact
+            ];
+            
+            return searchableFields.some(field => {
+                if (!field) return false;
+                const normalizedField = normalizeVietnamese(field.toString());
+                return normalizedField.includes(normalizedSearchTerm);
+            });
+        });
+    }
+    
+    // Apply sorting
+    filteredStudents.sort((a, b) => {
+        switch (sortBy) {
+            case 'name-asc':
+                return normalizeVietnamese(a.fullName || '').localeCompare(normalizeVietnamese(b.fullName || ''));
+            case 'name-desc':
+                return normalizeVietnamese(b.fullName || '').localeCompare(normalizeVietnamese(a.fullName || ''));
+            case 'id-asc':
+                return (a.studentId || '').localeCompare(b.studentId || '');
+            case 'id-desc':
+                return (b.studentId || '').localeCompare(a.studentId || '');
+            case 'date-newest':
+                return new Date(b.createdAt?.toDate() || 0) - new Date(a.createdAt?.toDate() || 0);
+            case 'date-oldest':
+                return new Date(a.createdAt?.toDate() || 0) - new Date(b.createdAt?.toDate() || 0);
+            default:
+                return normalizeVietnamese(a.fullName || '').localeCompare(normalizeVietnamese(b.fullName || ''));
+        }
+    });
+    
+    return filteredStudents;
+}
+
+// Display students in the table
+function displayStudents() {
+    const tbody = document.getElementById('studentTableBody');
+    const studentsToShow = getFilteredStudents();
+    tbody.innerHTML = '';
+
+    if (studentsToShow.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="11" class="px-6 py-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center">
+                        <svg class="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <p class="text-lg font-medium">No students found</p>
+                        <p class="text-sm">Add your first student to get started</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    studentsToShow.forEach(student => {
+        const statusColor = getStatusColor(student.status);
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 cursor-pointer';
+        row.setAttribute('data-student-id', student.id);
+        row.addEventListener('click', function(e) {
+            // Don't open profile if clicking on checkbox or action buttons
+            if (e.target.type === 'checkbox' || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                return;
+            }
+            viewStudentProfile(student.id);
+        });
+        
+        row.innerHTML = `
+            <td class="px-3 py-4" onclick="event.stopPropagation()">
+                <input type="checkbox" class="student-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                       value="${student.id}" onchange="toggleStudentSelection('${student.id}')">
+            </td>
+            <td class="px-3 py-4 text-sm text-gray-900">${student.studentId || 'N/A'}</td>
+            <td class="px-3 py-4 text-sm font-medium text-gray-900">${student.fullName || 'N/A'}</td>
+            <td class="px-3 py-4">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">
+                    ${student.status || 'Unknown'}
+                </span>
+            </td>
+            <td class="px-3 py-4 text-sm text-gray-500 hidden sm:table-cell">${formatDateToDDMMYYYY(student.dateOfBirth) || 'N/A'}</td>
+            <td class="px-3 py-4 text-sm text-gray-500 hidden md:table-cell">${student.school || 'N/A'}</td>
+            <td class="px-3 py-4 text-sm text-gray-500 hidden md:table-cell">${student.classAssignment || 'N/A'}</td>
+            <td class="px-3 py-4 text-sm text-gray-500 hidden lg:table-cell">${student.yearEnrolled || 'N/A'}</td>
+            <td class="px-3 py-4 text-sm text-gray-500 hidden lg:table-cell">${student.yearFinished || 'N/A'}</td>
+            <td class="px-3 py-4 text-sm text-gray-500 hidden xl:table-cell">${student.studentPhone || student.parentPhone || 'N/A'}</td>
+            <td class="px-3 py-4 text-sm font-medium" onclick="event.stopPropagation()">
+                <div class="flex space-x-2">
+                    <button onclick="editStudent('${student.id}')" class="text-blue-600 hover:text-blue-900 text-xs">Edit</button>
+                    <button onclick="changeStatus('${student.id}')" class="text-green-600 hover:text-green-900 text-xs">Status</button>
+                    <button onclick="deleteStudent('${student.id}')" class="text-red-600 hover:text-red-900 text-xs">Delete</button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    updateBulkActionButtons();
+}
+
+// Get status color classes
+function getStatusColor(status) {
+    switch (status) {
+        case 'Active': return 'bg-green-100 text-green-800';
+        case 'Inactive': return 'bg-gray-100 text-gray-800';
+        case 'Finished': return 'bg-blue-100 text-blue-800';
+        case 'Dropped': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+// Get class status color classes
+function getClassStatusColor(status) {
+    switch (status) {
+        case 'Active': return 'bg-green-100 text-green-800';
+        case 'Inactive': return 'bg-gray-100 text-gray-800';
+        case 'Completed': return 'bg-blue-100 text-blue-800';
+        case 'Cancelled': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+// Update analytics dashboard
+function updateAnalytics() {
+    const total = students.length;
+    const active = students.filter(s => s.status === 'Active').length;
+    const classes = new Set(students.filter(s => s.classAssignment).map(s => s.classAssignment)).size;
+
+    // Update summary in header
+    document.getElementById('totalStudents').textContent = total;
+    document.getElementById('activeStudents').textContent = active;
+    document.getElementById('classesCount').textContent = classes;
+}
+
+// Toggle filters panel
+function toggleFilters() {
+    const panel = document.getElementById('filterPanel');
+    const btn = document.getElementById('filterToggleBtn');
+    
+    if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        btn.classList.add('bg-blue-50', 'border-blue-300', 'text-blue-700');
+    } else {
+        panel.classList.add('hidden');
+        btn.classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-700');
+    }
+}
+
+// Format date to DD/MM/YYYY
+function formatDateToDDMMYYYY(dateString) {
+    if (!dateString) return '';
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString; // Return original if invalid
+        
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        
+        return `${day}/${month}/${year}`;
+    } catch (error) {
+        return dateString; // Return original if error
+    }
+}
+
+// Update tab counts
+function updateTabCounts() {
+    const activeCount = students.filter(s => s.status === 'Active').length;
+    const inactiveCount = students.filter(s => s.status === 'Inactive' || s.status === 'Finished').length;
+    const droppedCount = students.filter(s => s.status === 'Dropped').length;
+    
+    document.getElementById('activeTabCount').textContent = activeCount;
+    document.getElementById('inactiveTabCount').textContent = inactiveCount;
+    document.getElementById('droppedTabCount').textContent = droppedCount;
+}
+
+// Show create form
+function showCreateForm() {
+    editingStudentId = null;
+    document.getElementById('modalTitle').textContent = 'Add New Student';
+    document.getElementById('studentForm').reset();
+    document.getElementById('studentModal').classList.remove('hidden');
+}
+
+// Edit student
+function editStudent(studentId) {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    editingStudentId = studentId;
+    document.getElementById('modalTitle').textContent = 'Edit Student';
+    
+    // Populate form fields with null checks
+    const setFieldValue = (fieldId, value) => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = value || '';
+        }
+    };
+    
+    setFieldValue('studentId', student.studentId);
+    setFieldValue('fullName', student.fullName);
+    setFieldValue('dateOfBirth', student.dateOfBirth);
+    setFieldValue('school', student.school);
+    setFieldValue('classAssignment', student.classAssignment);
+    setFieldValue('status', student.status || 'Active');
+    setFieldValue('yearEnrolled', student.yearEnrolled);
+    setFieldValue('yearFinished', student.yearFinished);
+    setFieldValue('studentPhone', student.studentPhone);
+    setFieldValue('parentName', student.parentName);
+    setFieldValue('parentPhone', student.parentPhone);
+    setFieldValue('emergencyContact', student.emergencyContact);
+    setFieldValue('otherNotes', student.otherNotes);
+    setFieldValue('generalProgress', student.generalProgress);
+    setFieldValue('generalPerformance', student.generalPerformance);
+    
+    document.getElementById('studentModal').classList.remove('hidden');
+}
+
+// Delete student
+async function deleteStudent(studentId) {
+    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        await db.collection('students').doc(studentId).delete();
+        await loadStudents();
+        alert('Student deleted successfully!');
+    } catch (error) {
+        console.error('Error deleting student:', error);
+        alert('Error deleting student. Please try again.');
+    }
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('studentModal').classList.add('hidden');
+    editingStudentId = null;
+}
+
+// Switch tabs
+function switchTab(tab) {
+    currentTab = tab;
+    selectedStudents.clear();
+    
+    // Update tab styling
+    document.querySelectorAll('[id$="Tab"]').forEach(tabBtn => {
+        tabBtn.className = 'whitespace-nowrap py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+    });
+    
+    document.getElementById(tab + 'Tab').className = 'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600';
+    
+    displayStudents();
+    updateBulkActionButtons();
+}
+
+// Toggle student selection
+function toggleStudentSelection(studentId) {
+    if (selectedStudents.has(studentId)) {
+        selectedStudents.delete(studentId);
+    } else {
+        selectedStudents.add(studentId);
+    }
+    updateBulkActionButtons();
+}
+
+// Toggle select all
+function toggleSelectAll() {
+    const checkbox = document.getElementById('selectAllCheckbox');
+    const filteredStudents = getFilteredStudents();
+    
+    if (checkbox.checked) {
+        filteredStudents.forEach(student => selectedStudents.add(student.id));
+    } else {
+        selectedStudents.clear();
+    }
+    
+    // Update individual checkboxes
+    document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    
+    updateBulkActionButtons();
+}
+
+// Update bulk action buttons
+function updateBulkActionButtons() {
+    const bulkActionBtn = document.getElementById('bulkActionBtn');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    
+    if (selectedStudents.size > 0) {
+        bulkActionBtn.classList.remove('hidden');
+        selectAllBtn.classList.remove('hidden');
+    } else {
+        bulkActionBtn.classList.add('hidden');
+        selectAllBtn.classList.add('hidden');
+    }
+    
+    // Update select all checkbox state
+    const filteredStudents = getFilteredStudents();
+    const allSelected = filteredStudents.length > 0 && filteredStudents.every(s => selectedStudents.has(s.id));
+    selectAllCheckbox.checked = allSelected;
+}
+
+// View student profile (opens edit modal)
+function viewStudentProfile(studentId) {
+    editStudent(studentId);
+}
+
+// Change student status
+async function changeStatus(studentId) {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+    
+    const newStatus = prompt(`Change status for ${student.fullName}:\n\nCurrent: ${student.status}\n\nEnter new status (Active, Inactive, Finished, Dropped):`, student.status);
+    
+    if (newStatus && ['Active', 'Inactive', 'Finished', 'Dropped'].includes(newStatus)) {
+        try {
+            updateSyncStatus('syncing');
+            await db.collection('students').doc(studentId).update({
+                status: newStatus,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await loadStudents();
+            alert('Status updated successfully!');
+        } catch (error) {
+            console.error('Error updating status:', error);
+            updateSyncStatus('error');
+            alert('Error updating status. Please try again.');
+        }
+    }
+}
+
+// Handle form submission
+document.getElementById('studentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    try {
+        updateSyncStatus('syncing');
+        
+        const documentId = editingStudentId || await generateStudentId();
+        
+        const studentData = {
+            studentId: document.getElementById('studentId').value,
+            fullName: document.getElementById('fullName').value,
+            dateOfBirth: document.getElementById('dateOfBirth').value,
+            school: document.getElementById('school').value,
+            classAssignment: document.getElementById('classAssignment').value,
+            status: document.getElementById('status').value,
+            yearEnrolled: parseInt(document.getElementById('yearEnrolled').value) || null,
+            yearFinished: parseInt(document.getElementById('yearFinished').value) || null,
+            studentPhone: document.getElementById('studentPhone').value,
+            parentName: document.getElementById('parentName').value,
+            parentPhone: document.getElementById('parentPhone').value,
+            emergencyContact: document.getElementById('emergencyContact').value,
+            otherNotes: document.getElementById('otherNotes').value,
+            generalProgress: document.getElementById('generalProgress').value,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (editingStudentId) {
+            // Update existing student
+            await db.collection('students').doc(editingStudentId).update(studentData);
+            alert('Student updated successfully!');
+        } else {
+            // Add new student with generated document ID and additional fields
+            studentData.documentId = documentId;
+            studentData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('students').doc(documentId).set(studentData);
+            alert('Student added successfully!');
+        }
+        
+        closeModal();
+        await loadStudents();
+        updateSyncStatus('connected');
+    } catch (error) {
+        console.error('Error saving student:', error);
+        updateSyncStatus('error');
+        alert('Error saving student. Please try again.');
+    }
+});
+
+// Search students
+function searchStudents() {
+    displayStudents();
+}
+
+// Apply all filters
+function applyFilters() {
+    displayStudents();
+}
+
+// Clear all filters
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('classFilter').value = '';
+    document.getElementById('enrollmentYearFilter').value = '';
+    document.getElementById('finishedYearFilter').value = '';
+    document.getElementById('sortBy').value = 'name-asc';
+    displayStudents();
+}
+
+// Bulk actions
+function toggleBulkActions() {
+    if (selectedStudents.size === 0) return;
+    
+    const actions = ['Change Status to Active', 'Change Status to Inactive', 'Change Status to Finished', 'Change Status to Dropped', 'Delete Selected'];
+    const action = prompt(`Bulk Actions for ${selectedStudents.size} students:\n\n` + actions.map((a, i) => `${i + 1}. ${a}`).join('\n') + '\n\nEnter number (1-5):');
+    
+    if (action && action >= 1 && action <= 5) {
+        const actionIndex = parseInt(action) - 1;
+        
+        if (actionIndex < 4) {
+            const statuses = ['Active', 'Inactive', 'Finished', 'Dropped'];
+            bulkChangeStatus(statuses[actionIndex]);
+        } else {
+            bulkDelete();
+        }
+    }
+}
+
+// Bulk change status
+async function bulkChangeStatus(newStatus) {
+    if (!confirm(`Change status to "${newStatus}" for ${selectedStudents.size} students?`)) return;
+    
+    try {
+        updateSyncStatus('syncing');
+        const batch = db.batch();
+        
+        selectedStudents.forEach(studentId => {
+            const docRef = db.collection('students').doc(studentId);
+            batch.update(docRef, {
+                status: newStatus,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        
+        await batch.commit();
+        selectedStudents.clear();
+        await loadStudents();
+        alert(`Status updated for ${selectedStudents.size} students!`);
+    } catch (error) {
+        console.error('Error updating status:', error);
+        updateSyncStatus('error');
+        alert('Error updating status. Please try again.');
+    }
+}
+
+// Bulk delete
+async function bulkDelete() {
+    if (!confirm(`Delete ${selectedStudents.size} students? This action cannot be undone.`)) return;
+    
+    try {
+        updateSyncStatus('syncing');
+        const batch = db.batch();
+        
+        selectedStudents.forEach(studentId => {
+            const docRef = db.collection('students').doc(studentId);
+            batch.delete(docRef);
+        });
+        
+        await batch.commit();
+        selectedStudents.clear();
+        await loadStudents();
+        alert(`${selectedStudents.size} students deleted!`);
+    } catch (error) {
+        console.error('Error deleting students:', error);
+        updateSyncStatus('error');
+        alert('Error deleting students. Please try again.');
+    }
+}
+
+// Select all visible students
+function selectAll() {
+    const filteredStudents = getFilteredStudents();
+    filteredStudents.forEach(student => selectedStudents.add(student.id));
+    
+    document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.checked = true;
+    });
+    
+    document.getElementById('selectAllCheckbox').checked = true;
+    updateBulkActionButtons();
+}
+
+// Switch main tabs (Students/Classes)
+function switchMainTab(tab) {
+    currentMainTab = tab;
+    
+    // Update tab styling
+    document.getElementById('studentsMainTab').className = 'py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+    document.getElementById('classesMainTab').className = 'py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+    
+    document.getElementById(tab + 'MainTab').className = 'py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600';
+    
+    // Show/hide sections
+    document.getElementById('studentsSection').classList.toggle('hidden', tab !== 'students');
+    document.getElementById('classesSection').classList.toggle('hidden', tab !== 'classes');
+    
+    if (tab === 'classes') {
+        loadClasses();
+    }
+}
+
+// Switch profile tabs
+function switchProfileTab(tab) {
+    currentProfileTab = tab;
+    
+    // Update tab styling
+    const tabs = ['basic', 'contact', 'progress', 'notes'];
+    tabs.forEach(t => {
+        document.getElementById(t + 'ProfileTab').className = 'py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+        document.getElementById(t + 'ProfileContent').classList.add('hidden');
+    });
+    
+    document.getElementById(tab + 'ProfileTab').className = 'py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600';
+    document.getElementById(tab + 'ProfileContent').classList.remove('hidden');
+    
+    // Load progress data when switching to progress tab
+    if (tab === 'progress' && editingStudentId) {
+        loadStudentProgress(editingStudentId);
+    }
+}
+
+// Load and display classes
+async function loadClasses() {
+    try {
+        updateSyncStatus('syncing');
+        const snapshot = await db.collection('classes').orderBy('code').get();
+        classes = [];
+        snapshot.forEach(doc => {
+            classes.push({ id: doc.id, ...doc.data() });
+        });
+        
+        const classesTableBody = document.getElementById('classesTableBody');
+        classesTableBody.innerHTML = '';
+        
+        if (classes.length === 0) {
+            classesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                        <div class="flex flex-col items-center">
+                            <svg class="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                            <p class="text-lg font-medium">No classes found</p>
+                            <p class="text-sm">Add your first class to get started</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            updateSyncStatus('connected');
+            return;
+        }
+        
+        classes.forEach((classData, index) => {
+            const studentsInClass = students.filter(s => s.classAssignment === classData.code);
+            const statusColor = getClassStatusColor(classData.status);
+            
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">${classData.code}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${classData.type || 'General'}</td>
+                <td class="px-6 py-4 text-sm text-gray-900">${studentsInClass.length}</td>
+                <td class="px-6 py-4 text-sm">
+                    <button onclick="toggleStudentList('class-${index}')" class="flex items-center text-blue-600 hover:text-blue-900">
+                        <svg id="expand-icon-class-${index}" class="w-4 h-4 mr-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                        View Students
+                    </button>
+                    <div id="student-list-class-${index}" class="hidden mt-2 p-3 bg-gray-50 rounded-lg">
+                        <div class="space-y-1">
+                            ${studentsInClass.map(student => `
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-medium">${student.fullName}</span>
+                                    <span class="text-gray-500">${student.studentId}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">
+                        ${classData.status}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-sm font-medium">
+                    <div class="flex space-x-2">
+                        <button onclick="editClass('${classData.code}')" class="text-blue-600 hover:text-blue-900 text-xs">Edit</button>
+                        <button onclick="deleteClass('${classData.code}')" class="text-red-600 hover:text-red-900 text-xs">Delete</button>
+                    </div>
+                </td>
+            `;
+            classesTableBody.appendChild(row);
+        });
+        
+        updateSyncStatus('connected');
+    } catch (error) {
+        console.error('Error loading classes:', error);
+        updateSyncStatus('error');
+        alert('Error loading classes. Please try again.');
+    }
+}
+
+// View students in a specific class
+function viewClassStudents(className) {
+    switchMainTab('students');
+    document.getElementById('searchInput').value = className;
+    searchStudents();
+}
+
+// Toggle student list visibility
+function toggleStudentList(classId) {
+    const studentList = document.getElementById(`student-list-${classId}`);
+    const expandIcon = document.getElementById(`expand-icon-${classId}`);
+    
+    if (studentList.classList.contains('hidden')) {
+        studentList.classList.remove('hidden');
+        expandIcon.classList.add('rotate-90');
+    } else {
+        studentList.classList.add('hidden');
+        expandIcon.classList.remove('rotate-90');
+    }
+}
+
+// Edit class
+function editClass(classCode) {
+    const classData = classes.find(c => c.code === classCode);
+    if (!classData) return;
+
+    editingClassCode = classCode;
+    document.getElementById('classModalTitle').textContent = 'Edit Class';
+    
+    // Populate form fields
+    document.getElementById('classCode').value = classData.code || '';
+    document.getElementById('classType').value = classData.type || '';
+    document.getElementById('classStatus').value = classData.status || 'Active';
+    document.getElementById('classDescription').value = classData.description || '';
+    
+    document.getElementById('classModal').classList.remove('hidden');
+}
+
+// Delete class
+async function deleteClass(classCode) {
+    const studentsInClass = students.filter(s => s.classAssignment === classCode);
+    if (studentsInClass.length > 0) {
+        if (!confirm(`This class has ${studentsInClass.length} students. Deleting will remove the class assignment from all students. Continue?`)) {
+            return;
+        }
+        await removeClassFromStudents(classCode);
+    }
+    
+    try {
+        updateSyncStatus('syncing');
+        await db.collection('classes').doc(classCode).delete();
+        await loadClasses();
+        alert('Class deleted successfully!');
+    } catch (error) {
+        console.error('Error deleting class:', error);
+        updateSyncStatus('error');
+        alert('Error deleting class. Please try again.');
+    }
+}
+
+// Remove class assignment from students
+async function removeClassFromStudents(className) {
+    try {
+        updateSyncStatus('syncing');
+        const batch = db.batch();
+        
+        const studentsToUpdate = students.filter(s => s.classAssignment === className);
+        studentsToUpdate.forEach(student => {
+            const docRef = db.collection('students').doc(student.id);
+            batch.update(docRef, {
+                classAssignment: '',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        
+        await batch.commit();
+        await loadStudents();
+    } catch (error) {
+        console.error('Error removing class from students:', error);
+        updateSyncStatus('error');
+        throw error;
+    }
+}
+
+// Add new class
+function addClass() {
+    editingClassCode = null;
+    document.getElementById('classModalTitle').textContent = 'Add New Class';
+    document.getElementById('classForm').reset();
+    document.getElementById('classModal').classList.remove('hidden');
+}
+
+// Import students
+function importStudents() {
+    document.getElementById('importModal').classList.remove('hidden');
+    switchImportTab('bulk'); // Default to bulk import
+}
+
+// Export students (placeholder)
+function exportStudents() {
+    if (students.length === 0) {
+        alert('No students to export.');
+        return;
+    }
+    
+    const csvContent = "data:text/csv;charset=utf-8," 
+        + "Student ID,Full Name,Date of Birth,School,Class,Status,Year Enrolled,Year Finished,Student Phone,Parent Name,Parent Phone,Emergency Contact\n"
+        + students.map(s => [
+            s.studentId || '',
+            s.fullName || '',
+            s.dateOfBirth || '',
+            s.school || '',
+            s.classAssignment || '',
+            s.status || '',
+            s.yearEnrolled || '',
+            s.yearFinished || '',
+            s.studentPhone || '',
+            s.parentName || '',
+            s.parentPhone || '',
+            s.emergencyContact || ''
+        ].map(field => `"${field}"`).join(',')).join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "students_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert('Student data exported successfully!');
+}
+
+// Import Modal Functions
+function closeImportModal() {
+    document.getElementById('importModal').classList.add('hidden');
+    document.getElementById('bulkStudentData').value = '';
+    document.getElementById('importFile').value = '';
+    document.getElementById('bulkPreviewArea').classList.add('hidden');
+    document.getElementById('filePreviewArea').classList.add('hidden');
+}
+
+function switchImportTab(tab) {
+    currentImportTab = tab;
+    
+    // Update tab styling
+    document.getElementById('bulkImportTab').className = 'py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+    document.getElementById('fileImportTab').className = 'py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+    
+    document.getElementById(tab + 'ImportTab').className = 'py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600';
+    
+    // Show/hide content
+    document.getElementById('bulkImportContent').classList.toggle('hidden', tab !== 'bulk');
+    document.getElementById('fileImportContent').classList.toggle('hidden', tab !== 'file');
+}
+
+function previewBulkImport() {
+    const data = document.getElementById('bulkStudentData').value.trim();
+    if (!data) {
+        alert('Please enter student data first.');
+        return;
+    }
+    
+    const lines = data.split('\n').filter(line => line.trim());
+    const previewList = document.getElementById('bulkPreviewList');
+    const previewArea = document.getElementById('bulkPreviewArea');
+    const previewCount = document.getElementById('bulkPreviewCount');
+    
+    previewList.innerHTML = '';
+    let validCount = 0;
+    
+    lines.forEach((line, index) => {
+        const parts = line.split('|').map(part => part.trim());
+        if (parts.length >= 3) {
+            validCount++;
+            const div = document.createElement('div');
+            div.className = 'text-sm p-2 bg-white rounded border';
+            div.innerHTML = `
+                <strong>${parts[1] || 'Unknown'}</strong> (${parts[0] || 'No ID'})
+                <span class="text-gray-500 ml-2">${parts[2] || 'No DOB'} • ${parts[3] || 'No School'} • ${parts[4] || 'No Class'}</span>
+            `;
+            previewList.appendChild(div);
+        } else {
+            const div = document.createElement('div');
+            div.className = 'text-sm p-2 bg-red-50 rounded border border-red-200 text-red-700';
+            div.innerHTML = `<strong>Line ${index + 1}:</strong> Invalid format - ${line}`;
+            previewList.appendChild(div);
+        }
+    });
+    
+    previewCount.textContent = validCount;
+    previewArea.classList.remove('hidden');
+}
+
+function previewFileImport() {
+    const fileInput = document.getElementById('importFile');
+    if (!fileInput.files[0]) {
+        alert('Please select a file first.');
+        return;
+    }
+    
+    // For demo purposes, show placeholder preview
+    const previewList = document.getElementById('filePreviewList');
+    const previewArea = document.getElementById('filePreviewArea');
+    const previewCount = document.getElementById('filePreviewCount');
+    
+    previewList.innerHTML = `
+        <div class="text-sm p-2 bg-yellow-50 rounded border border-yellow-200 text-yellow-700">
+            <strong>File Preview:</strong> This is a demo preview. In a full implementation, the file would be parsed here.
+        </div>
+    `;
+    
+    previewCount.textContent = '0 (Demo)';
+    previewArea.classList.remove('hidden');
+}
+
+// Handle bulk import form submission
+document.getElementById('bulkImportForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = document.getElementById('bulkStudentData').value.trim();
+    if (!data) {
+        alert('Please enter student data first.');
+        return;
+    }
+    
+    const lines = data.split('\n').filter(line => line.trim());
+    let successCount = 0;
+    let errorCount = 0;
+    
+    try {
+        updateSyncStatus('syncing');
+        
+        for (const line of lines) {
+            const parts = line.split('|').map(part => part.trim());
+            if (parts.length >= 3) {
+                try {
+                    const documentId = await generateStudentId();
+                    const studentData = {
+                        documentId: documentId,
+                        studentId: parts[0] || '',
+                        fullName: parts[1] || '',
+                        dateOfBirth: parts[2] || '',
+                        school: parts[3] || '',
+                        classAssignment: parts[4] || '',
+                        status: parts[5] || 'Active',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    await db.collection('students').doc(documentId).set(studentData);
+                    successCount++;
+                } catch (error) {
+                    console.error('Error importing student:', error);
+                    errorCount++;
+                }
+            } else {
+                errorCount++;
+            }
+        }
+        
+        closeImportModal();
+        await loadStudents();
+        alert(`Import completed!\nSuccessful: ${successCount}\nErrors: ${errorCount}`);
+    } catch (error) {
+        console.error('Error during bulk import:', error);
+        updateSyncStatus('error');
+        alert('Error during import. Please try again.');
+    }
+});
+
+// Handle file import form submission
+document.getElementById('fileImportForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert('File import functionality will be fully implemented in a future update. Please use bulk import for now.');
+});
+
+// Class Modal Functions
+function closeClassModal() {
+    document.getElementById('classModal').classList.add('hidden');
+    editingClassCode = null;
+}
+
+// Handle class form submission
+document.getElementById('classForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const newClassCode = document.getElementById('classCode').value;
+    const classData = {
+        code: newClassCode,
+        type: document.getElementById('classType').value,
+        status: document.getElementById('classStatus').value,
+        description: document.getElementById('classDescription').value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    try {
+        updateSyncStatus('syncing');
+        
+        if (editingClassCode) {
+            // Check if class code changed
+            if (editingClassCode !== newClassCode) {
+                // Update all students with the old class code to use the new one
+                const studentsToUpdate = students.filter(s => s.classAssignment === editingClassCode);
+                if (studentsToUpdate.length > 0) {
+                    const batch = db.batch();
+                    studentsToUpdate.forEach(student => {
+                        const docRef = db.collection('students').doc(student.id);
+                        batch.update(docRef, {
+                            classAssignment: newClassCode,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    });
+                    await batch.commit();
+                }
+                
+                // Delete old class document and create new one
+                await db.collection('classes').doc(editingClassCode).delete();
+                classData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection('classes').doc(newClassCode).set(classData);
+            } else {
+                // Update existing class
+                await db.collection('classes').doc(editingClassCode).update(classData);
+            }
+            alert('Class updated successfully!');
+        } else {
+            // Add new class
+            classData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('classes').doc(newClassCode).set(classData);
+            alert('Class added successfully!');
+        }
+        
+        closeClassModal();
+        await loadStudents(); // Reload students to reflect any class code changes
+        await loadClasses();
+    } catch (error) {
+        console.error('Error saving class:', error);
+        updateSyncStatus('error');
+        alert('Error saving class. Please try again.');
+    }
+});
+
+// Load student progress data
+async function loadStudentProgress(studentId) {
+    console.log('🚀 DEBUG: Starting loadStudentProgress for student:', studentId);
+    
+    const student = students.find(s => s.id === studentId);
+    if (!student) {
+        console.log('❌ Student not found in students array');
+        return;
+    }
+    
+    console.log('👤 Student found:', student);
+    console.log('🆔 Student ID from record:', student.studentId);
+    
+    // Update student overview
+    document.getElementById('progressStudentName').textContent = student.fullName || 'Unknown';
+    document.getElementById('progressStudentId').textContent = student.studentId || 'No ID';
+    
+    const statusElement = document.getElementById('progressStudentStatus');
+    statusElement.textContent = student.status || 'Unknown';
+    statusElement.className = `inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1 ${getStatusColor(student.status)}`;
+    
+    document.getElementById('generalProgress').value = student.generalProgress || '';
+    
+    // Check if we have cached progress data in the student record
+    if (student.progressData && student.progressData.lastUpdated) {
+        console.log('📊 Using cached progress data from student record');
+        displayCachedProgressData(student.progressData);
+        
+        // Try to refresh data in background if online
+        if (navigator.onLine) {
+            console.log('🔄 Refreshing progress data in background...');
+            refreshProgressDataInBackground(student);
+        }
+    } else {
+        console.log('🔍 No cached progress data, loading from external sources...');
+        // Load fresh data from external sources
+        await loadFreshProgressData(student);
+    }
+}
+
+// Display cached progress data from student record
+function displayCachedProgressData(progressData) {
+    console.log('📊 Displaying cached progress data:', progressData);
+    
+    // Update overview statistics
+    document.getElementById('progressFirstLesson').textContent = progressData.firstLesson || 'Not available';
+    document.getElementById('progressRecentLesson').textContent = progressData.recentLesson || 'Not available';
+    document.getElementById('progressTotalLessons').textContent = progressData.totalLessons || 0;
+    document.getElementById('progressOverallScore').textContent = progressData.totalAssessments || 0;
+    
+    // Update course counts
+    document.getElementById('inprogressCourseCount').textContent = progressData.inProgressCourses?.length || 0;
+    document.getElementById('upcomingCourseCount').textContent = progressData.upcomingCourses?.length || 0;
+    document.getElementById('finishedCourseCount').textContent = progressData.finishedCourses?.length || 0;
+    
+    // Display courses in their respective tabs
+    displayCoursesInTab('inprogress', progressData.inProgressCourses || []);
+    displayCoursesInTab('upcoming', progressData.upcomingCourses || []);
+    displayCoursesInTab('finished', progressData.finishedCourses || []);
+}
+
+// Load fresh progress data from external sources
+async function loadFreshProgressData(student) {
+    try {
+        console.log('🔍 STEP 1: Loading enrollment data first...');
+        console.log('🔍 Searching for enrollment with studentId:', student.studentId);
+        
+        // STEP 1: Load enrollment data first to get the courses this student is enrolled in
+        let enrolledCourses = [];
+        
+        // Method 1: Try to find enrollment documents starting with studentId
+        console.log('🔍 Method 1: Document ID pattern search...');
+        try {
+            const enrollmentSnapshot = await db.collection('enrollment')
+                .where(firebase.firestore.FieldPath.documentId(), '>=', student.studentId + '_')
+                .where(firebase.firestore.FieldPath.documentId(), '<', student.studentId + '_\uf8ff')
+                .get();
+            
+            console.log('📄 Method 1 - Enrollment snapshot size:', enrollmentSnapshot.size);
+            
+            enrollmentSnapshot.forEach(doc => {
+                const data = doc.data();
+                console.log('📄 Method 1 - Found enrollment doc:', doc.id, data);
+                // Extract course code from document ID (format: studentId_courseCode)
+                const courseCode = doc.id.split('_').slice(1).join('_');
+                enrolledCourses.push({ 
+                    id: doc.id, 
+                    courseCode: courseCode,
+                    studentId: student.studentId,
+                    ...data 
+                });
+            });
+            
+            console.log('✅ Method 1 - Enrolled courses found:', enrolledCourses);
+        } catch (error) {
+            console.log('❌ Method 1 failed:', error);
+        }
+        
+        // Method 2: If method 1 fails or returns no results, search by studentId field
+        if (enrolledCourses.length === 0) {
+            console.log('🔍 Method 2: Field-based search...');
+            try {
+                const enrollmentSnapshot = await db.collection('enrollment')
+                    .where('studentId', '==', student.studentId)
+                    .get();
+                
+                console.log('📄 Method 2 - Enrollment snapshot size:', enrollmentSnapshot.size);
+                
+                enrollmentSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    console.log('📄 Method 2 - Found enrollment doc:', doc.id, data);
+                    enrolledCourses.push({ id: doc.id, ...data });
+                });
+                
+                console.log('✅ Method 2 - Enrolled courses found:', enrolledCourses);
+            } catch (error) {
+                console.log('❌ Method 2 also failed:', error);
+            }
+        }
+        
+        // STEP 2: Now load attendance and performance data based on enrolled courses
+        console.log('🔍 STEP 2: Loading attendance and performance data...');
+        
+        let attendanceRecords = [];
+        let performanceRecords = [];
+        
+        if (enrolledCourses.length > 0) {
+            // Get course codes from enrollment
+            const courseCodes = enrolledCourses.map(e => e.courseCode || e.course).filter(Boolean);
+            console.log('📚 Course codes from enrollment:', courseCodes);
+            
+            // Load attendance for each enrolled course using document ID pattern
+            for (const courseCode of courseCodes) {
+                console.log(`🔍 Loading attendance for course: ${courseCode}`);
+                try {
+                    // Method 1: Try document ID pattern search (att_coursecode_studentID_date)
+                    const attendanceSnapshot = await db.collection('attendance')
+                        .where(firebase.firestore.FieldPath.documentId(), '>=', `att_${courseCode}_${student.studentId}_`)
+                        .where(firebase.firestore.FieldPath.documentId(), '<', `att_${courseCode}_${student.studentId}_\uf8ff`)
+                        .get();
+                    
+                    console.log(`📊 Attendance for ${courseCode}: ${attendanceSnapshot.size} records`);
+                    
+                    attendanceSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        // Extract date from document ID (format: att_coursecode_studentID_date)
+                        const docIdParts = doc.id.split('_');
+                        const dateString = docIdParts.slice(3).join('_'); // Get date part
+                        
+                        console.log(`📊 Attendance record for ${courseCode}:`, doc.id, data);
+                        attendanceRecords.push({ 
+                            id: doc.id, 
+                            courseCode: courseCode,
+                            studentId: student.studentId,
+                            date: dateString ? new Date(dateString) : (data.date || new Date()),
+                            status: data.status || 'No Record',
+                            ...data 
+                        });
+                    });
+                    
+                    // Method 2: Fallback to field-based search if no results
+                    if (attendanceSnapshot.size === 0) {
+                        console.log(`🔍 Fallback: Field-based attendance search for ${courseCode}`);
+                        const fallbackSnapshot = await db.collection('attendance')
+                            .where('studentId', '==', student.studentId)
+                            .where('courseCode', '==', courseCode)
+                            .get();
+                        
+                        console.log(`📊 Fallback attendance for ${courseCode}: ${fallbackSnapshot.size} records`);
+                        
+                        fallbackSnapshot.forEach(doc => {
+                            const data = doc.data();
+                            console.log(`📊 Fallback attendance record for ${courseCode}:`, doc.id, data);
+                            attendanceRecords.push({ id: doc.id, courseCode: courseCode, ...data });
+                        });
+                    }
+                } catch (error) {
+                    console.log(`❌ Error loading attendance for ${courseCode}:`, error);
+                }
+                
+                // Load performance for each enrolled course
+                console.log(`🔍 Loading performance for course: ${courseCode}`);
+                try {
+                    const performanceSnapshot = await db.collection('performance')
+                        .where('studentId', '==', student.studentId)
+                        .where('courseCode', '==', courseCode)
+                        .get();
+                    
+                    console.log(`🎯 Performance for ${courseCode}: ${performanceSnapshot.size} records`);
+                    
+                    performanceSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        console.log(`🎯 Performance record for ${courseCode}:`, doc.id, data);
+                        performanceRecords.push({ id: doc.id, ...data });
+                    });
+                } catch (error) {
+                    console.log(`❌ Error loading performance for ${courseCode}:`, error);
+                }
+            }
+        } else {
+            console.log('⚠️ No enrolled courses found, trying to load all attendance/performance for this student...');
+            
+            // Fallback: Try to load all attendance using document ID pattern
+            try {
+                console.log('🔍 Loading all attendance records for student using document ID pattern...');
+                const attendanceSnapshot = await db.collection('attendance')
+                    .where(firebase.firestore.FieldPath.documentId(), '>=', `att_`)
+                    .where(firebase.firestore.FieldPath.documentId(), '<', `att_\uf8ff`)
+                    .get();
+                
+                console.log('📊 Total attendance documents found:', attendanceSnapshot.size);
+                
+                attendanceSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Check if this document belongs to our student
+                    const docIdParts = doc.id.split('_');
+                    if (docIdParts.length >= 4 && docIdParts[2] === student.studentId) {
+                        const courseCode = docIdParts[1];
+                        const dateString = docIdParts.slice(3).join('_');
+                        
+                        console.log('📊 Attendance record:', doc.id, data);
+                        attendanceRecords.push({ 
+                            id: doc.id, 
+                            courseCode: courseCode,
+                            studentId: student.studentId,
+                            date: dateString ? new Date(dateString) : (data.date || new Date()),
+                            status: data.status || 'No Record',
+                            ...data 
+                        });
+                    }
+                });
+                
+                // Additional fallback: field-based search
+                if (attendanceRecords.length === 0) {
+                    console.log('🔍 Additional fallback: Field-based attendance search...');
+                    const fallbackSnapshot = await db.collection('attendance')
+                        .where('studentId', '==', student.studentId)
+                        .get();
+                    
+                    console.log('📊 Fallback attendance records found:', fallbackSnapshot.size);
+                    
+                    fallbackSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        console.log('📊 Fallback attendance record:', doc.id, data);
+                        attendanceRecords.push({ id: doc.id, ...data });
+                    });
+                }
+            } catch (error) {
+                console.log('❌ Error loading all attendance:', error);
+            }
+            
+            try {
+                console.log('🔍 Loading all performance records for student...');
+                const performanceSnapshot = await db.collection('performance')
+                    .where('studentId', '==', student.studentId)
+                    .get();
+                
+                console.log('🎯 Total performance records found:', performanceSnapshot.size);
+                
+                performanceSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    console.log('🎯 Performance record:', doc.id, data);
+                    performanceRecords.push({ id: doc.id, ...data });
+                });
+            } catch (error) {
+                console.log('❌ Error loading all performance:', error);
+            }
+        }
+        
+        console.log('✅ STEP 2 Complete:');
+        console.log('  - Total attendance records:', attendanceRecords.length);
+        console.log('  - Total performance records:', performanceRecords.length);
+        
+        // STEP 3: Calculate lesson statistics and categorize courses
+        console.log('🔍 STEP 3: Calculating statistics and categorizing courses...');
+        
+        // Sort attendance by date for proper first/last calculation
+        attendanceRecords.sort((a, b) => {
+            const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+            const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+            return dateA - dateB;
+        });
+        
+        const firstLesson = attendanceRecords.length > 0 ? attendanceRecords[0].date : null;
+        const recentLesson = attendanceRecords.length > 0 ? attendanceRecords[attendanceRecords.length - 1].date : null;
+        const totalLessons = attendanceRecords.length;
+        
+        console.log('📈 Calculated statistics:');
+        console.log('  - First lesson:', firstLesson);
+        console.log('  - Recent lesson:', recentLesson);
+        console.log('  - Total lessons:', totalLessons);
+        
+        document.getElementById('progressFirstLesson').textContent = firstLesson ? formatDateToDDMMYYYY(firstLesson.toDate ? firstLesson.toDate() : firstLesson) : 'Not available';
+        document.getElementById('progressRecentLesson').textContent = recentLesson ? formatDateToDDMMYYYY(recentLesson.toDate ? recentLesson.toDate() : recentLesson) : 'Not available';
+        document.getElementById('progressTotalLessons').textContent = totalLessons;
+        document.getElementById('progressOverallScore').textContent = performanceRecords.length;
+        
+        // STEP 4: Load and categorize courses data
+        console.log('🔍 STEP 4: Loading and categorizing courses data...');
+        const categorizedCourses = await loadAndCategorizeCourses(student.studentId, attendanceRecords, performanceRecords, enrolledCourses);
+        
+        // STEP 5: Cache the progress data in the student record
+        console.log('💾 STEP 5: Caching progress data in student record...');
+        await cacheProgressDataInStudent(student.id, {
+            firstLesson: firstLesson ? formatDateToDDMMYYYY(firstLesson.toDate ? firstLesson.toDate() : firstLesson) : 'Not available',
+            recentLesson: recentLesson ? formatDateToDDMMYYYY(recentLesson.toDate ? recentLesson.toDate() : recentLesson) : 'Not available',
+            totalLessons: totalLessons,
+            totalAssessments: performanceRecords.length,
+            inProgressCourses: categorizedCourses.inProgress || [],
+            upcomingCourses: categorizedCourses.upcoming || [],
+            finishedCourses: categorizedCourses.finished || [],
+            lastUpdated: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('❌ Error loading student progress:', error);
+        console.error('❌ Error stack:', error.stack);
+        document.getElementById('progressFirstLesson').textContent = 'Error loading';
+        document.getElementById('progressRecentLesson').textContent = 'Error loading';
+        document.getElementById('progressTotalLessons').textContent = '0';
+        document.getElementById('progressOverallScore').textContent = '0';
+        // Show empty state on error
+        displayEmptyCombinedCourses();
+    }
+}
+
+// Refresh progress data in background
+async function refreshProgressDataInBackground(student) {
+    try {
+        console.log('🔄 Background refresh started for student:', student.studentId);
+        await loadFreshProgressData(student);
+        console.log('✅ Background refresh completed');
+    } catch (error) {
+        console.log('❌ Background refresh failed:', error);
+        // Fail silently in background refresh
+    }
+}
+
+// Cache progress data in student record
+async function cacheProgressDataInStudent(studentId, progressData) {
+    try {
+        console.log('💾 Caching progress data for student:', studentId);
+        await db.collection('students').doc(studentId).update({
+            progressData: progressData,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Update local students array
+        const studentIndex = students.findIndex(s => s.id === studentId);
+        if (studentIndex !== -1) {
+            students[studentIndex].progressData = progressData;
+        }
+        
+        console.log('✅ Progress data cached successfully');
+    } catch (error) {
+        console.error('❌ Error caching progress data:', error);
+        // Don't throw error, just log it
+    }
+}
+
+// Load and categorize courses data with attendance and performance
+async function loadAndCategorizeCourses(studentId, attendanceRecords, performanceRecords, enrolledCourses) {
+    console.log('🔍 DEBUG: Starting loadAndCategorizeCourses');
+    console.log('📋 Student ID:', studentId);
+    console.log('📊 Attendance records received:', attendanceRecords.length, attendanceRecords);
+    console.log('🎯 Performance records received:', performanceRecords.length, performanceRecords);
+    console.log('📄 Enrolled courses received:', enrolledCourses.length, enrolledCourses);
+    
+    try {
+        // Load all courses data (using 'code' field as the course identifier)
+        console.log('🔍 Loading all courses...');
+        const coursesSnapshot = await db.collection('courses').get();
+        let allCourses = [];
+        console.log('📚 Courses snapshot size:', coursesSnapshot.size);
+        
+        coursesSnapshot.forEach(doc => {
+            const data = doc.data();
+            console.log('📚 Course doc:', doc.id, '| Data:', data);
+            allCourses.push({ 
+                id: doc.id, 
+                code: data.code, // This is the actual course ID like k8-01-BS
+                name: data.name,
+                teacher: data.teacher,
+                status: data.status || 'Active',
+                ...data 
+            });
+        });
+        
+        console.log('✅ All courses loaded:', allCourses);
+        
+        // Group attendance by course code
+        console.log('🔍 Grouping attendance by course code...');
+        const courseAttendance = {};
+        attendanceRecords.forEach(record => {
+            const courseCode = record.courseCode || record.course || 'Unknown';
+            console.log('📊 Processing attendance record:', record, '| Course code:', courseCode);
+            if (!courseAttendance[courseCode]) {
+                courseAttendance[courseCode] = [];
+            }
+            courseAttendance[courseCode].push(record);
+        });
+        
+        console.log('✅ Course attendance grouped:', courseAttendance);
+        
+        // Group performance by course code
+        console.log('🔍 Grouping performance by course code...');
+        const coursePerformance = {};
+        performanceRecords.forEach(record => {
+            const courseCode = record.courseCode || record.course || 'Unknown';
+            console.log('🎯 Processing performance record:', record, '| Course code:', courseCode);
+            if (!coursePerformance[courseCode]) {
+                coursePerformance[courseCode] = [];
+            }
+            coursePerformance[courseCode].push(record);
+        });
+        
+        console.log('✅ Course performance grouped:', coursePerformance);
+        
+        // Get all unique course codes from attendance, performance, and enrollment
+        const allCourseCodes = new Set([
+            ...Object.keys(courseAttendance),
+            ...Object.keys(coursePerformance),
+            ...enrolledCourses.map(e => e.courseCode || e.course).filter(Boolean)
+        ]);
+        
+        console.log('📚 All unique course codes:', Array.from(allCourseCodes));
+        
+        // Categorize courses
+        const inProgressCourses = [];
+        const upcomingCourses = [];
+        const finishedCourses = [];
+        
+        allCourseCodes.forEach(courseCode => {
+            console.log(`🔍 Processing course: ${courseCode}`);
+            
+            // Find course details
+            const courseDetails = allCourses.find(c => c.code === courseCode) || { 
+                code: courseCode, 
+                name: courseCode, 
+                status: 'Unknown' 
+            };
+            
+            // Get attendance and performance for this course
+            const attendance = courseAttendance[courseCode] || [];
+            const performance = coursePerformance[courseCode] || [];
+            const enrollment = enrolledCourses.find(e => (e.courseCode || e.course) === courseCode);
+            
+            console.log(`📊 Course ${courseCode} data:`, {
+                courseDetails,
+                attendanceCount: attendance.length,
+                performanceCount: performance.length,
+                enrollment
+            });
+            
+            // Calculate statistics
+            const totalLessons = attendance.length;
+            const presentCount = attendance.filter(a => a.status === 'present').length;
+            const attendanceRate = totalLessons > 0 ? Math.round((presentCount / totalLessons) * 100) : 0;
+            
+            // Count total assessments
+            const totalAssessments = performance.length;
+            
+            // Get recent activity
+            const recentAttendance = attendance.sort((a, b) => {
+                const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                return dateB - dateA;
+            }).slice(0, 5);
+            
+            const recentPerformance = performance.sort((a, b) => {
+                const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                return dateB - dateA;
+            }).slice(0, 3);
+            
+            const courseData = {
+                code: courseCode,
+                name: courseDetails.name || courseCode,
+                teacher: courseDetails.teacher || 'Not assigned',
+                status: courseDetails.status || 'Unknown',
+                totalLessons,
+                attendanceRate,
+                totalAssessments,
+                recentAttendance,
+                recentPerformance,
+                enrollment
+            };
+            
+            // Categorize based on course status and activity
+            if (courseDetails.status === 'Completed' || courseDetails.status === 'Finished') {
+                finishedCourses.push(courseData);
+            } else if (totalLessons > 0 || (enrollment && enrollment.status === 'active')) {
+                inProgressCourses.push(courseData);
+            } else {
+                upcomingCourses.push(courseData);
+            }
+        });
+        
+        console.log('✅ Courses categorized:');
+        console.log('  - In Progress:', inProgressCourses.length, inProgressCourses);
+        console.log('  - Upcoming:', upcomingCourses.length, upcomingCourses);
+        console.log('  - Finished:', finishedCourses.length, finishedCourses);
+        
+        // Update course counts
+        document.getElementById('inprogressCourseCount').textContent = inProgressCourses.length;
+        document.getElementById('upcomingCourseCount').textContent = upcomingCourses.length;
+        document.getElementById('finishedCourseCount').textContent = finishedCourses.length;
+        
+        // Display courses in their respective tabs
+        displayCoursesInTab('inprogress', inProgressCourses);
+        displayCoursesInTab('upcoming', upcomingCourses);
+        displayCoursesInTab('finished', finishedCourses);
+        
+        // Return categorized courses for caching
+        return {
+            inProgress: inProgressCourses,
+            upcoming: upcomingCourses,
+            finished: finishedCourses
+        };
+        
+    } catch (error) {
+        console.error('❌ Error in loadAndCategorizeCourses:', error);
+        displayEmptyCombinedCourses();
+        return {
+            inProgress: [],
+            upcoming: [],
+            finished: []
+        };
+    }
+}
+
+// Display courses in a specific tab
+function displayCoursesInTab(tabType, courses) {
+    const container = document.getElementById(`${tabType}CoursesList`);
+    container.innerHTML = '';
+    
+    if (courses.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253z"></path>
+                </svg>
+                <p class="text-lg font-medium">No ${tabType} courses</p>
+                <p class="text-sm">Course data will appear here when available</p>
+            </div>
+        `;
+        return;
+    }
+    
+    courses.forEach(course => {
+        const courseCard = document.createElement('div');
+        courseCard.className = 'bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow';
+        
+        // Build expandable sections for attendance and assessments
+        let expandableSectionsHtml = '';
+        
+        // Expandable Attendance Section
+        if (course.recentAttendance.length > 0) {
+            expandableSectionsHtml += `
+                <div class="mt-4 border border-gray-200 rounded-lg">
+                    <div class="p-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center" onclick="toggleExpandableSection('attendance-${course.code}')">
+                        <h6 class="font-medium text-gray-900">📚 Attendance History (${course.recentAttendance.length} lessons)</h6>
+                        <svg id="expand-icon-attendance-${course.code}" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                    <div id="section-attendance-${course.code}" class="hidden border-t border-gray-200 p-3 bg-white">
+                        <div class="max-h-48 overflow-y-auto">
+                            ${formatAttendanceByMonth(course.recentAttendance)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Expandable Assessment Section
+        if (course.recentPerformance.length > 0) {
+            expandableSectionsHtml += `
+                <div class="mt-4 border border-gray-200 rounded-lg">
+                    <div class="p-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center" onclick="toggleExpandableSection('assessment-${course.code}')">
+                        <h6 class="font-medium text-gray-900">🎯 Assessment History (${course.recentPerformance.length} assessments)</h6>
+                        <svg id="expand-icon-assessment-${course.code}" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                    <div id="section-assessment-${course.code}" class="hidden border-t border-gray-200 p-3 bg-white">
+                        <div class="space-y-3 max-h-64 overflow-y-auto">
+                            ${course.recentPerformance.map(assessment => {
+                                const date = assessment.date ? (assessment.date.toDate ? assessment.date.toDate() : new Date(assessment.date)) : new Date();
+                                const scoreColor = getScoreColor(assessment.score || 0);
+                                const maxScore = assessment.maxScore || 100;
+                                
+                                return `
+                                    <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex-1">
+                                                <h7 class="font-medium text-gray-800">${assessment.occasion || 'Assessment'}</h7>
+                                                <p class="text-xs text-gray-500 mt-1">${formatDateToDDMMYYYY(date)}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="text-lg font-bold ${scoreColor}">${assessment.score || 0}/${maxScore}</span>
+                                            </div>
+                                        </div>
+                                        ${assessment.comments ? `
+                                            <div class="mt-2 pt-2 border-t border-gray-200">
+                                                <p class="text-sm text-gray-600"><span class="font-medium">Comments:</span> ${assessment.comments}</p>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        courseCard.innerHTML = `
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <h4 class="font-semibold text-gray-900">${course.name}</h4>
+                    <p class="text-sm text-gray-600">${course.code}</p>
+                    <p class="text-xs text-gray-500">Teacher: ${course.teacher}</p>
+                </div>
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(course.status)}">
+                    ${course.status}
+                </span>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <p class="text-lg font-bold text-gray-900">${course.totalLessons}</p>
+                    <p class="text-xs text-gray-500">Lessons</p>
+                </div>
+                <div>
+                    <p class="text-lg font-bold ${course.attendanceRate >= 80 ? 'text-green-600' : course.attendanceRate >= 60 ? 'text-yellow-600' : 'text-red-600'}">${course.attendanceRate}%</p>
+                    <p class="text-xs text-gray-500">Attendance</p>
+                </div>
+                <div>
+                    <p class="text-lg font-bold text-blue-600">${course.recentPerformance.length}</p>
+                    <p class="text-xs text-gray-500">Assessments</p>
+                </div>
+            </div>
+            
+            ${expandableSectionsHtml}
+        `;
+        
+        container.appendChild(courseCard);
+    });
+}
+
+// Display empty state for courses
+function displayEmptyCombinedCourses() {
+    ['inprogress', 'upcoming', 'finished'].forEach(tabType => {
+        const container = document.getElementById(`${tabType}CoursesList`);
+        container.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253z"></path>
+                </svg>
+                <p class="text-lg font-medium">No course data available</p>
+                <p class="text-sm">Course information will appear here when data is loaded</p>
+            </div>
+        `;
+    });
+    
+    // Reset counts
+    document.getElementById('inprogressCourseCount').textContent = '0';
+    document.getElementById('upcomingCourseCount').textContent = '0';
+    document.getElementById('finishedCourseCount').textContent = '0';
+}
+
+// Get recent scores for display
+function getRecentScores(performanceRecords) {
+    if (performanceRecords.length === 0) return 'No recent scores';
+    
+    // Sort by date (most recent first) and get the latest scores
+    const sortedPerformance = performanceRecords
+        .filter(p => p.score && !isNaN(p.score))
+        .sort((a, b) => {
+            const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+            const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+            return dateB - dateA;
+        })
+        .slice(0, 2); // Get 2 most recent scores
+    
+    if (sortedPerformance.length === 0) return 'No recent scores';
+    
+    return sortedPerformance.map(p => p.score).join(', ');
+}
+
+// Switch course progress tabs
+function switchCourseProgressTab(tab) {
+    currentCourseProgressTab = tab;
+    
+    // Update tab styling
+    const tabs = ['inprogress', 'upcoming', 'finished'];
+    tabs.forEach(t => {
+        document.getElementById(t + 'CourseTab').className = 'py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm';
+        document.getElementById(t + 'CourseContent').classList.add('hidden');
+    });
+    
+    document.getElementById(tab + 'CourseTab').className = 'py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600';
+    document.getElementById(tab + 'CourseContent').classList.remove('hidden');
+}
+
+// Toggle expandable sections
+function toggleExpandableSection(sectionId) {
+    const section = document.getElementById(`section-${sectionId}`);
+    const icon = document.getElementById(`expand-icon-${sectionId}`);
+    
+    if (section && icon) {
+        if (section.classList.contains('hidden')) {
+            section.classList.remove('hidden');
+            icon.classList.add('rotate-90');
+        } else {
+            section.classList.add('hidden');
+            icon.classList.remove('rotate-90');
+        }
+    }
+}
+
+// Get attendance status color
+function getAttendanceStatusColor(status) {
+    switch (status) {
+        case 'present':
+            return 'bg-green-100 text-green-800';
+        case 'absent':
+            return 'bg-red-100 text-red-800';
+        default:
+            return 'bg-gray-100 text-gray-600';
+    }
+}
+
+// Get score color based on performance
+function getScoreColor(score) {
+    const numScore = parseFloat(score) || 0;
+    if (numScore >= 80) return 'text-green-600';
+    if (numScore >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+}
+
+// Format attendance records by month in ascending order
+function formatAttendanceByMonth(attendanceRecords) {
+    if (!attendanceRecords || attendanceRecords.length === 0) {
+        return '<p class="text-gray-500 text-sm">No attendance records available</p>';
+    }
+    
+    // Sort attendance by date (ascending order)
+    const sortedAttendance = attendanceRecords.sort((a, b) => {
+        const dateA = a.date instanceof Date ? a.date : (a.date?.toDate ? a.date.toDate() : new Date(a.date));
+        const dateB = b.date instanceof Date ? b.date : (b.date?.toDate ? b.date.toDate() : new Date(b.date));
+        return dateA - dateB;
+    });
+    
+    // Group by month
+    const monthGroups = {};
+    sortedAttendance.forEach(record => {
+        const date = record.date instanceof Date ? record.date : (record.date?.toDate ? record.date.toDate() : new Date(record.date));
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthName = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+        
+        if (!monthGroups[monthKey]) {
+            monthGroups[monthKey] = {
+                name: monthName,
+                records: []
+            };
+        }
+        monthGroups[monthKey].records.push(record);
+    });
+    
+    // Sort months in ascending order
+    const sortedMonths = Object.keys(monthGroups).sort();
+    
+    return sortedMonths.map(monthKey => {
+        const monthData = monthGroups[monthKey];
+        return `
+            <div class="mb-4">
+                <h6 class="font-medium text-gray-700 mb-2 text-sm">${monthData.name}</h6>
+                <div class="grid grid-cols-7 gap-1">
+                    ${monthData.records.map(record => {
+                        const date = record.date instanceof Date ? record.date : (record.date?.toDate ? record.date.toDate() : new Date(record.date));
+                        const statusColor = getAttendanceStatusColor(record.status);
+                        const hasNotes = record.notes && record.notes.trim().length > 0;
+                        const notesIcon = hasNotes ? ' 📝' : '';
+                        
+                        return `
+                            <div class="text-center p-2 rounded text-xs ${statusColor} relative" title="${date.toLocaleDateString()} - ${record.status || 'No Record'}${hasNotes ? '\nNotes: ' + record.notes : ''}">
+                                ${date.getDate()}${notesIcon}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+
+
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97377daab0d9b453',t:'MTc1NTkxOTQwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

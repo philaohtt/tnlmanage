@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Management System</title>
+  <style>
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+      }
+      
+      body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          line-height: 1.6;
+          color: #333;
+      }
+      
+      /* Header */
+      .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 2rem 0;
+          text-align: center;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+      
+      .header h1 {
+          font-size: 2.5rem;
+          margin-bottom: 0.5rem;
+          font-weight: 700;
+      }
+      
+      .header p {
+          font-size: 1.2rem;
+          opacity: 0.9;
+      }
+      
+      /* Navigation */
+      .nav {
+          background: white;
+          padding: 0;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          position: sticky;
+          top: 0;
+          z-index: 100;
+      }
+      
+      .nav-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          overflow-x: auto;
+      }
+      
+      .nav-item {
+          flex: 1;
+          min-width: 200px;
+          text-align: center;
+      }
+      
+      .nav-link {
+          display: block;
+          padding: 1rem;
+          text-decoration: none;
+          color: #555;
+          font-weight: 500;
+          transition: all 0.3s ease;
+          border-bottom: 3px solid transparent;
+      }
+      
+      .nav-link:hover, .nav-link.active {
+          background: #f8f9fa;
+          color: #667eea;
+          border-bottom-color: #667eea;
+      }
+      
+      /* Content */
+      .content {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem 1rem;
+          min-height: calc(100vh - 200px);
+      }
+      
+      .module-content {
+          display: none;
+          animation: fadeIn 0.3s ease-in;
+      }
+      
+      .module-content.active {
+          display: block;
+      }
+      
+      @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .module-frame {
+          width: 100%;
+          min-height: 600px;
+          border: 1px solid #e1e8ed;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      
+      /* Home page content */
+      .home-content {
+          text-align: center;
+          padding: 3rem 0;
+      }
+      
+      .welcome-section {
+          background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+          padding: 3rem 2rem;
+          border-radius: 12px;
+          margin-bottom: 3rem;
+      }
+      
+      .welcome-section h2 {
+          font-size: 2rem;
+          color: #2c3e50;
+          margin-bottom: 1rem;
+      }
+      
+      .welcome-section p {
+          font-size: 1.1rem;
+          color: #555;
+          max-width: 600px;
+          margin: 0 auto;
+      }
+      
+      .features-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 2rem;
+          margin-top: 3rem;
+      }
+      
+      .feature-card {
+          background: white;
+          padding: 2rem;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          transition: transform 0.3s ease;
+      }
+      
+      .feature-card:hover {
+          transform: translateY(-5px);
+      }
+      
+      .feature-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+      }
+      
+      .feature-card h3 {
+          color: #2c3e50;
+          margin-bottom: 1rem;
+      }
+      
+      .feature-card p {
+          color: #666;
+      }
+      
+      /* Footer */
+      .footer {
+          background: #2c3e50;
+          color: white;
+          text-align: center;
+          padding: 2rem 0;
+          margin-top: 3rem;
+      }
+      
+      /* Loading state */
+      .loading {
+          text-align: center;
+          padding: 3rem;
+          color: #666;
+      }
+      
+      .loading::after {
+          content: '';
+          display: inline-block;
+          width: 20px;
+          height: 20px;
+          border: 2px solid #667eea;
+          border-radius: 50%;
+          border-top-color: transparent;
+          animation: spin 1s linear infinite;
+          margin-left: 10px;
+      }
+      
+      @keyframes spin {
+          to { transform: rotate(360deg); }
+      }
+      
+      /* Mobile responsiveness */
+      @media (max-width: 768px) {
+          .header h1 {
+              font-size: 2rem;
+          }
+          
+          .nav-container {
+              flex-direction: column;
+          }
+          
+          .nav-item {
+              min-width: auto;
+          }
+          
+          .content {
+              padding: 1rem;
+          }
+          
+          .welcome-section {
+              padding: 2rem 1rem;
+          }
+          
+          .features-grid {
+              grid-template-columns: 1fr;
+              gap: 1rem;
+          }
+      }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+      <h1>🏫 School Management System</h1>
+      <p>Comprehensive Educational Administration Platform v2.2</p>
+  </header>
+  
+  <!-- Navigation -->
+  <nav class="nav">
+      <div class="nav-container">
+          <div class="nav-item">
+              <a href="#home" class="nav-link active" onclick="showModule('home', this)">
+                  🏠 Home
+              </a>
+          </div>
+          <div class="nav-item">
+              <a href="#admission" class="nav-link" onclick="showModule('admission', this)">
+                  📝 Admission
+              </a>
+          </div>
+          <div class="nav-item">
+              <a href="#students" class="nav-link" onclick="showModule('students', this)">
+                  👥 Students
+              </a>
+          </div>
+          <div class="nav-item">
+              <a href="#courses" class="nav-link" onclick="showModule('courses', this)">
+                  📚 Courses
+              </a>
+          </div>
+          <div class="nav-item">
+              <a href="#tuition" class="nav-link" onclick="showModule('tuition', this)">
+                  💰 Tuition
+              </a>
+          </div>
+      </div>
+  </nav>
+  
+  <!-- Content -->
+  <main class="content">
+      <!-- Home Page -->
+      <div id="home-content" class="module-content active">
+          <div class="home-content">
+              <div class="welcome-section">
+                  <h2>Welcome to Our School Management System</h2>
+                  <p>Streamline your educational administration with our comprehensive platform. Manage admissions, student records, courses, and tuition all in one place.</p>
+              </div>
+              
+              <div class="features-grid">
+                  <div class="feature-card">
+                      <div class="feature-icon">📝</div>
+                      <h3>Admission Management</h3>
+                      <p>Handle student applications, enrollment processes, and admission documentation efficiently.</p>
+                  </div>
+                  
+                  <div class="feature-card">
+                      <div class="feature-icon">👥</div>
+                      <h3>Student Records</h3>
+                      <p>Maintain comprehensive student profiles, academic records, and personal information.</p>
+                  </div>
+                  
+                  <div class="feature-card">
+                      <div class="feature-icon">📚</div>
+                      <h3>Course Management</h3>
+                      <p>Organize curriculum, class schedules, and academic programs with ease.</p>
+                  </div>
+                  
+                  <div class="feature-card">
+                      <div class="feature-icon">💰</div>
+                      <h3>Tuition & Fees</h3>
+                      <p>Track payments, manage fee structures, and handle financial records seamlessly.</p>
+                  </div>
+              </div>
+          </div>
+      </div>
+      
+      <!-- Module Contents -->
+      <div id="admission-content" class="module-content">
+          <div class="loading" id="admission-loading">Loading Admission Module v2.2...</div>
+          <iframe id="admission-frame" class="module-frame" src="admission2.2.html" style="display:none;" onload="hideLoading('admission')"></iframe>
+      </div>
+      
+      <div id="students-content" class="module-content">
+          <div class="loading" id="students-loading">Loading Students Module v2.2...</div>
+          <iframe id="students-frame" class="module-frame" src="student2.2.html" style="display:none;" onload="hideLoading('students')"></iframe>
+      </div>
+      
+      <div id="courses-content" class="module-content">
+          <div class="loading" id="courses-loading">Loading Courses Module v2.2...</div>
+          <iframe id="courses-frame" class="module-frame" src="courses2.2.html" style="display:none;" onload="hideLoading('courses')"></iframe>
+      </div>
+      
+      <div id="tuition-content" class="module-content">
+          <div class="loading" id="tuition-loading">Loading Tuition Module v2.2...</div>
+          <iframe id="tuition-frame" class="module-frame" src="tuition2.2.html" style="display:none;" onload="hideLoading('tuition')"></iframe>
+      </div>
+  </main>
+  
+  <!-- Footer -->
+  <footer class="footer">
+      <p>&copy; 2025 School Management System v2.2. All rights reserved.</p>
+  </footer>
+  
+  <script>
+      function showModule(moduleName, linkElement) {
+          // Remove active class from all nav links
+          document.querySelectorAll('.nav-link').forEach(link => {
+              link.classList.remove('active');
+          });
+          
+          // Add active class to clicked link
+          linkElement.classList.add('active');
+          
+          // Hide all module contents
+          document.querySelectorAll('.module-content').forEach(content => {
+              content.classList.remove('active');
+          });
+          
+          // Show selected module content
+          document.getElementById(moduleName + '-content').classList.add('active');
+          
+          // Update page title
+          const titles = {
+              'home': 'School Management System v2.2',
+              'admission': 'Admission Management v2.2',
+              'students': 'Student Records v2.2',
+              'courses': 'Course Management v2.2',
+              'tuition': 'Tuition & Fees v2.2'
+          };
+          document.title = titles[moduleName] || 'School Management System v2.2';
+          
+          // Update URL without page reload
+          history.pushState({module: moduleName}, '', '#' + moduleName);
+      }
+      
+      function hideLoading(moduleName) {
+          document.getElementById(moduleName + '-loading').style.display = 'none';
+          document.getElementById(moduleName + '-frame').style.display = 'block';
+      }
+      
+      // Handle browser back/forward buttons
+      window.addEventListener('popstate', function(event) {
+          const hash = window.location.hash.substring(1) || 'home';
+          const linkElement = document.querySelector(`[onclick*="${hash}"]`);
+          if (linkElement) {
+              showModule(hash, linkElement);
+          }
+      });
+      
+      // Load initial page based on URL hash
+      window.addEventListener('load', function() {
+          const hash = window.location.hash.substring(1) || 'home';
+          const validModules = ['home', 'admission', 'students', 'courses', 'tuition'];
+          
+          if (validModules.includes(hash) && hash !== 'home') {
+              const linkElement = document.querySelector(`[onclick*="${hash}"]`);
+              if (linkElement) {
+                  showModule(hash, linkElement);
+              }
+          }
+      });
+  </script>
+</body>
+</html>
