@@ -728,15 +728,59 @@
         // Firebase operations
         async function loadCourses() {
             try {
+                updateSyncStatus('loading', 'Loading courses...');
                 const snapshot = await db.collection('courses').get();
                 courses = [];
                 snapshot.forEach(doc => {
-                    courses.push({ id: doc.id, ...doc.data() });
+                    const courseData = doc.data();
+                    // Ensure attendanceDates is always an array
+                    if (!courseData.attendanceDates) {
+                        courseData.attendanceDates = [];
+                    }
+                    // Ensure each attendance date has records object
+                    courseData.attendanceDates.forEach(dateData => {
+                        if (!dateData.records) {
+                            dateData.records = {};
+                        }
+                    });
+                    courses.push({ id: doc.id, ...courseData });
                 });
                 updateCourseCounts();
                 displayCourses();
+                updateSyncStatus('connected', 'Connected');
             } catch (error) {
                 console.error('Error loading courses:', error);
+                updateSyncStatus('error', 'Connection error');
+                // Show user-friendly error message
+                if (error.code === 'permission-denied') {
+                    alert('Permission denied. Please check your Firebase security rules.');
+                } else if (error.code === 'unavailable') {
+                    alert('Firebase is currently unavailable. Please try again later.');
+                } else {
+                    alert('Error loading courses. Please refresh the page.');
+                }
+            }
+        }
+
+        function updateSyncStatus(status, message) {
+            const syncIcon = document.getElementById('syncIcon');
+            const syncText = document.getElementById('syncText');
+            
+            if (syncIcon && syncText) {
+                switch (status) {
+                    case 'loading':
+                        syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-yellow-500 animate-pulse';
+                        syncText.textContent = message;
+                        break;
+                    case 'connected':
+                        syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-green-500';
+                        syncText.textContent = message;
+                        break;
+                    case 'error':
+                        syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-red-500';
+                        syncText.textContent = message;
+                        break;
+                }
             }
         }
 
@@ -1378,7 +1422,7 @@
                             ${isDropped ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Dropped</span>' : ''}
                         </td>
                         <td class="px-4 py-3 text-sm ${isDropped ? 'text-gray-500' : 'text-gray-900'}">${student.fullName}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${student.classAssignment}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${student.className || 'N/A'}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">${student.school}</td>
                         <td class="px-4 py-3">
                             ${isDropped ? `
@@ -1715,8 +1759,15 @@
 
         async function loadAttendanceDates(course) {
             try {
-                // Load attendance dates from the course or create empty array
-                attendanceDates = course.attendanceDates || [];
+                // Initialize attendance dates from course data
+                attendanceDates = course.attendanceDates ? JSON.parse(JSON.stringify(course.attendanceDates)) : [];
+                
+                // Ensure each date has a records object
+                attendanceDates.forEach(dateData => {
+                    if (!dateData.records) {
+                        dateData.records = {};
+                    }
+                });
                 
                 // Sort dates with oldest first (newest on the right)
                 attendanceDates.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1726,28 +1777,39 @@
                     .where('courseCode', '==', course.code)
                     .get();
                 
-                // Organize attendance data by date
+                // Create a map of attendance records by date
+                const attendanceRecordsByDate = {};
                 attendanceSnapshot.forEach(doc => {
                     const data = doc.data();
                     const dateKey = data.date;
                     
-                    // Find the date in attendanceDates and add the student record
-                    const dateIndex = attendanceDates.findIndex(d => d.date === dateKey);
-                    if (dateIndex !== -1) {
-                        if (!attendanceDates[dateIndex].records) {
-                            attendanceDates[dateIndex].records = {};
-                        }
-                        attendanceDates[dateIndex].records[data.studentId] = {
-                            status: data.status,
-                            notes: data.notes || ''
-                        };
+                    if (!attendanceRecordsByDate[dateKey]) {
+                        attendanceRecordsByDate[dateKey] = {};
+                    }
+                    
+                    attendanceRecordsByDate[dateKey][data.studentId] = {
+                        status: data.status,
+                        notes: data.notes || ''
+                    };
+                });
+                
+                // Merge attendance records with attendance dates
+                attendanceDates.forEach(dateData => {
+                    if (attendanceRecordsByDate[dateData.date]) {
+                        dateData.records = { ...dateData.records, ...attendanceRecordsByDate[dateData.date] };
                     }
                 });
                 
-                console.log('Loaded attendance dates:', attendanceDates);
+                console.log('Loaded attendance dates:', attendanceDates.length, 'dates with records');
             } catch (error) {
                 console.error('Error loading attendance dates:', error);
-                attendanceDates = [];
+                attendanceDates = course.attendanceDates ? JSON.parse(JSON.stringify(course.attendanceDates)) : [];
+                // Ensure records exist even on error
+                attendanceDates.forEach(dateData => {
+                    if (!dateData.records) {
+                        dateData.records = {};
+                    }
+                });
             }
         }
 
@@ -1773,19 +1835,34 @@
 
             const newDate = {
                 date: selectedDate,
-                teacher: '',
+                teacher: course.teacher || '',
                 lessonName: '',
-                records: {}
+                records: {},
+                createdAt: new Date().toISOString()
             };
 
-            attendanceDates.push(newDate);
-            
-            // Sort dates with newest first (most recent on the right)
-            attendanceDates.sort((a, b) => new Date(a.date) - new Date(b.date));
-            
-            // Update the course with new attendance dates
             try {
-                await updateCourse(currentCourseId, { attendanceDates: attendanceDates });
+                // Add to local array first
+                attendanceDates.push(newDate);
+                
+                // Sort dates with oldest first (newest on the right)
+                attendanceDates.sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                // Update the course with new attendance dates
+                await updateCourse(currentCourseId, { 
+                    attendanceDates: attendanceDates,
+                    lastAttendanceUpdate: new Date().toISOString()
+                });
+                
+                // Update the local courses array to maintain consistency
+                const courseIndex = courses.findIndex(c => c.id === currentCourseId);
+                if (courseIndex !== -1) {
+                    courses[courseIndex].attendanceDates = [...attendanceDates];
+                }
+                
+                // Update the main course table display immediately
+                displayCourses();
+                
                 displayAttendanceTable();
                 
                 // Clear the date picker
@@ -1797,9 +1874,13 @@
                     addBtn.disabled = true;
                     addBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 }
+                
+                console.log('Successfully added attendance date:', selectedDate);
             } catch (error) {
+                console.error('Error adding attendance date:', error);
+                // Remove the added date on error
+                attendanceDates = attendanceDates.filter(d => d.date !== selectedDate);
                 alert('Error adding date: ' + error.message);
-                attendanceDates.pop(); // Remove the added date on error
             }
         }
 
@@ -1944,6 +2025,15 @@
                 
                 // Update course
                 await updateCourse(currentCourseId, { attendanceDates: attendanceDates });
+                
+                // Update the local courses array to maintain consistency
+                const courseIndex = courses.findIndex(c => c.id === currentCourseId);
+                if (courseIndex !== -1) {
+                    courses[courseIndex].attendanceDates = [...attendanceDates];
+                }
+                
+                // Update the main course table display immediately
+                displayCourses();
                 
                 displayAttendanceTable();
                 
@@ -2092,39 +2182,59 @@
             const course = courses.find(c => c.id === currentCourseId);
             const student = course.students.find(s => s.studentId === studentId);
             
-            const attendanceId = `att_${course.code}_${studentId}_${date}`;
-            
-            const attendanceData = {
-                courseCode: course.code,
-                courseName: course.name,
-                studentId: studentId,
-                studentName: student.name,
-                date: date,
-                status: status,
-                notes: notes,
-                updatedAt: new Date().toISOString()
-            };
-            
-            if (status === 'no-record') {
-                // Delete the record if status is no-record
-                try {
-                    await db.collection('attendance').doc(attendanceId).delete();
-                } catch (error) {
-                    // Document might not exist, which is fine
-                }
-            } else {
-                // Save or update the record
-                await db.collection('attendance').doc(attendanceId).set(attendanceData);
+            if (!student) {
+                console.error('Student not found:', studentId);
+                return;
             }
             
-            // Update local attendanceDates
-            const dateData = attendanceDates.find(d => d.date === date);
-            if (dateData) {
+            const attendanceId = `att_${course.code}_${studentId}_${date}`;
+            
+            try {
                 if (status === 'no-record') {
-                    delete dateData.records[studentId];
+                    // Delete the record if status is no-record
+                    await db.collection('attendance').doc(attendanceId).delete();
+                    console.log('Deleted attendance record:', attendanceId);
                 } else {
-                    dateData.records[studentId] = { status, notes };
+                    // Save or update the record
+                    const attendanceData = {
+                        courseCode: course.code,
+                        courseName: course.name,
+                        studentId: studentId,
+                        studentName: student.name,
+                        date: date,
+                        status: status,
+                        notes: notes || '',
+                        updatedAt: new Date().toISOString(),
+                        createdAt: new Date().toISOString() // Always set createdAt for new records
+                    };
+                    
+                    await db.collection('attendance').doc(attendanceId).set(attendanceData, { merge: true });
+                    console.log('Saved attendance record:', attendanceId, status);
                 }
+                
+                // Update local attendanceDates immediately
+                const dateData = attendanceDates.find(d => d.date === date);
+                if (dateData) {
+                    if (!dateData.records) {
+                        dateData.records = {};
+                    }
+                    
+                    if (status === 'no-record') {
+                        delete dateData.records[studentId];
+                    } else {
+                        dateData.records[studentId] = { status, notes: notes || '' };
+                    }
+                }
+                
+                // Also update the course's attendanceDates in Firebase to maintain consistency
+                await updateCourse(currentCourseId, { 
+                    attendanceDates: attendanceDates,
+                    lastAttendanceUpdate: new Date().toISOString()
+                });
+                
+            } catch (error) {
+                console.error('Error saving attendance record:', error);
+                throw error;
             }
         }
 
@@ -2133,10 +2243,34 @@
                 const dateData = attendanceDates.find(d => d.date === date);
                 if (dateData) {
                     dateData[field] = value;
-                    await updateCourse(currentCourseId, { attendanceDates: attendanceDates });
+                    dateData.updatedAt = new Date().toISOString();
+                    
+                    // Update both local and Firebase data
+                    await updateCourse(currentCourseId, { 
+                        attendanceDates: attendanceDates,
+                        lastAttendanceUpdate: new Date().toISOString()
+                    });
+                    
+                    // Update local courses array
+                    const courseIndex = courses.findIndex(c => c.id === currentCourseId);
+                    if (courseIndex !== -1) {
+                        courses[courseIndex].attendanceDates = [...attendanceDates];
+                    }
+                    
+                    // Update the main course table display immediately
+                    displayCourses();
+                    
+                    console.log('Updated date info:', date, field, value);
                 }
             } catch (error) {
                 console.error('Error updating date info:', error);
+                // Reload attendance data on error to ensure consistency
+                const course = courses.find(c => c.id === currentCourseId);
+                if (course) {
+                    await loadAttendanceDates(course);
+                    displayAttendanceTable();
+                    displayCourses(); // Also refresh main table on error recovery
+                }
             }
         }
 
@@ -3260,11 +3394,18 @@
             const attendanceDates = course.attendanceDates || [];
             if (attendanceDates.length === 0) return 'No sessions yet';
             
-            const dates = attendanceDates.map(a => new Date(a.date)).sort((a, b) => a - b);
-            const firstDate = formatDate(dates[0]);
-            const lastDate = formatDate(dates[dates.length - 1]);
+            const validDates = attendanceDates
+                .filter(a => a && a.date) // Filter out invalid entries
+                .map(a => new Date(a.date))
+                .filter(date => !isNaN(date.getTime())) // Filter out invalid dates
+                .sort((a, b) => a - b);
             
-            return dates.length === 1 ? firstDate : `${firstDate} - ${lastDate}`;
+            if (validDates.length === 0) return 'No valid sessions';
+            
+            const firstDate = formatDate(validDates[0].toISOString().split('T')[0]);
+            const lastDate = formatDate(validDates[validDates.length - 1].toISOString().split('T')[0]);
+            
+            return validDates.length === 1 ? firstDate : `${firstDate} - ${lastDate}`;
         }
 
         function editCourse(courseId) {
@@ -3364,5 +3505,5 @@
             outline-offset: 2px;
         }
     </style>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9736801ee2f620e9',t:'MTc1NTkwOTAxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97440e86828e1a5b',t:'MTc1NjA1MTE2NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
