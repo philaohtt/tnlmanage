@@ -467,26 +467,19 @@
 
                 <!-- Basic Information Tab -->
                 <div id="basicProfileContent" class="space-y-4">
+                    <!-- Essential Fields (Always Visible) -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Student ID *</label>
-                            <input type="text" id="studentId" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <input type="text" id="studentId" required class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., STU001">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                            <input type="text" id="fullName" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <input type="text" id="fullName" required class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Enter student's full name">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
                             <input type="date" id="dateOfBirth" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">School</label>
-                            <input type="text" id="school" class="w-full border border-gray-300 rounded-lg px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Assignment</label>
-                            <input type="text" id="classAssignment" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -497,14 +490,36 @@
                                 <option value="Dropped">Dropped</option>
                             </select>
                         </div>
+                    </div>
+                    
+                    <!-- Additional Fields (Hidden for new students, shown for existing) -->
+                    <div id="additionalBasicFields" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">School</label>
+                            <input type="text" id="school" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="School name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Assignment</label>
+                            <input type="text" id="classAssignment" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., Math-101">
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Year Enrolled</label>
-                            <input type="number" id="yearEnrolled" min="2000" max="2030" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <input type="number" id="yearEnrolled" min="2000" max="2030" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="2024">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Year Finished</label>
-                            <input type="number" id="yearFinished" min="2000" max="2030" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <input type="number" id="yearFinished" min="2000" max="2030" class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="Leave empty if ongoing">
                         </div>
+                    </div>
+                    
+                    <!-- Show More Button (Only for new students) -->
+                    <div id="showMoreBasicFields" class="text-center pt-2">
+                        <button type="button" onclick="toggleAdditionalBasicFields()" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center mx-auto">
+                            <svg id="expandBasicIcon" class="w-4 h-4 mr-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                            <span id="expandBasicText">Show additional fields</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1137,9 +1152,58 @@ function updateTabCounts() {
 // Show create form
 function showCreateForm() {
     editingStudentId = null;
-    document.getElementById('modalTitle').textContent = 'Add New Student';
+    document.getElementById('modalTitle').textContent = 'Add New Student - Basic Information';
     document.getElementById('studentForm').reset();
+    
+    // For new students, only show basic info tab and hide others
+    showOnlyBasicInfoForNewStudent();
+    
     document.getElementById('studentModal').classList.remove('hidden');
+}
+
+// Show only basic info for new students
+function showOnlyBasicInfoForNewStudent() {
+    // Hide all tabs except basic info
+    const tabs = ['contact', 'progress', 'notes'];
+    tabs.forEach(tab => {
+        const tabButton = document.getElementById(tab + 'ProfileTab');
+        const tabContent = document.getElementById(tab + 'ProfileContent');
+        if (tabButton) tabButton.style.display = 'none';
+        if (tabContent) tabContent.classList.add('hidden');
+    });
+    
+    // Show only basic info tab
+    const basicTab = document.getElementById('basicProfileTab');
+    const basicContent = document.getElementById('basicProfileContent');
+    if (basicTab) {
+        basicTab.style.display = 'block';
+        basicTab.className = 'py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600';
+    }
+    if (basicContent) basicContent.classList.remove('hidden');
+    
+    // Hide additional fields and show the expand button for new students
+    const additionalFields = document.getElementById('additionalBasicFields');
+    const showMoreButton = document.getElementById('showMoreBasicFields');
+    if (additionalFields) additionalFields.style.display = 'none';
+    if (showMoreButton) showMoreButton.style.display = 'block';
+    
+    currentProfileTab = 'basic';
+}
+
+// Show all tabs for existing students
+function showAllTabsForExistingStudent() {
+    // Show all tabs
+    const tabs = ['basic', 'contact', 'progress', 'notes'];
+    tabs.forEach(tab => {
+        const tabButton = document.getElementById(tab + 'ProfileTab');
+        if (tabButton) tabButton.style.display = 'block';
+    });
+    
+    // Show additional fields and hide the expand button for existing students
+    const additionalFields = document.getElementById('additionalBasicFields');
+    const showMoreButton = document.getElementById('showMoreBasicFields');
+    if (additionalFields) additionalFields.style.display = 'grid';
+    if (showMoreButton) showMoreButton.style.display = 'none';
 }
 
 // Edit student
@@ -1149,6 +1213,9 @@ function editStudent(studentId) {
 
     editingStudentId = studentId;
     document.getElementById('modalTitle').textContent = 'Edit Student';
+    
+    // For existing students, show all tabs
+    showAllTabsForExistingStudent();
     
     // Populate form fields with null checks
     const setFieldValue = (fieldId, value) => {
@@ -2651,6 +2718,23 @@ function getScoreColor(score) {
     return 'text-red-600';
 }
 
+// Toggle additional basic fields
+function toggleAdditionalBasicFields() {
+    const additionalFields = document.getElementById('additionalBasicFields');
+    const expandIcon = document.getElementById('expandBasicIcon');
+    const expandText = document.getElementById('expandBasicText');
+    
+    if (additionalFields.style.display === 'none' || additionalFields.style.display === '') {
+        additionalFields.style.display = 'grid';
+        expandIcon.classList.add('rotate-180');
+        expandText.textContent = 'Hide additional fields';
+    } else {
+        additionalFields.style.display = 'none';
+        expandIcon.classList.remove('rotate-180');
+        expandText.textContent = 'Show additional fields';
+    }
+}
+
 // Format attendance records by month in ascending order
 function formatAttendanceByMonth(attendanceRecords) {
     if (!attendanceRecords || attendanceRecords.length === 0) {
@@ -2710,5 +2794,5 @@ function formatAttendanceByMonth(attendanceRecords) {
 
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97377daab0d9b453',t:'MTc1NTkxOTQwMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'973aaabd87a911e1',t:'MTc1NTk1MjcwNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

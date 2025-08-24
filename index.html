@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>School Management System</title>
+  <title>School Management System - Login</title>
   <style>
       * {
           margin: 0;
@@ -15,59 +15,197 @@
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           line-height: 1.6;
           color: #333;
+          height: 100vh;
+          display: flex;
+          flex-direction: column;
       }
       
-      /* Header */
+      /* Login Screen Styles */
+      .login-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 1rem;
+      }
+      
+      .login-box {
+          background: white;
+          padding: 2.5rem;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+          width: 100%;
+          max-width: 400px;
+          text-align: center;
+      }
+      
+      .login-header {
+          margin-bottom: 2rem;
+      }
+      
+      .login-header h1 {
+          font-size: 1.8rem;
+          color: #2c3e50;
+          margin-bottom: 0.5rem;
+      }
+      
+      .login-header p {
+          color: #666;
+          font-size: 0.95rem;
+      }
+      
+      .login-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+      }
+      
+      .form-group {
+          text-align: left;
+      }
+      
+      .form-group label {
+          display: block;
+          margin-bottom: 0.5rem;
+          color: #555;
+          font-weight: 500;
+      }
+      
+      .form-group input {
+          width: 100%;
+          padding: 0.75rem;
+          border: 2px solid #e1e8ed;
+          border-radius: 6px;
+          font-size: 1rem;
+          transition: border-color 0.3s ease;
+      }
+      
+      .form-group input:focus {
+          outline: none;
+          border-color: #667eea;
+      }
+      
+      .login-btn {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 6px;
+          font-size: 1rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+      }
+      
+      .login-btn:hover {
+          transform: translateY(-1px);
+      }
+      
+      .login-btn:active {
+          transform: translateY(0);
+      }
+      
+      .error-message {
+          color: #e74c3c;
+          font-size: 0.9rem;
+          margin-top: 0.5rem;
+          display: none;
+      }
+      
+      .success-message {
+          color: #27ae60;
+          font-size: 0.9rem;
+          margin-top: 0.5rem;
+          display: none;
+      }
+      
+      /* Main App Styles (hidden initially) */
+      .main-app {
+          display: none;
+          height: 100vh;
+          flex-direction: column;
+      }
+      
+      /* Compact Header */
       .header {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
-          padding: 2rem 0;
+          padding: 0.75rem 0;
           text-align: center;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          flex-shrink: 0;
+          position: relative;
       }
       
       .header h1 {
-          font-size: 2.5rem;
-          margin-bottom: 0.5rem;
-          font-weight: 700;
+          font-size: 1.5rem;
+          margin-bottom: 0.2rem;
+          font-weight: 600;
       }
       
       .header p {
-          font-size: 1.2rem;
+          font-size: 0.85rem;
           opacity: 0.9;
       }
       
-      /* Navigation */
+      .header-info {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 0.8rem;
+          opacity: 0.9;
+      }
+      
+      .logout-btn {
+          position: absolute;
+          right: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255,255,255,0.2);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.3);
+          padding: 0.4rem 0.8rem;
+          border-radius: 4px;
+          font-size: 0.8rem;
+          cursor: pointer;
+          transition: background 0.3s ease;
+      }
+      
+      .logout-btn:hover {
+          background: rgba(255,255,255,0.3);
+      }
+      
+      /* Compact Navigation */
       .nav {
           background: white;
           padding: 0;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          position: sticky;
-          top: 0;
-          z-index: 100;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          flex-shrink: 0;
       }
       
       .nav-container {
           max-width: 1200px;
           margin: 0 auto;
           display: flex;
-          overflow-x: auto;
       }
       
       .nav-item {
           flex: 1;
-          min-width: 200px;
           text-align: center;
       }
       
       .nav-link {
           display: block;
-          padding: 1rem;
+          padding: 0.75rem 0.5rem;
           text-decoration: none;
           color: #555;
           font-weight: 500;
+          font-size: 0.9rem;
           transition: all 0.3s ease;
-          border-bottom: 3px solid transparent;
+          border-bottom: 2px solid transparent;
+          cursor: pointer;
       }
       
       .nav-link:hover, .nav-link.active {
@@ -76,57 +214,55 @@
           border-bottom-color: #667eea;
       }
       
-      /* Content */
+      /* Maximized Content Area */
       .content {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 2rem 1rem;
-          min-height: calc(100vh - 200px);
+          flex: 1;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
       }
       
       .module-content {
           display: none;
-          animation: fadeIn 0.3s ease-in;
+          flex: 1;
+          overflow: hidden;
       }
       
       .module-content.active {
-          display: block;
-      }
-      
-      @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          display: flex;
+          flex-direction: column;
       }
       
       .module-frame {
           width: 100%;
-          min-height: 600px;
-          border: 1px solid #e1e8ed;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          flex: 1;
+          border: none;
+          background: white;
       }
       
-      /* Home page content */
+      /* Compact Home page */
       .home-content {
-          text-align: center;
-          padding: 3rem 0;
+          flex: 1;
+          padding: 1.5rem;
+          overflow-y: auto;
       }
       
       .welcome-section {
           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-          padding: 3rem 2rem;
-          border-radius: 12px;
-          margin-bottom: 3rem;
+          padding: 1.5rem;
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+          text-align: center;
       }
       
       .welcome-section h2 {
-          font-size: 2rem;
+          font-size: 1.5rem;
           color: #2c3e50;
-          margin-bottom: 1rem;
+          margin-bottom: 0.5rem;
       }
       
       .welcome-section p {
-          font-size: 1.1rem;
+          font-size: 0.95rem;
           color: #555;
           max-width: 600px;
           margin: 0 auto;
@@ -134,63 +270,69 @@
       
       .features-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 2rem;
-          margin-top: 3rem;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
       }
       
       .feature-card {
           background: white;
-          padding: 2rem;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          padding: 1.25rem;
+          border-radius: 6px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           transition: transform 0.3s ease;
+          text-align: center;
       }
       
       .feature-card:hover {
-          transform: translateY(-5px);
+          transform: translateY(-2px);
       }
       
       .feature-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
       }
       
       .feature-card h3 {
           color: #2c3e50;
-          margin-bottom: 1rem;
+          margin-bottom: 0.5rem;
+          font-size: 1rem;
       }
       
       .feature-card p {
           color: #666;
+          font-size: 0.85rem;
       }
       
-      /* Footer */
+      /* Minimal Footer */
       .footer {
           background: #2c3e50;
           color: white;
           text-align: center;
-          padding: 2rem 0;
-          margin-top: 3rem;
+          padding: 0.5rem 0;
+          font-size: 0.8rem;
+          flex-shrink: 0;
       }
       
       /* Loading state */
       .loading {
-          text-align: center;
-          padding: 3rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex: 1;
           color: #666;
+          font-size: 0.9rem;
       }
       
       .loading::after {
           content: '';
           display: inline-block;
-          width: 20px;
-          height: 20px;
+          width: 16px;
+          height: 16px;
           border: 2px solid #667eea;
           border-radius: 50%;
           border-top-color: transparent;
           animation: spin 1s linear infinite;
-          margin-left: 10px;
+          margin-left: 8px;
       }
       
       @keyframes spin {
@@ -199,194 +341,371 @@
       
       /* Mobile responsiveness */
       @media (max-width: 768px) {
+          .login-box {
+              padding: 2rem;
+              margin: 1rem;
+          }
+          
           .header h1 {
-              font-size: 2rem;
+              font-size: 1.25rem;
           }
           
-          .nav-container {
-              flex-direction: column;
+          .header p {
+              font-size: 0.75rem;
           }
           
-          .nav-item {
-              min-width: auto;
+          .header-info {
+              position: static;
+              transform: none;
+              margin-top: 0.5rem;
+              text-align: center;
           }
           
-          .content {
+          .logout-btn {
+              position: static;
+              transform: none;
+              margin-top: 0.5rem;
+              display: block;
+              width: auto;
+          }
+          
+          .nav-link {
+              padding: 0.6rem 0.25rem;
+              font-size: 0.8rem;
+          }
+          
+          .home-content {
               padding: 1rem;
           }
           
           .welcome-section {
-              padding: 2rem 1rem;
+              padding: 1rem;
+          }
+          
+          .welcome-section h2 {
+              font-size: 1.25rem;
           }
           
           .features-grid {
               grid-template-columns: 1fr;
-              gap: 1rem;
           }
+          
+          .feature-card {
+              padding: 1rem;
+          }
+      }
+      
+      /* Ensure full height usage */
+      html {
+          height: 100%;
       }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="header">
-      <h1>🏫 School Management System</h1>
-      <p>Comprehensive Educational Administration Platform v2.2</p>
-  </header>
-  
-  <!-- Navigation -->
-  <nav class="nav">
-      <div class="nav-container">
-          <div class="nav-item">
-              <a href="#home" class="nav-link active" onclick="showModule('home', this)">
-                  🏠 Home
-              </a>
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-container">
+      <div class="login-box">
+          <div class="login-header">
+              <h1>🏫 School Management System</h1>
+              <p>Please enter your access code to continue</p>
           </div>
-          <div class="nav-item">
-              <a href="#admission" class="nav-link" onclick="showModule('admission', this)">
-                  📝 Admission
-              </a>
-          </div>
-          <div class="nav-item">
-              <a href="#students" class="nav-link" onclick="showModule('students', this)">
-                  👥 Students
-              </a>
-          </div>
-          <div class="nav-item">
-              <a href="#courses" class="nav-link" onclick="showModule('courses', this)">
-                  📚 Courses
-              </a>
-          </div>
-          <div class="nav-item">
-              <a href="#tuition" class="nav-link" onclick="showModule('tuition', this)">
-                  💰 Tuition
-              </a>
-          </div>
-      </div>
-  </nav>
-  
-  <!-- Content -->
-  <main class="content">
-      <!-- Home Page -->
-      <div id="home-content" class="module-content active">
-          <div class="home-content">
-              <div class="welcome-section">
-                  <h2>Welcome to Our School Management System</h2>
-                  <p>Streamline your educational administration with our comprehensive platform. Manage admissions, student records, courses, and tuition all in one place.</p>
+          
+          <form class="login-form" onsubmit="return handleLogin(event)">
+              <div class="form-group">
+                  <label for="username">Username (Optional)</label>
+                  <input type="text" id="username" name="username" placeholder="Enter your name">
               </div>
               
-              <div class="features-grid">
-                  <div class="feature-card">
-                      <div class="feature-icon">📝</div>
-                      <h3>Admission Management</h3>
-                      <p>Handle student applications, enrollment processes, and admission documentation efficiently.</p>
+              <div class="form-group">
+                  <label for="password">Access Code</label>
+                  <input type="password" id="password" name="password" required placeholder="Enter your access code">
+              </div>
+              
+              <button type="submit" class="login-btn">Access System</button>
+              
+              <div id="error-message" class="error-message">
+                  Invalid access code. Please try again.
+              </div>
+              
+              <div id="success-message" class="success-message">
+                  Access granted! Loading system...
+              </div>
+          </form>
+      </div>
+  </div>
+
+  <!-- Main Application (hidden initially) -->
+  <div id="main-app" class="main-app">
+      <!-- Compact Header -->
+      <header class="header">
+          <div class="header-info">
+              <div id="current-user">User: Guest</div>
+              <div id="login-time">Login: --</div>
+          </div>
+          <h1>🏫 School Management System</h1>
+          <p>Educational Administration Platform v2.2</p>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+      </header>
+      
+      <!-- Compact Navigation -->
+      <nav class="nav">
+          <div class="nav-container">
+              <div class="nav-item">
+                  <div class="nav-link active" onclick="showModule('home', this)">
+                      🏠 Home
                   </div>
-                  
-                  <div class="feature-card">
-                      <div class="feature-icon">👥</div>
-                      <h3>Student Records</h3>
-                      <p>Maintain comprehensive student profiles, academic records, and personal information.</p>
+              </div>
+              <div class="nav-item">
+                  <div class="nav-link" onclick="showModule('admission', this)">
+                      📝 Admission
                   </div>
-                  
-                  <div class="feature-card">
-                      <div class="feature-icon">📚</div>
-                      <h3>Course Management</h3>
-                      <p>Organize curriculum, class schedules, and academic programs with ease.</p>
+              </div>
+              <div class="nav-item">
+                  <div class="nav-link" onclick="showModule('students', this)">
+                      👥 Students
                   </div>
-                  
-                  <div class="feature-card">
-                      <div class="feature-icon">💰</div>
-                      <h3>Tuition & Fees</h3>
-                      <p>Track payments, manage fee structures, and handle financial records seamlessly.</p>
+              </div>
+              <div class="nav-item">
+                  <div class="nav-link" onclick="showModule('courses', this)">
+                      📚 Courses
+                  </div>
+              </div>
+              <div class="nav-item">
+                  <div class="nav-link" onclick="showModule('tuition', this)">
+                      💰 Tuition
                   </div>
               </div>
           </div>
-      </div>
+      </nav>
       
-      <!-- Module Contents -->
-      <div id="admission-content" class="module-content">
-          <div class="loading" id="admission-loading">Loading Admission Module v2.2...</div>
-          <iframe id="admission-frame" class="module-frame" src="admission2.2.html" style="display:none;" onload="hideLoading('admission')"></iframe>
-      </div>
+      <!-- Maximized Content -->
+      <main class="content">
+          <!-- Compact Home Page -->
+          <div id="home-content" class="module-content active">
+              <div class="home-content">
+                  <div class="welcome-section">
+                      <h2>Welcome to School Management System</h2>
+                      <p>Comprehensive platform for educational administration. Select a module above to get started.</p>
+                  </div>
+                  
+                  <div class="features-grid">
+                      <div class="feature-card">
+                          <div class="feature-icon">📝</div>
+                          <h3>Admission Management</h3>
+                          <p>Handle applications and enrollment processes</p>
+                      </div>
+                      
+                      <div class="feature-card">
+                          <div class="feature-icon">👥</div>
+                          <h3>Student Records</h3>
+                          <p>Maintain student profiles and academic records</p>
+                      </div>
+                      
+                      <div class="feature-card">
+                          <div class="feature-icon">📚</div>
+                          <h3>Course Management</h3>
+                          <p>Organize curriculum and class schedules</p>
+                      </div>
+                      
+                      <div class="feature-card">
+                          <div class="feature-icon">💰</div>
+                          <h3>Tuition & Fees</h3>
+                          <p>Track payments and manage fee structures</p>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          
+          <!-- Full-Height Module Contents -->
+          <div id="admission-content" class="module-content">
+              <div class="loading" id="admission-loading">Loading Admission Module...</div>
+              <iframe id="admission-frame" class="module-frame" src="admission2.2.html" style="display:none;" onload="hideLoading('admission')"></iframe>
+          </div>
+          
+          <div id="students-content" class="module-content">
+              <div class="loading" id="students-loading">Loading Students Module...</div>
+              <iframe id="students-frame" class="module-frame" src="student2.2.html" style="display:none;" onload="hideLoading('students')"></iframe>
+          </div>
+          
+          <div id="courses-content" class="module-content">
+              <div class="loading" id="courses-loading">Loading Courses Module...</div>
+              <iframe id="courses-frame" class="module-frame" src="courses2.2.html" style="display:none;" onload="hideLoading('courses')"></iframe>
+          </div>
+          
+          <div id="tuition-content" class="module-content">
+              <div class="loading" id="tuition-loading">Loading Tuition Module...</div>
+              <iframe id="tuition-frame" class="module-frame" src="tuition2.2.html" style="display:none;" onload="hideLoading('tuition')"></iframe>
+          </div>
+      </main>
       
-      <div id="students-content" class="module-content">
-          <div class="loading" id="students-loading">Loading Students Module v2.2...</div>
-          <iframe id="students-frame" class="module-frame" src="student2.2.html" style="display:none;" onload="hideLoading('students')"></iframe>
-      </div>
-      
-      <div id="courses-content" class="module-content">
-          <div class="loading" id="courses-loading">Loading Courses Module v2.2...</div>
-          <iframe id="courses-frame" class="module-frame" src="courses2.2.html" style="display:none;" onload="hideLoading('courses')"></iframe>
-      </div>
-      
-      <div id="tuition-content" class="module-content">
-          <div class="loading" id="tuition-loading">Loading Tuition Module v2.2...</div>
-          <iframe id="tuition-frame" class="module-frame" src="tuition2.2.html" style="display:none;" onload="hideLoading('tuition')"></iframe>
-      </div>
-  </main>
-  
-  <!-- Footer -->
-  <footer class="footer">
-      <p>&copy; 2025 School Management System v2.2. All rights reserved.</p>
-  </footer>
+      <!-- Minimal Footer -->
+      <footer class="footer">
+          <p>&copy; 2025 School Management System v2.2</p>
+      </footer>
+  </div>
   
   <script>
-      function showModule(moduleName, linkElement) {
-          // Remove active class from all nav links
-          document.querySelectorAll('.nav-link').forEach(link => {
-              link.classList.remove('active');
-          });
-          
-          // Add active class to clicked link
-          linkElement.classList.add('active');
-          
-          // Hide all module contents
-          document.querySelectorAll('.module-content').forEach(content => {
-              content.classList.remove('active');
-          });
-          
-          // Show selected module content
-          document.getElementById(moduleName + '-content').classList.add('active');
-          
-          // Update page title
-          const titles = {
-              'home': 'School Management System v2.2',
-              'admission': 'Admission Management v2.2',
-              'students': 'Student Records v2.2',
-              'courses': 'Course Management v2.2',
-              'tuition': 'Tuition & Fees v2.2'
-          };
-          document.title = titles[moduleName] || 'School Management System v2.2';
-          
-          // Update URL without page reload
-          history.pushState({module: moduleName}, '', '#' + moduleName);
-      }
+      // Password Configuration with user roles
+      const userCredentials = {
+          'board2025': { role: 'Board Member', isAdmin: false },
+          'admin123': { role: 'Administrator', isAdmin: true },
+          'staff2025': { role: 'Staff Member', isAdmin: false },
+          'principal': { role: 'Principal', isAdmin: true },
+          'secretary': { role: 'Secretary', isAdmin: false },
+          'finance2025': { role: 'Finance Team', isAdmin: false }
+      };
       
-      function hideLoading(moduleName) {
-          document.getElementById(moduleName + '-loading').style.display = 'none';
-          document.getElementById(moduleName + '-frame').style.display = 'block';
-      }
+      let currentUser = null;
       
-      // Handle browser back/forward buttons
-      window.addEventListener('popstate', function(event) {
-          const hash = window.location.hash.substring(1) || 'home';
-          const linkElement = document.querySelector(`[onclick*="${hash}"]`);
-          if (linkElement) {
-              showModule(hash, linkElement);
-          }
-      });
-      
-      // Load initial page based on URL hash
-      window.addEventListener('load', function() {
-          const hash = window.location.hash.substring(1) || 'home';
-          const validModules = ['home', 'admission', 'students', 'courses', 'tuition'];
-          
-          if (validModules.includes(hash) && hash !== 'home') {
-              const linkElement = document.querySelector(`[onclick*="${hash}"]`);
-              if (linkElement) {
-                  showModule(hash, linkElement);
+      // Check if user is already logged in
+      function checkLoginStatus() {
+          const savedUser = sessionStorage.getItem('schoolSystemUser');
+          if (savedUser) {
+              try {
+                  currentUser = JSON.parse(savedUser);
+                  showMainApp();
+              } catch (e) {
+                  console.error('Error parsing saved user:', e);
+                  sessionStorage.removeItem('schoolSystemUser');
               }
           }
-      });
+      }
+      
+      // Handle login
+      function handleLogin(event) {
+          event.preventDefault();
+          
+          const password = document.getElementById('password').value;
+          const username = document.getElementById('username').value.trim();
+          const errorMessage = document.getElementById('error-message');
+          const successMessage = document.getElementById('success-message');
+          
+          errorMessage.style.display = 'none';
+          successMessage.style.display = 'none';
+          
+          if (userCredentials[password]) {
+              currentUser = {
+                  name: username || userCredentials[password].role,
+                  role: userCredentials[password].role,
+                  isAdmin: userCredentials[password].isAdmin,
+                  loginTime: new Date().toISOString()
+              };
+              
+              sessionStorage.setItem('schoolSystemUser', JSON.stringify(currentUser));
+              
+              successMessage.style.display = 'block';
+              successMessage.textContent = 'Access granted! Loading system...';
+              
+              setTimeout(() => {
+                  showMainApp();
+              }, 1000);
+          } else {
+              errorMessage.style.display = 'block';
+              errorMessage.textContent = 'Invalid access code. Please try again.';
+          }
+          
+          return false;
+      }
+      
+      // Show main application
+      function showMainApp() {
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('main-app').style.display = 'flex';
+          
+          // Update header info
+          document.getElementById('current-user').textContent = `User: ${currentUser.name}`;
+          document.getElementById('login-time').textContent = `Login: ${new Date(currentUser.loginTime).toLocaleTimeString()}`;
+      }
+      
+      // Show specific module
+      function showModule(moduleName, navElement) {
+          // Hide all modules
+          const modules = document.querySelectorAll('.module-content');
+          modules.forEach(module => module.classList.remove('active'));
+          
+          // Remove active class from all nav links
+          const navLinks = document.querySelectorAll('.nav-link');
+          navLinks.forEach(link => link.classList.remove('active'));
+          
+          // Show selected module
+          document.getElementById(moduleName + '-content').classList.add('active');
+          navElement.classList.add('active');
+      }
+      
+      // Hide loading indicator when iframe loads
+      function hideLoading(moduleName) {
+          const loadingElement = document.getElementById(moduleName + '-loading');
+          const frameElement = document.getElementById(moduleName + '-frame');
+          
+          if (loadingElement) loadingElement.style.display = 'none';
+          if (frameElement) frameElement.style.display = 'block';
+      }
+      
+      // Handle iframe load errors
+      function handleIframeError(moduleName) {
+          const loadingElement = document.getElementById(moduleName + '-loading');
+          if (loadingElement) {
+              loadingElement.innerHTML = `
+                  <div style="text-align: center; color: #e74c3c;">
+                      <h3>⚠️ Module Not Found</h3>
+                      <p>The file "${moduleName}2.2.html" could not be loaded.</p>
+                      <p>Please ensure the file exists in the same directory as this index file.</p>
+                  </div>
+              `;
+          }
+      }
+      
+      // Set up iframe error handlers
+      function setupIframeErrorHandlers() {
+          const modules = ['admission', 'students', 'courses', 'tuition'];
+          
+          modules.forEach(module => {
+              const iframe = document.getElementById(module + '-frame');
+              if (iframe) {
+                  iframe.onerror = () => handleIframeError(module);
+                  
+                  // Also check if iframe fails to load after a timeout
+                  setTimeout(() => {
+                      if (iframe.style.display === 'none') {
+                          handleIframeError(module);
+                      }
+                  }, 5000);
+              }
+          });
+      }
+      
+      // Logout function
+      function logout() {
+          if (confirm('Are you sure you want to logout?')) {
+              sessionStorage.removeItem('schoolSystemUser');
+              currentUser = null;
+              
+              // Reset UI
+              document.getElementById('main-app').style.display = 'none';
+              document.getElementById('login-screen').style.display = 'flex';
+              
+              // Reset form
+              document.getElementById('username').value = '';
+              document.getElementById('password').value = '';
+              document.getElementById('error-message').style.display = 'none';
+              document.getElementById('success-message').style.display = 'none';
+              
+              // Reset navigation
+              document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+              document.querySelector('.nav-link').classList.add('active');
+              document.querySelectorAll('.module-content').forEach(module => module.classList.remove('active'));
+              document.getElementById('home-content').classList.add('active');
+          }
+      }
+      
+      // Initialize the application
+      function initializeApp() {
+          checkLoginStatus();
+          setupIframeErrorHandlers();
+      }
+      
+      // Run initialization when page loads
+      document.addEventListener('DOMContentLoaded', initializeApp);
   </script>
 </body>
 </html>
