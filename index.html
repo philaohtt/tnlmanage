@@ -671,7 +671,7 @@
               <div class="nav-item">
                   <a href="#" class="nav-link active" onclick="showModule('home')">🏠 Home</a>
               </div>
-		<div class="nav-item admin-only">
+		<div class="nav-item">
                   <a href="#" class="nav-link" onclick="showModule('workflow')">📚 Work Flow</a>
               </div>
               <div class="nav-item">
@@ -686,7 +686,7 @@
               <div class="nav-item admin-only">
                   <a href="#" class="nav-link" onclick="showModule('tuition')">💰 Tuition</a>
               </div>
-		<div class="nav-item admin-only">
+		<div class="nav-item">
                   <a href="#" class="nav-link" onclick="showModule('facilities')">🏫 Facilities</a>
               </div>
               <div class="nav-item admin-only">
@@ -1106,7 +1106,7 @@
               }
               
               // Load iframe if needed
-              if (['admission', 'students', 'courses', 'tuition'].includes(moduleName)) {
+              if (['workflow','facilities','admission', 'students', 'courses', 'tuition'].includes(moduleName)) {
                   loadModuleIframe(moduleName);
               }
           }
