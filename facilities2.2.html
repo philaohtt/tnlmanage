@@ -164,13 +164,13 @@
                             <h3 class="text-lg font-semibold mb-4">Maintenance Issues</h3>
                             <div class="flex border-b -mb-4">
                                 <button onclick="showMaintenanceStatus('urgent')" class="maintenance-status-btn px-4 py-2 text-sm font-medium border-b-2 border-red-500 text-red-600 bg-red-50" data-status="urgent">
-                                    🚨 Urgent & High
+                                    🚨 Urgent & High <span id="urgent-count" class="text-xs">(0)</span>
                                 </button>
                                 <button onclick="showMaintenanceStatus('normal')" class="maintenance-status-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-status="normal">
-                                    📋 Medium & Low
+                                    📋 Medium & Low <span id="normal-count" class="text-xs">(0)</span>
                                 </button>
                                 <button onclick="showMaintenanceStatus('resolved')" class="maintenance-status-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-status="resolved">
-                                    ✅ Resolved
+                                    ✅ Resolved <span id="resolved-count" class="text-xs">(0)</span>
                                 </button>
                             </div>
                         </div>
@@ -187,21 +187,14 @@
         <!-- Scheduler Module -->
         <div id="scheduler-module" class="module-content hidden">
             <div class="flex gap-6">
-                <!-- Collapsible Schedule Form Sidebar -->
-                <div id="schedule-sidebar" class="w-80 bg-white rounded-lg shadow-sm border transition-all duration-300">
-                    <!-- Collapsible Header -->
-                    <div class="p-4 border-b cursor-pointer" onclick="toggleScheduleSidebar()">
-                        <div class="flex items-center justify-between">
-                            <h3 id="schedule-sidebar-title" class="text-lg font-semibold flex items-center">
-                                📅 Schedule Room
-                            </h3>
-                            <svg id="schedule-sidebar-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                            </svg>
-                        </div>
+                <!-- Schedule Form Sidebar (Static) -->
+                <div id="schedule-sidebar" class="w-80 bg-white rounded-lg shadow-sm border">
+                    <div class="p-4 border-b">
+                        <h3 class="text-lg font-semibold flex items-center">
+                            📅 Schedule Room
+                        </h3>
                     </div>
-                    <!-- Collapsible Content -->
-                    <div id="schedule-sidebar-content" class="p-6">
+                    <div class="p-6">
                         <div class="space-y-4">
                             <select id="scheduleRoom" class="w-full px-3 py-2 border rounded-lg text-sm">
                                 <option value="">Select Room</option>
@@ -209,9 +202,9 @@
                             <input type="date" id="scheduleDate" class="w-full px-3 py-2 border rounded-lg text-sm">
                             <div class="space-y-2">
                                 <label class="text-sm text-gray-600">From:</label>
-                                <input type="time" id="startTime" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <input type="time" id="startTime" class="w-full px-3 py-2 border rounded-lg text-sm" onchange="checkScheduleConflict()">
                                 <label class="text-sm text-gray-600">To:</label>
-                                <input type="time" id="endTime" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <input type="time" id="endTime" class="w-full px-3 py-2 border rounded-lg text-sm" onchange="checkScheduleConflict()">
                             </div>
                             <div id="conflictWarning" class="hidden p-3 bg-red-50 border border-red-200 rounded-lg">
                                 <div class="flex items-center">
@@ -315,7 +308,7 @@
                             </div>
                             <input type="text" id="equipmentLocation" placeholder="Current Location" class="w-full px-3 py-2 border rounded-lg text-sm">
                             <div class="flex items-center space-x-2">
-                                <input type="checkbox" id="managedIndividually" class="rounded">
+                                <input type="checkbox" id="managedIndividually" class="rounded" onchange="toggleIndividualManagement()">
                                 <label for="managedIndividually" class="text-sm text-gray-600">Manage items individually</label>
                             </div>
                             <div id="individualManagementFields" class="space-y-2 hidden">
@@ -348,6 +341,11 @@
                             <select id="assignEquipment" class="w-full px-3 py-2 border rounded-lg text-sm">
                                 <option value="">Select Equipment</option>
                             </select>
+                            <div id="individualItemSelect" class="hidden">
+                                <select id="assignIndividualItem" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="">Select Specific Item</option>
+                                </select>
+                            </div>
                             <select id="assignToRoom" class="w-full px-3 py-2 border rounded-lg text-sm">
                                 <option value="">Assign to Room</option>
                             </select>
@@ -373,122 +371,69 @@
 
         <!-- Accounts Module -->
         <div id="accounts-module" class="module-content hidden">
-            <!-- Sub-navigation for Accounts module -->
-            <div class="bg-white rounded-lg shadow-sm border mb-6">
-                <div class="flex border-b">
-                    <button onclick="showAccountsTab('teachers')" class="accounts-tab-btn px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 bg-blue-50" data-tab="teachers">
-                        👨‍🏫 Teacher Accounts
-                    </button>
-                    <button onclick="showAccountsTab('students')" class="accounts-tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="students">
-                        👨‍🎓 Student Accounts
-                    </button>
-                </div>
-            </div>
-
-            <!-- Teacher Accounts Tab -->
-            <div id="accounts-teachers-tab" class="accounts-tab-content">
-                <div class="space-y-6">
-                    <!-- Add Teacher Form -->
-                    <div class="bg-white rounded-lg shadow-sm border">
-                        <!-- Collapsible Header -->
-                        <div class="p-4 border-b cursor-pointer" onclick="toggleSection('teacher-form')">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold flex items-center">
-                                    👨‍🏫 Add Teacher
-                                </h3>
-                                <svg id="teacher-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <!-- Collapsible Content -->
-                        <div id="teacher-form-content" class="p-6">
-                            <div class="space-y-4">
-                                <input type="text" id="teacherName" placeholder="Teacher Name" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <input type="email" id="teacherEmail" placeholder="Email" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <input type="text" id="teacherDepartment" placeholder="Department" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <input type="text" id="teacherSubjects" placeholder="Subjects (comma separated)" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <button onclick="saveTeacher()" id="teacherSaveBtn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                    Add Teacher
-                                </button>
-                                <button onclick="cancelTeacherEdit()" id="teacherCancelBtn" class="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors hidden">
-                                    Cancel Edit
-                                </button>
-                            </div>
+            <!-- App Account Management -->
+            <div class="space-y-6">
+                <!-- Add App Account Form -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <!-- Collapsible Header -->
+                    <div class="p-4 border-b cursor-pointer" onclick="toggleSection('app-form')">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold flex items-center">
+                                📱 Add App Account
+                            </h3>
+                            <svg id="app-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
                         </div>
                     </div>
-
-                    <!-- Teachers List as Cards -->
-                    <div class="bg-white rounded-lg shadow-sm border p-6">
-                        <h3 class="text-lg font-semibold mb-4">Teachers</h3>
-                        <div id="teachersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <!-- Teachers will be populated here -->
+                    <!-- Collapsible Content -->
+                    <div id="app-form-content" class="p-6">
+                        <div class="space-y-4">
+                            <input type="text" id="appName" placeholder="App/Program Name (e.g., Google Classroom, Zoom)" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <select id="accountType" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">Account Type</option>
+                                <option value="teacher">Teacher Account</option>
+                                <option value="student">Student Account</option>
+                                <option value="admin">Admin Account</option>
+                                <option value="shared">Shared Account</option>
+                            </select>
+                            <input type="text" id="accountUser" placeholder="User (Full Name)" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <input type="text" id="accountUsername" placeholder="Username/Email" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <input type="password" id="accountPassword" placeholder="Password" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <button onclick="saveAppAccount()" id="appSaveBtn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                Add App Account
+                            </button>
+                            <button onclick="cancelAppEdit()" id="appCancelBtn" class="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors hidden">
+                                Cancel Edit
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Student Accounts Tab -->
-            <div id="accounts-students-tab" class="accounts-tab-content hidden">
-                <div class="space-y-6">
-                    <!-- Add Student Form -->
-                    <div class="bg-white rounded-lg shadow-sm border">
-                        <!-- Collapsible Header -->
-                        <div class="p-4 border-b cursor-pointer" onclick="toggleSection('student-form')">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold flex items-center">
-                                    👨‍🎓 Add Student
-                                </h3>
-                                <svg id="student-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </div>
-                        </div>
-                        <!-- Collapsible Content -->
-                        <div id="student-form-content" class="p-6">
-                            <div class="space-y-4">
-                                <input type="text" id="studentName" placeholder="Student Name" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <input type="email" id="studentEmail" placeholder="Email" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <input type="text" id="studentId" placeholder="Student ID" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <select id="studentGrade" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                    <option value="">Select Grade</option>
-                                    <option value="9">Grade 9</option>
-                                    <option value="10">Grade 10</option>
-                                    <option value="11">Grade 11</option>
-                                    <option value="12">Grade 12</option>
-                                </select>
-                                <button onclick="saveStudent()" id="studentSaveBtn" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
-                                    Add Student
-                                </button>
-                                <button onclick="cancelStudentEdit()" id="studentCancelBtn" class="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors hidden">
-                                    Cancel Edit
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Students List as Table -->
-                    <div class="bg-white rounded-lg shadow-sm border p-6">
-                        <h3 class="text-lg font-semibold mb-4">Students</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full border-collapse">
-                                <thead>
-                                    <tr class="border-b">
-                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Name</th>
-                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Email</th>
-                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Student ID</th>
-                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Grade</th>
-                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="studentsList">
-                                    <!-- Students will be populated here -->
-                                </tbody>
-                            </table>
-                        </div>
+                <!-- App Accounts List -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold mb-4">App Accounts Directory</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="text-left p-3 text-sm font-medium text-gray-600">App/Program</th>
+                                    <th class="text-left p-3 text-sm font-medium text-gray-600">Type</th>
+                                    <th class="text-left p-3 text-sm font-medium text-gray-600">User</th>
+                                    <th class="text-left p-3 text-sm font-medium text-gray-600">Username</th>
+                                    <th class="text-left p-3 text-sm font-medium text-gray-600">Password</th>
+                                    <th class="text-left p-3 text-sm font-medium text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appAccountsList">
+                                <!-- App accounts will be populated here -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
+
+
         </div>
     </div>
 
@@ -512,15 +457,15 @@
         let rooms = [];
         let equipment = [];
         let schedules = [];
-        let teachers = [];
-        let students = [];
+        let appAccounts = [];
         let maintenanceIssues = [];
+        let assignments = [];
+        let individualItems = [];
         let currentWeekStart = new Date();
         let editingRoomId = null;
         let editingMaintenanceId = null;
         let editingScheduleId = null;
-        let editingTeacherId = null;
-        let editingStudentId = null;
+        let editingAppId = null;
         let currentMaintenanceStatus = 'urgent';
 
         // Initialize app
@@ -541,6 +486,18 @@
             } else {
                 content.style.display = 'none';
                 icon.style.transform = 'rotate(-90deg)';
+            }
+        }
+
+        // Individual equipment management toggle
+        function toggleIndividualManagement() {
+            const checkbox = document.getElementById('managedIndividually');
+            const fields = document.getElementById('individualManagementFields');
+            
+            if (checkbox.checked) {
+                fields.classList.remove('hidden');
+            } else {
+                fields.classList.add('hidden');
             }
         }
 
@@ -565,28 +522,9 @@
             activeTab.classList.remove('text-gray-500');
         }
 
-        // Accounts module navigation
-        function showAccountsTab(tabName) {
-            // Hide all account tabs
-            document.querySelectorAll('.accounts-tab-content').forEach(tab => {
-                tab.classList.add('hidden');
-            });
-            
-            // Show selected tab
-            document.getElementById('accounts-' + tabName + '-tab').classList.remove('hidden');
-            
-            // Update tab styles
-            document.querySelectorAll('.accounts-tab-btn').forEach(btn => {
-                btn.classList.remove('border-blue-500', 'text-blue-600', 'bg-blue-50');
-                btn.classList.add('text-gray-500');
-            });
-            
-            const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
-            activeTab.classList.add('border-blue-500', 'text-blue-600', 'bg-blue-50');
-            activeTab.classList.remove('text-gray-500');
-        }
 
-        // Maintenance status navigation
+
+        // Maintenance status navigation with counts
         function showMaintenanceStatus(status) {
             currentMaintenanceStatus = status;
             
@@ -609,26 +547,23 @@
             displayMaintenance();
         }
 
-        // Schedule sidebar toggle
-        function toggleScheduleSidebar() {
-            const sidebar = document.getElementById('schedule-sidebar');
-            const content = document.getElementById('schedule-sidebar-content');
-            const icon = document.getElementById('schedule-sidebar-icon');
-            const title = document.getElementById('schedule-sidebar-title');
+        // Update maintenance counts
+        function updateMaintenanceCounts() {
+            const urgentCount = maintenanceIssues.filter(issue => 
+                (issue.priority === 'urgent' || issue.priority === 'high') && issue.status !== 'resolved'
+            ).length;
             
-            if (sidebar.classList.contains('w-80')) {
-                sidebar.classList.remove('w-80');
-                sidebar.classList.add('w-12');
-                content.style.display = 'none';
-                title.innerHTML = '📅';
-                icon.style.transform = 'rotate(90deg)';
-            } else {
-                sidebar.classList.remove('w-12');
-                sidebar.classList.add('w-80');
-                content.style.display = 'block';
-                title.innerHTML = '📅 Schedule Room';
-                icon.style.transform = 'rotate(0deg)';
-            }
+            const normalCount = maintenanceIssues.filter(issue => 
+                (issue.priority === 'medium' || issue.priority === 'low') && issue.status !== 'resolved'
+            ).length;
+            
+            const resolvedCount = maintenanceIssues.filter(issue => 
+                issue.status === 'resolved'
+            ).length;
+
+            document.getElementById('urgent-count').textContent = `(${urgentCount})`;
+            document.getElementById('normal-count').textContent = `(${normalCount})`;
+            document.getElementById('resolved-count').textContent = `(${resolvedCount})`;
         }
 
         // Set today's date as default
@@ -708,8 +643,10 @@
                     await db.collection('rooms').doc(editingRoomId).update(roomData);
                     updateSyncStatus('connected', 'Room updated');
                 } else {
+                    // Use predictable document ID based on room name
+                    const docId = `room-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
                     roomData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    await db.collection('rooms').add(roomData);
+                    await db.collection('rooms').doc(docId).set(roomData);
                     updateSyncStatus('connected', 'Room added');
                 }
                 
@@ -736,8 +673,7 @@
             document.getElementById('roomSaveBtn').textContent = 'Update Room';
             document.getElementById('roomCancelBtn').classList.remove('hidden');
             
-            // Switch to management tab and expand form
-            showRoomsTab('management');
+            // Expand form if collapsed
             const content = document.getElementById('room-form-content');
             if (content.style.display === 'none') {
                 toggleSection('room-form');
@@ -858,9 +794,12 @@
                     await db.collection('maintenance').doc(editingMaintenanceId).update(issueData);
                     updateSyncStatus('connected', 'Issue updated');
                 } else {
+                    // Use predictable document ID based on room and timestamp
+                    const timestamp = Date.now();
+                    const docId = `maintenance-${roomId}-${timestamp}`;
                     issueData.reportedAt = firebase.firestore.FieldValue.serverTimestamp();
                     issueData.status = 'open';
-                    await db.collection('maintenance').add(issueData);
+                    await db.collection('maintenance').doc(docId).set(issueData);
                     updateSyncStatus('connected', 'Issue reported');
                 }
                 
@@ -916,6 +855,7 @@
                     maintenanceIssues.push({ id: doc.id, ...doc.data() });
                 });
                 
+                updateMaintenanceCounts();
                 displayMaintenance();
             } catch (error) {
                 console.error('Error loading maintenance issues:', error);
@@ -926,15 +866,15 @@
             const maintenanceList = document.getElementById('maintenanceList');
             if (!maintenanceList) return;
 
-            // Filter issues based on current status
+            // Filter issues based on current status - resolved issues only appear in resolved tab
             let filteredIssues = [];
             if (currentMaintenanceStatus === 'urgent') {
                 filteredIssues = maintenanceIssues.filter(issue => 
-                    issue.priority === 'urgent' || issue.priority === 'high'
+                    (issue.priority === 'urgent' || issue.priority === 'high') && issue.status !== 'resolved'
                 );
             } else if (currentMaintenanceStatus === 'normal') {
                 filteredIssues = maintenanceIssues.filter(issue => 
-                    issue.priority === 'medium' || issue.priority === 'low'
+                    (issue.priority === 'medium' || issue.priority === 'low') && issue.status !== 'resolved'
                 );
             } else if (currentMaintenanceStatus === 'resolved') {
                 filteredIssues = maintenanceIssues.filter(issue => 
@@ -1086,8 +1026,10 @@
                     await db.collection('schedules').doc(editingScheduleId).update(scheduleData);
                     updateSyncStatus('connected', 'Schedule updated');
                 } else {
+                    // Use predictable document ID based on room, date, and time
+                    const docId = `schedule-${roomId}-${date}-${startTime.replace(':', '')}`;
                     scheduleData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    await db.collection('schedules').add(scheduleData);
+                    await db.collection('schedules').doc(docId).set(scheduleData);
                     updateSyncStatus('connected', 'Room scheduled');
                 }
                 
@@ -1114,12 +1056,6 @@
             
             document.getElementById('scheduleSaveBtn').textContent = 'Update Schedule';
             document.getElementById('scheduleCancelBtn').classList.remove('hidden');
-            
-            // Expand sidebar if collapsed
-            const sidebar = document.getElementById('schedule-sidebar');
-            if (sidebar.classList.contains('w-12')) {
-                toggleScheduleSidebar();
-            }
         }
 
         function cancelScheduleEdit() {
@@ -1136,6 +1072,9 @@
             
             document.getElementById('scheduleSaveBtn').textContent = 'Schedule Room';
             document.getElementById('scheduleCancelBtn').classList.add('hidden');
+            
+            // Clear conflict warning
+            document.getElementById('conflictWarning').classList.add('hidden');
         }
 
         // Weekly calendar functions
@@ -1241,11 +1180,15 @@
                     
                     daySchedules.forEach(schedule => {
                         calendarHTML += `
-                            <div class="bg-blue-100 text-blue-800 text-xs p-1 mb-1 rounded cursor-pointer hover:bg-blue-200" 
+                            <div class="bg-blue-100 text-blue-800 text-xs p-1 mb-1 rounded cursor-pointer hover:bg-blue-200 relative group" 
                                  onclick="editSchedule('${schedule.id}')" title="${schedule.title}">
                                 <div class="font-medium truncate text-xs">${schedule.title}</div>
-                                <div class="text-xs">${schedule.startTime}-${schedule.endTime}</div>
+                                <div class="text-xs">${schedule.startTime}</div>
+                                <div class="text-xs">${schedule.endTime}</div>
                                 ${schedule.instructor ? `<div class="text-xs truncate">${schedule.instructor}</div>` : ''}
+                                <button onclick="event.stopPropagation(); deleteSchedule('${schedule.id}')" 
+                                        class="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                        title="Delete Event">×</button>
                             </div>
                         `;
                     });
@@ -1280,6 +1223,9 @@
             const quantity = document.getElementById('equipmentQuantity').value;
             const condition = document.getElementById('equipmentCondition').value;
             const location = document.getElementById('equipmentLocation').value;
+            const managedIndividually = document.getElementById('managedIndividually').checked;
+            const codePrefix = document.getElementById('equipmentCodePrefix').value;
+            const groupName = document.getElementById('equipmentGroup').value;
 
             if (!name || !category || !quantity) {
                 alert('Please fill in required fields');
@@ -1296,10 +1242,34 @@
                     condition,
                     location,
                     available: parseInt(quantity),
+                    managedIndividually,
+                    codePrefix: managedIndividually ? codePrefix : null,
+                    groupName: managedIndividually ? groupName : null,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                await db.collection('equipment').add(equipmentData);
+                // Use predictable document ID based on equipment name and category
+                const docId = `equipment-${category}-${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+                const docRef = await db.collection('equipment').doc(docId).set(equipmentData);
+                const equipmentId = docId;
+                
+                // If managed individually, create individual items
+                if (managedIndividually && codePrefix) {
+                    const batch = db.batch();
+                    for (let i = 1; i <= parseInt(quantity); i++) {
+                        const itemCode = `${codePrefix}-${i.toString().padStart(3, '0')}`;
+                        const itemDocId = `item-${equipmentId}-${i.toString().padStart(3, '0')}`;
+                        const itemRef = db.collection('individualItems').doc(itemDocId);
+                        batch.set(itemRef, {
+                            equipmentId: equipmentId,
+                            itemCode,
+                            status: 'available',
+                            groupName: groupName || name,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                    await batch.commit();
+                }
                 
                 // Clear form
                 document.getElementById('equipmentName').value = '';
@@ -1307,6 +1277,10 @@
                 document.getElementById('equipmentQuantity').value = '';
                 document.getElementById('equipmentCondition').value = 'excellent';
                 document.getElementById('equipmentLocation').value = '';
+                document.getElementById('managedIndividually').checked = false;
+                document.getElementById('equipmentCodePrefix').value = '';
+                document.getElementById('equipmentGroup').value = '';
+                document.getElementById('individualManagementFields').classList.add('hidden');
 
                 loadEquipment();
                 updateSyncStatus('connected', 'Equipment added');
@@ -1324,6 +1298,13 @@
                     equipment.push({ id: doc.id, ...doc.data() });
                 });
                 
+                // Load individual items
+                const itemsSnapshot = await db.collection('individualItems').get();
+                individualItems = [];
+                itemsSnapshot.forEach(doc => {
+                    individualItems.push({ id: doc.id, ...doc.data() });
+                });
+                
                 displayEquipment();
                 updateEquipmentSelect();
             } catch (error) {
@@ -1335,24 +1316,45 @@
             const equipmentList = document.getElementById('equipmentList');
             if (!equipmentList) return;
 
-            equipmentList.innerHTML = equipment.map(item => `
-                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                    <div class="flex-1">
-                        <div class="flex items-center mb-2">
-                            <span class="font-medium text-gray-900">${item.name}</span>
-                            <span class="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">${item.category}</span>
+            equipmentList.innerHTML = equipment.map(item => {
+                const itemsForEquipment = individualItems.filter(i => i.equipmentId === item.id);
+                const availableItems = itemsForEquipment.filter(i => i.status === 'available').length;
+                
+                return `
+                    <div class="border rounded-lg p-4 hover:bg-gray-50">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center">
+                                <span class="font-medium text-gray-900">${item.name}</span>
+                                <span class="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">${item.category}</span>
+                                ${item.managedIndividually ? '<span class="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded">Individual</span>' : ''}
+                            </div>
+                            <button onclick="deleteEquipment('${item.id}')" class="text-red-600 hover:text-red-800">
+                                🗑️
+                            </button>
                         </div>
-                        <div class="text-sm text-gray-600">
-                            📦 ${item.available}/${item.quantity} available • 
+                        <div class="text-sm text-gray-600 mb-2">
+                            📦 ${item.managedIndividually ? `${availableItems}/${itemsForEquipment.length}` : `${item.available}/${item.quantity}`} available • 
                             📍 ${item.location || 'No location'} • 
                             ⭐ ${item.condition}
                         </div>
+                        ${item.managedIndividually && itemsForEquipment.length > 0 ? `
+                            <div class="mt-2">
+                                <details class="text-sm">
+                                    <summary class="cursor-pointer text-blue-600 hover:text-blue-800">View Individual Items</summary>
+                                    <div class="mt-2 pl-4 space-y-1">
+                                        ${itemsForEquipment.map(individualItem => `
+                                            <div class="flex justify-between items-center py-1">
+                                                <span class="font-mono text-xs">${individualItem.itemCode}</span>
+                                                <span class="px-2 py-1 text-xs rounded ${individualItem.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${individualItem.status}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </details>
+                            </div>
+                        ` : ''}
                     </div>
-                    <button onclick="deleteEquipment('${item.id}')" class="text-red-600 hover:text-red-800 ml-4">
-                        🗑️
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function updateEquipmentSelect() {
@@ -1360,14 +1362,50 @@
             if (select) {
                 const currentValue = select.value;
                 select.innerHTML = '<option value="">Select Equipment</option>' + 
-                    equipment.filter(item => item.available > 0)
-                        .map(item => `<option value="${item.id}">${item.name} (${item.available} available)</option>`).join('');
+                    equipment.filter(item => item.available > 0 || (item.managedIndividually && individualItems.filter(i => i.equipmentId === item.id && i.status === 'available').length > 0))
+                        .map(item => {
+                            const availableCount = item.managedIndividually ? 
+                                individualItems.filter(i => i.equipmentId === item.id && i.status === 'available').length : 
+                                item.available;
+                            return `<option value="${item.id}">${item.name} (${availableCount} available)</option>`;
+                        }).join('');
                 select.value = currentValue;
+                
+                // Update individual item select when equipment changes
+                select.onchange = function() {
+                    updateIndividualItemSelect();
+                };
+            }
+        }
+
+        function updateIndividualItemSelect() {
+            const equipmentSelect = document.getElementById('assignEquipment');
+            const individualSelect = document.getElementById('assignIndividualItem');
+            const individualDiv = document.getElementById('individualItemSelect');
+            
+            if (!equipmentSelect.value) {
+                individualDiv.classList.add('hidden');
+                return;
+            }
+            
+            const selectedEquipment = equipment.find(e => e.id === equipmentSelect.value);
+            if (selectedEquipment && selectedEquipment.managedIndividually) {
+                const availableItems = individualItems.filter(i => 
+                    i.equipmentId === selectedEquipment.id && i.status === 'available'
+                );
+                
+                individualSelect.innerHTML = '<option value="">Select Specific Item</option>' +
+                    availableItems.map(item => `<option value="${item.id}">${item.itemCode}</option>`).join('');
+                
+                individualDiv.classList.remove('hidden');
+            } else {
+                individualDiv.classList.add('hidden');
             }
         }
 
         async function assignEquipment() {
             const equipmentId = document.getElementById('assignEquipment').value;
+            const individualItemId = document.getElementById('assignIndividualItem').value;
             const roomId = document.getElementById('assignToRoom').value;
             const assignedTo = document.getElementById('assignedTo').value;
             const date = document.getElementById('assignmentDate').value;
@@ -1378,11 +1416,18 @@
                 return;
             }
 
+            const selectedEquipment = equipment.find(e => e.id === equipmentId);
+            if (selectedEquipment.managedIndividually && !individualItemId) {
+                alert('Please select a specific item for individually managed equipment');
+                return;
+            }
+
             updateSyncStatus('syncing', 'Assigning equipment...');
 
             try {
                 const assignmentData = {
                     equipmentId,
+                    individualItemId: individualItemId || null,
                     roomId,
                     assignedTo,
                     date,
@@ -1391,21 +1436,33 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                await db.collection('assignments').add(assignmentData);
+                // Use predictable document ID based on equipment and timestamp
+                const timestamp = Date.now();
+                const docId = `assignment-${equipmentId}-${timestamp}`;
+                await db.collection('assignments').doc(docId).set(assignmentData);
                 
-                // Update equipment availability
-                const equipmentItem = equipment.find(item => item.id === equipmentId);
-                if (equipmentItem && equipmentItem.available > 0) {
-                    await db.collection('equipment').doc(equipmentId).update({
-                        available: equipmentItem.available - 1
+                // Update availability
+                if (selectedEquipment.managedIndividually && individualItemId) {
+                    // Update individual item status
+                    await db.collection('individualItems').doc(individualItemId).update({
+                        status: 'assigned'
                     });
+                } else {
+                    // Update equipment availability
+                    if (selectedEquipment.available > 0) {
+                        await db.collection('equipment').doc(equipmentId).update({
+                            available: selectedEquipment.available - 1
+                        });
+                    }
                 }
                 
                 // Clear form
                 document.getElementById('assignEquipment').value = '';
+                document.getElementById('assignIndividualItem').value = '';
                 document.getElementById('assignToRoom').value = '';
                 document.getElementById('assignedTo').value = '';
                 document.getElementById('assignmentNotes').value = '';
+                document.getElementById('individualItemSelect').classList.add('hidden');
 
                 loadEquipment();
                 updateSyncStatus('connected', 'Equipment assigned');
@@ -1416,10 +1473,22 @@
         }
 
         async function deleteEquipment(equipmentId) {
-            if (confirm('Are you sure you want to delete this equipment?')) {
+            if (confirm('Are you sure you want to delete this equipment? This will also delete all individual items.')) {
                 updateSyncStatus('syncing', 'Deleting equipment...');
                 try {
-                    await db.collection('equipment').doc(equipmentId).delete();
+                    // Delete individual items first
+                    const itemsToDelete = individualItems.filter(i => i.equipmentId === equipmentId);
+                    const batch = db.batch();
+                    
+                    itemsToDelete.forEach(item => {
+                        batch.delete(db.collection('individualItems').doc(item.id));
+                    });
+                    
+                    // Delete the equipment
+                    batch.delete(db.collection('equipment').doc(equipmentId));
+                    
+                    await batch.commit();
+                    
                     loadEquipment();
                     updateSyncStatus('connected', 'Equipment deleted');
                 } catch (error) {
@@ -1429,7 +1498,171 @@
             }
         }
 
-        // Account Management Functions
+        // App Account Management Functions
+        async function saveAppAccount() {
+            const appName = document.getElementById('appName').value;
+            const accountType = document.getElementById('accountType').value;
+            const user = document.getElementById('accountUser').value;
+            const username = document.getElementById('accountUsername').value;
+            const password = document.getElementById('accountPassword').value;
+
+            if (!appName || !accountType || !user || !username) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            updateSyncStatus('syncing', editingAppId ? 'Updating app account...' : 'Adding app account...');
+
+            try {
+                const appData = {
+                    appName,
+                    accountType,
+                    user,
+                    username,
+                    password,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (editingAppId) {
+                    await db.collection('app-accounts').doc(editingAppId).update(appData);
+                    updateSyncStatus('connected', 'App account updated');
+                } else {
+                    // Use a predictable document ID based on app name and user
+                    const docId = `${appName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${user.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+                    appData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('app-accounts').doc(docId).set(appData);
+                    updateSyncStatus('connected', 'App account added');
+                }
+                
+                clearAppForm();
+                loadAppAccounts();
+            } catch (error) {
+                console.error('Error saving app account:', error);
+                updateSyncStatus('error', 'Failed to save app account');
+            }
+        }
+
+        function editAppAccount(appId) {
+            const app = appAccounts.find(a => a.id === appId);
+            if (!app) return;
+
+            editingAppId = appId;
+            
+            document.getElementById('appName').value = app.appName;
+            document.getElementById('accountType').value = app.accountType;
+            document.getElementById('accountUser').value = app.user;
+            document.getElementById('accountUsername').value = app.username;
+            document.getElementById('accountPassword').value = app.password || '';
+            
+            document.getElementById('appSaveBtn').textContent = 'Update App Account';
+            document.getElementById('appCancelBtn').classList.remove('hidden');
+            
+            // Expand form if collapsed
+            const content = document.getElementById('app-form-content');
+            if (content.style.display === 'none') {
+                toggleSection('app-form');
+            }
+        }
+
+        function cancelAppEdit() {
+            clearAppForm();
+        }
+
+        function clearAppForm() {
+            editingAppId = null;
+            document.getElementById('appName').value = '';
+            document.getElementById('accountType').value = '';
+            document.getElementById('accountUser').value = '';
+            document.getElementById('accountUsername').value = '';
+            document.getElementById('accountPassword').value = '';
+            
+            document.getElementById('appSaveBtn').textContent = 'Add App Account';
+            document.getElementById('appCancelBtn').classList.add('hidden');
+        }
+
+        async function loadAppAccounts() {
+            try {
+                const snapshot = await db.collection('app-accounts').orderBy('appName').get();
+                appAccounts = [];
+                snapshot.forEach(doc => {
+                    appAccounts.push({ id: doc.id, ...doc.data() });
+                });
+                
+                displayAppAccounts();
+            } catch (error) {
+                console.error('Error loading app accounts:', error);
+            }
+        }
+
+        function displayAppAccounts() {
+            const appAccountsList = document.getElementById('appAccountsList');
+            if (!appAccountsList) return;
+
+            if (appAccounts.length === 0) {
+                appAccountsList.innerHTML = '<tr><td colspan="6" class="text-gray-500 text-center py-8">No app accounts added yet</td></tr>';
+                return;
+            }
+
+            const typeColors = {
+                teacher: 'bg-blue-100 text-blue-800',
+                student: 'bg-green-100 text-green-800',
+                admin: 'bg-red-100 text-red-800',
+                shared: 'bg-purple-100 text-purple-800'
+            };
+
+            appAccountsList.innerHTML = appAccounts.map(app => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3 text-sm font-medium">${app.appName}</td>
+                    <td class="p-3 text-sm">
+                        <span class="px-2 py-1 text-xs rounded ${typeColors[app.accountType] || 'bg-gray-100 text-gray-800'}">${app.accountType}</span>
+                    </td>
+                    <td class="p-3 text-sm">${app.user}</td>
+                    <td class="p-3 text-sm font-mono text-xs">${app.username}</td>
+                    <td class="p-3 text-sm">
+                        <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded cursor-pointer" 
+                              onclick="togglePasswordVisibility('${app.id}')" 
+                              id="password-${app.id}">••••••••</span>
+                    </td>
+                    <td class="p-3 text-sm">
+                        <div class="flex items-center space-x-2">
+                            <button onclick="editAppAccount('${app.id}')" class="text-blue-600 hover:text-blue-800">
+                                ✏️
+                            </button>
+                            <button onclick="deleteAppAccount('${app.id}')" class="text-red-600 hover:text-red-800">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function togglePasswordVisibility(appId) {
+            const app = appAccounts.find(a => a.id === appId);
+            const passwordElement = document.getElementById(`password-${appId}`);
+            
+            if (passwordElement.textContent === '••••••••') {
+                passwordElement.textContent = app.password || '';
+            } else {
+                passwordElement.textContent = '••••••••';
+            }
+        }
+
+        async function deleteAppAccount(appId) {
+            if (confirm('Are you sure you want to delete this app account?')) {
+                updateSyncStatus('syncing', 'Deleting app account...');
+                try {
+                    await db.collection('app-accounts').doc(appId).delete();
+                    loadAppAccounts();
+                    updateSyncStatus('connected', 'App account deleted');
+                } catch (error) {
+                    console.error('Error deleting app account:', error);
+                    updateSyncStatus('error', 'Failed to delete app account');
+                }
+            }
+        }
+
+        // Legacy Teacher Functions (kept for compatibility)
         async function saveTeacher() {
             const name = document.getElementById('teacherName').value;
             const email = document.getElementById('teacherEmail').value;
@@ -1665,17 +1898,28 @@
             const studentsList = document.getElementById('studentsList');
             if (!studentsList) return;
 
+            if (students.length === 0) {
+                studentsList.innerHTML = '<tr><td colspan="5" class="text-gray-500 text-center py-8">No students added yet</td></tr>';
+                return;
+            }
+
             studentsList.innerHTML = students.map(student => `
-                <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                    <div class="flex-1">
-                        <div class="font-medium text-gray-900">${student.name}</div>
-                        <div class="text-sm text-gray-600">${student.email}</div>
-                        <div class="text-sm text-gray-500">ID: ${student.studentId} ${student.grade ? `• Grade ${student.grade}` : ''}</div>
-                    </div>
-                    <button onclick="deleteStudent('${student.id}')" class="text-red-600 hover:text-red-800 ml-4">
-                        🗑️
-                    </button>
-                </div>
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3 text-sm">${student.name}</td>
+                    <td class="p-3 text-sm">${student.email}</td>
+                    <td class="p-3 text-sm">${student.studentId}</td>
+                    <td class="p-3 text-sm">${student.grade ? `Grade ${student.grade}` : '-'}</td>
+                    <td class="p-3 text-sm">
+                        <div class="flex items-center space-x-2">
+                            <button onclick="editStudent('${student.id}')" class="text-blue-600 hover:text-blue-800">
+                                ✏️
+                            </button>
+                            <button onclick="deleteStudent('${student.id}')" class="text-red-600 hover:text-red-800">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
             `).join('');
         }
 
@@ -1701,8 +1945,7 @@
                     loadRooms(),
                     loadEquipment(),
                     loadSchedules(),
-                    loadTeachers(),
-                    loadStudents(),
+                    loadAppAccounts(),
                     loadMaintenance()
                 ]);
                 updateSyncStatus('connected', 'Data loaded');
@@ -1712,5 +1955,5 @@
             }
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'973f98b8e642e2f6',t:'MTc1NjAwNDM5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974a561b576add42',t:'MTc1NjExNzAxMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
