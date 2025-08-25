@@ -79,7 +79,7 @@
                     <span class="sm:hidden">Overview</span>
                 </button>
                 <button class="tab-btn px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap" data-tab="deadlines">
-                    <span class="hidden sm:inline">Tasks by Deadlines</span>
+                    <span class="hidden sm:inline">Tasks by Deadlines & Status</span>
                     <span class="sm:hidden">Deadlines</span>
                 </button>
                 <button class="tab-btn px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap" data-tab="personnel">
@@ -204,7 +204,7 @@
                 </div>
             </div>
 
-            <!-- Tab 2: Tasks by Deadlines -->
+            <!-- Tab 2: Tasks by Deadlines & Status -->
             <div id="deadlines-tab" class="tab-content hidden">
                 <div class="space-y-6">
                     <!-- Overdue Tasks -->
@@ -244,27 +244,27 @@
                         </div>
                     </div>
 
-                    <!-- Today Tasks -->
+                    <!-- Approaching Deadlines -->
                     <div class="bg-white rounded-lg shadow-sm border">
-                        <div class="p-4 border-b cursor-pointer hover:bg-gray-50" onclick="toggleDeadlineSection('today')">
+                        <div class="p-4 border-b cursor-pointer hover:bg-gray-50" onclick="toggleDeadlineSection('approaching')">
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-3">
-                                    <h3 class="text-lg font-semibold text-orange-600">📅 Due Today</h3>
-                                    <span id="todayCount" class="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">0</span>
+                                    <h3 class="text-lg font-semibold text-orange-600">⏰ Approaching Deadlines</h3>
+                                    <span id="approachingCount" class="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">0</span>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <button onclick="event.stopPropagation(); toggleDeadlineView('today')" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border rounded">
-                                        <span id="todayViewToggle">Table</span>
+                                    <button onclick="event.stopPropagation(); toggleDeadlineView('approaching')" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border rounded">
+                                        <span id="approachingViewToggle">Table</span>
                                     </button>
-                                    <svg id="today-section-icon" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg id="approaching-section-icon" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
                                 </div>
                             </div>
                         </div>
-                        <div id="today-section" class="p-4">
-                            <div id="todayTasks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
-                            <div id="todayTable" class="hidden overflow-x-auto">
+                        <div id="approaching-section" class="p-4">
+                            <div id="approachingTasks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                            <div id="approachingTable" class="hidden overflow-x-auto">
                                 <table class="min-w-full text-sm">
                                     <thead class="bg-gray-50">
                                         <tr>
@@ -275,33 +275,33 @@
                                             <th class="px-4 py-3 text-left font-medium text-gray-900">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="todayTableBody" class="divide-y divide-gray-200"></tbody>
+                                    <tbody id="approachingTableBody" class="divide-y divide-gray-200"></tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
 
-                    <!-- This Week Tasks -->
+                    <!-- Non-urgent Tasks -->
                     <div class="bg-white rounded-lg shadow-sm border">
-                        <div class="p-4 border-b cursor-pointer hover:bg-gray-50" onclick="toggleDeadlineSection('week')">
+                        <div class="p-4 border-b cursor-pointer hover:bg-gray-50" onclick="toggleDeadlineSection('nonurgent')">
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-3">
-                                    <h3 class="text-lg font-semibold text-blue-600">📆 This Week</h3>
-                                    <span id="weekCount" class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">0</span>
+                                    <h3 class="text-lg font-semibold text-blue-600">📅 Non-urgent Tasks</h3>
+                                    <span id="nonurgentCount" class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">0</span>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <button onclick="event.stopPropagation(); toggleDeadlineView('week')" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border rounded">
-                                        <span id="weekViewToggle">Table</span>
+                                    <button onclick="event.stopPropagation(); toggleDeadlineView('nonurgent')" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border rounded">
+                                        <span id="nonurgentViewToggle">Table</span>
                                     </button>
-                                    <svg id="week-section-icon" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg id="nonurgent-section-icon" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
                                 </div>
                             </div>
                         </div>
-                        <div id="week-section" class="p-4">
-                            <div id="weekTasks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
-                            <div id="weekTable" class="hidden overflow-x-auto">
+                        <div id="nonurgent-section" class="p-4">
+                            <div id="nonurgentTasks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                            <div id="nonurgentTable" class="hidden overflow-x-auto">
                                 <table class="min-w-full text-sm">
                                     <thead class="bg-gray-50">
                                         <tr>
@@ -312,33 +312,33 @@
                                             <th class="px-4 py-3 text-left font-medium text-gray-900">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="weekTableBody" class="divide-y divide-gray-200"></tbody>
+                                    <tbody id="nonurgentTableBody" class="divide-y divide-gray-200"></tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
 
-                    <!-- This Month Tasks -->
+                    <!-- Completed Tasks -->
                     <div class="bg-white rounded-lg shadow-sm border">
-                        <div class="p-4 border-b cursor-pointer hover:bg-gray-50" onclick="toggleDeadlineSection('month')">
+                        <div class="p-4 border-b cursor-pointer hover:bg-gray-50" onclick="toggleDeadlineSection('completed')">
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-3">
-                                    <h3 class="text-lg font-semibold text-green-600">📊 This Month</h3>
-                                    <span id="monthCount" class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">0</span>
+                                    <h3 class="text-lg font-semibold text-green-600">✅ Completed Tasks</h3>
+                                    <span id="completedCount" class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">0</span>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <button onclick="event.stopPropagation(); toggleDeadlineView('month')" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border rounded">
-                                        <span id="monthViewToggle">Table</span>
+                                    <button onclick="event.stopPropagation(); toggleDeadlineView('completed')" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border rounded">
+                                        <span id="completedViewToggle">Table</span>
                                     </button>
-                                    <svg id="month-section-icon" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg id="completed-section-icon" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
                                 </div>
                             </div>
                         </div>
-                        <div id="month-section" class="p-4">
-                            <div id="monthTasks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
-                            <div id="monthTable" class="hidden overflow-x-auto">
+                        <div id="completed-section" class="p-4">
+                            <div id="completedTasks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                            <div id="completedTable" class="hidden overflow-x-auto">
                                 <table class="min-w-full text-sm">
                                     <thead class="bg-gray-50">
                                         <tr>
@@ -346,10 +346,47 @@
                                             <th class="px-4 py-3 text-left font-medium text-gray-900">Assignee</th>
                                             <th class="px-4 py-3 text-left font-medium text-gray-900">Priority</th>
                                             <th class="px-4 py-3 text-left font-medium text-gray-900">Deadline</th>
-                                            <th class="px-4 py-3 text-left font-medium text-gray-900">Status</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-900">Completed Date</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="monthTableBody" class="divide-y divide-gray-200"></tbody>
+                                    <tbody id="completedTableBody" class="divide-y divide-gray-200"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cancelled Tasks -->
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <div class="p-4 border-b cursor-pointer hover:bg-gray-50" onclick="toggleDeadlineSection('cancelled')">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <h3 class="text-lg font-semibold text-gray-600">❌ Cancelled Tasks</h3>
+                                    <span id="cancelledCount" class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">0</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="event.stopPropagation(); toggleDeadlineView('cancelled')" class="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 border rounded">
+                                        <span id="cancelledViewToggle">Table</span>
+                                    </button>
+                                    <svg id="cancelled-section-icon" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="cancelled-section" class="p-4">
+                            <div id="cancelledTasks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+                            <div id="cancelledTable" class="hidden overflow-x-auto">
+                                <table class="min-w-full text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-900">Task</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-900">Assignee</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-900">Priority</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-900">Deadline</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-900">Cancelled Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cancelledTableBody" class="divide-y divide-gray-200"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -604,8 +641,8 @@
                         <input type="text" id="teacherName" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" id="teacherEmail" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email (Optional)</label>
+                        <input type="email" id="teacherEmail" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
@@ -617,11 +654,6 @@
                             <option value="IT">IT</option>
                             <option value="Other">Other</option>
                         </select>
-                    </div>
-                    <div id="passwordFields">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Initial Password</label>
-                        <input type="password" id="teacherPassword" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Minimum 6 characters" required>
-                        <p class="text-xs text-gray-500 mt-1">Teacher can change this password after first login</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Phone (Optional)</label>
@@ -899,13 +931,12 @@
             const name = document.getElementById('teacherName').value;
             const email = document.getElementById('teacherEmail').value;
             const department = document.getElementById('teacherDepartment').value;
-            const password = document.getElementById('teacherPassword').value;
             const phone = document.getElementById('teacherPhone').value;
             const dob = document.getElementById('teacherDOB').value;
 
             try {
                 if (currentEditingTeacher) {
-                    // Update existing teacher (no password change here)
+                    // Update existing teacher
                     const teacherData = {
                         name: name,
                         email: email,
@@ -918,13 +949,7 @@
                     await db.collection('teachers').doc(currentEditingTeacher.id).update(teacherData);
                     updateSyncStatus('success', 'Teacher updated successfully');
                 } else {
-                    // Create new teacher account
-                    if (password.length < 6) {
-                        alert('Password must be at least 6 characters long.');
-                        return;
-                    }
-                    
-                    // Create demo teacher account
+                    // Create new teacher
                     const nameSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                     let teacherId = `teacher-${nameSlug}`;
                     
@@ -946,13 +971,12 @@
                         status: 'Active',
                         createdAt: new Date(),
                         lastUpdated: new Date(),
-                        createdBy: currentUserData.email,
-                        password: password // Store for demo purposes
+                        createdBy: currentUserData.email
                     };
                     
                     await db.collection('teachers').doc(teacherData.id).set(teacherData);
                     
-                    updateSyncStatus('success', 'Teacher account created successfully');
+                    updateSyncStatus('success', 'Teacher created successfully');
                 }
                 
                 document.getElementById('teacherModal').classList.add('hidden');
@@ -1112,6 +1136,8 @@
                             recipientId: taskData.assignedTo,
                             createdAt: new Date()
                         });
+                        // Reload notifications immediately
+                        await loadNotifications();
                     }
                 }
                 
@@ -1263,8 +1289,7 @@
             document.getElementById('teacherPhone').value = teacher.phone || '';
             document.getElementById('teacherDOB').value = teacher.dob || '';
             
-            // Hide password field for editing
-            document.getElementById('passwordFields').style.display = 'none';
+
             
             // Update modal title
             document.getElementById('teacherModalTitle').textContent = 'Edit Teacher';
@@ -1275,7 +1300,6 @@
             currentEditingTeacher = null;
             document.getElementById('teacherModalTitle').textContent = 'Add New Teacher';
             document.getElementById('teacherForm').reset();
-            document.getElementById('passwordFields').style.display = 'block';
         }
 
 
@@ -1368,22 +1392,38 @@
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
             const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const monthFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
             let filteredTasks = [];
             
             switch(period) {
                 case 'overdue':
-                    filteredTasks = tasks.filter(task => task.deadline && task.deadline < todayStr && task.status !== 'Completed');
+                    filteredTasks = tasks.filter(task => 
+                        task.deadline && 
+                        task.deadline < todayStr && 
+                        task.status !== 'Completed' && 
+                        task.status !== 'Cancelled'
+                    );
                     break;
-                case 'today':
-                    filteredTasks = tasks.filter(task => task.deadline === todayStr);
+                case 'approaching':
+                    filteredTasks = tasks.filter(task => 
+                        task.deadline && 
+                        task.deadline >= todayStr && 
+                        task.deadline <= weekFromNow && 
+                        task.status !== 'Completed' && 
+                        task.status !== 'Cancelled'
+                    );
                     break;
-                case 'week':
-                    filteredTasks = tasks.filter(task => task.deadline > todayStr && task.deadline <= weekFromNow);
+                case 'nonurgent':
+                    filteredTasks = tasks.filter(task => 
+                        (task.deadline && task.deadline > weekFromNow) || 
+                        (!task.deadline && task.status !== 'Completed' && task.status !== 'Cancelled')
+                    );
                     break;
-                case 'month':
-                    filteredTasks = tasks.filter(task => task.deadline > weekFromNow && task.deadline <= monthFromNow);
+                case 'completed':
+                    filteredTasks = tasks.filter(task => task.status === 'Completed');
+                    break;
+                case 'cancelled':
+                    filteredTasks = tasks.filter(task => task.status === 'Cancelled');
                     break;
             }
 
@@ -1406,41 +1446,79 @@
                                   task.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
                                   'bg-gray-100 text-gray-800';
                 
-                row.innerHTML = `
-                    <td class="px-4 py-3 font-medium text-gray-900">${task.name}</td>
-                    <td class="px-4 py-3 text-gray-700">${assignedTeacher ? assignedTeacher.name : 'Unassigned'}</td>
-                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${priorityColor}">${task.priority}</span></td>
-                    <td class="px-4 py-3 text-gray-700">${task.deadline || 'No deadline'}</td>
-                    <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${statusColor}">${task.status}</span></td>
-                `;
+                // Different columns for completed and cancelled tasks
+                if (period === 'completed') {
+                    row.innerHTML = `
+                        <td class="px-4 py-3 font-medium text-gray-900">${task.name}</td>
+                        <td class="px-4 py-3 text-gray-700">${assignedTeacher ? assignedTeacher.name : 'Unassigned'}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${priorityColor}">${task.priority}</span></td>
+                        <td class="px-4 py-3 text-gray-700">${task.deadline || 'No deadline'}</td>
+                        <td class="px-4 py-3 text-gray-700">${task.completedDate || 'Unknown'}</td>
+                    `;
+                } else if (period === 'cancelled') {
+                    row.innerHTML = `
+                        <td class="px-4 py-3 font-medium text-gray-900">${task.name}</td>
+                        <td class="px-4 py-3 text-gray-700">${assignedTeacher ? assignedTeacher.name : 'Unassigned'}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${priorityColor}">${task.priority}</span></td>
+                        <td class="px-4 py-3 text-gray-700">${task.deadline || 'No deadline'}</td>
+                        <td class="px-4 py-3 text-gray-700">${task.cancelledDate || 'Unknown'}</td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td class="px-4 py-3 font-medium text-gray-900">${task.name}</td>
+                        <td class="px-4 py-3 text-gray-700">${assignedTeacher ? assignedTeacher.name : 'Unassigned'}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${priorityColor}">${task.priority}</span></td>
+                        <td class="px-4 py-3 text-gray-700">${task.deadline || 'No deadline'}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${statusColor}">${task.status}</span></td>
+                    `;
+                }
                 tableBody.appendChild(row);
             });
         }
 
-        // Load tasks by deadlines
+        // Load tasks by deadlines and status
         function loadTasksByDeadlines() {
             const today = new Date();
             const todayStr = today.toISOString().split('T')[0];
             const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            
-            // Calculate end of current month
-            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
 
-            const overdue = tasks.filter(task => task.deadline && task.deadline < todayStr && task.status !== 'Completed');
-            const todayTasks = tasks.filter(task => task.deadline === todayStr);
-            const weekTasks = tasks.filter(task => task.deadline > todayStr && task.deadline <= weekFromNow);
-            const monthTasks = tasks.filter(task => task.deadline > weekFromNow && task.deadline <= endOfMonth);
+            // Filter tasks by categories
+            const overdue = tasks.filter(task => 
+                task.deadline && 
+                task.deadline < todayStr && 
+                task.status !== 'Completed' && 
+                task.status !== 'Cancelled'
+            );
+            
+            const approaching = tasks.filter(task => 
+                task.deadline && 
+                task.deadline >= todayStr && 
+                task.deadline <= weekFromNow && 
+                task.status !== 'Completed' && 
+                task.status !== 'Cancelled'
+            );
+            
+            const nonurgent = tasks.filter(task => 
+                (task.deadline && task.deadline > weekFromNow) || 
+                (!task.deadline && task.status !== 'Completed' && task.status !== 'Cancelled')
+            );
+            
+            const completed = tasks.filter(task => task.status === 'Completed');
+            const cancelled = tasks.filter(task => task.status === 'Cancelled');
 
             // Update counts
             document.getElementById('overdueCount').textContent = overdue.length;
-            document.getElementById('todayCount').textContent = todayTasks.length;
-            document.getElementById('weekCount').textContent = weekTasks.length;
-            document.getElementById('monthCount').textContent = monthTasks.length;
+            document.getElementById('approachingCount').textContent = approaching.length;
+            document.getElementById('nonurgentCount').textContent = nonurgent.length;
+            document.getElementById('completedCount').textContent = completed.length;
+            document.getElementById('cancelledCount').textContent = cancelled.length;
 
+            // Display tasks in containers
             displayTasksInContainer('overdueTasks', overdue, 'red');
-            displayTasksInContainer('todayTasks', todayTasks, 'orange');
-            displayTasksInContainer('weekTasks', weekTasks, 'blue');
-            displayTasksInContainer('monthTasks', monthTasks, 'green');
+            displayTasksInContainer('approachingTasks', approaching, 'orange');
+            displayTasksInContainer('nonurgentTasks', nonurgent, 'blue');
+            displayTasksInContainer('completedTasks', completed, 'green');
+            displayTasksInContainer('cancelledTasks', cancelled, 'gray');
         }
 
         // Toggle deadline section
@@ -1788,6 +1866,19 @@
                 // Update display
                 document.getElementById('taskDetailStatus').textContent = newStatus;
                 document.getElementById('taskDetailProgress').textContent = `${newProgress}%`;
+                
+                // Add completion/cancellation dates
+                if (newStatus === 'Completed' && currentTask.status !== 'Completed') {
+                    currentTask.completedDate = new Date().toISOString().split('T')[0];
+                    await db.collection('tasks').doc(currentTask.id).update({
+                        completedDate: currentTask.completedDate
+                    });
+                } else if (newStatus === 'Cancelled' && currentTask.status !== 'Cancelled') {
+                    currentTask.cancelledDate = new Date().toISOString().split('T')[0];
+                    await db.collection('tasks').doc(currentTask.id).update({
+                        cancelledDate: currentTask.cancelledDate
+                    });
+                }
                 
                 // Add to activity log
                 await addActivity(`Status updated to ${newStatus}, Progress: ${newProgress}%`);
@@ -2440,5 +2531,5 @@
             updateSyncStatus('success', 'Ready');
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9749881757fe849a',t:'MTc1NjEwODU3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974b601e1045dd62',t:'MTc1NjEyNzkwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
