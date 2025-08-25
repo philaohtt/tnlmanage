@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>School Management System - Login</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <style>
       * {
           margin: 0;
@@ -371,12 +373,17 @@
           margin-right: 0.5rem;
       }
       
+      .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+      }
+      
       .btn-primary {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
       }
       
-      .btn-primary:hover {
+      .btn-primary:hover:not(:disabled) {
           transform: translateY(-1px);
       }
       
@@ -385,7 +392,7 @@
           color: white;
       }
       
-      .btn-danger:hover {
+      .btn-danger:hover:not(:disabled) {
           background: #c0392b;
       }
       
@@ -394,7 +401,7 @@
           color: white;
       }
       
-      .btn-secondary:hover {
+      .btn-secondary:hover:not(:disabled) {
           background: #5a6268;
       }
       
@@ -636,7 +643,11 @@
               </div>
           </form>
           
-          
+          <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 6px; font-size: 0.8rem; color: #666;">
+              <strong>Default Admin Account:</strong><br>
+              Username: admin<br>
+              Password: admin123
+          </div>
       </div>
   </div>
 
@@ -674,9 +685,6 @@
               </div>
               <div class="nav-item admin-only">
                   <a href="#" class="nav-link" onclick="showModule('accounts')">👤 Accounts</a>
-              </div>
-              <div class="nav-item">
-                  <a href="#" class="nav-link" onclick="showModule('reports')">📊 Reports</a>
               </div>
           </div>
       </nav>
@@ -721,12 +729,6 @@
                           <h3>Account Management</h3>
                           <p>Create and manage user accounts, set permissions, and control system access.</p>
                       </div>
-
-                      <div class="feature-card" onclick="showModule('reports')" data-module="reports">
-                          <div class="feature-icon">📊</div>
-                          <h3>Reports & Analytics</h3>
-                          <p>Generate comprehensive reports and gain insights into institutional performance.</p>
-                      </div>
                   </div>
               </div>
           </div>
@@ -764,7 +766,7 @@
                           </div>
                           
                           <div class="form-group full-width">
-                              <button type="submit" class="btn btn-primary">Create Account</button>
+                              <button type="submit" class="btn btn-primary" id="createAccountBtn">Create Account</button>
                           </div>
                       </form>
                       
@@ -773,6 +775,7 @@
 
                   <div class="account-section">
                       <h3>Existing Accounts</h3>
+                      <div id="accounts-loading" class="loading" style="display: none;">Loading accounts...</div>
                       <table class="accounts-table">
                           <thead>
                               <tr>
@@ -811,11 +814,6 @@
               <div class="loading">Loading Tuition Management...</div>
               <iframe class="module-frame" src="tuition2.2.html" style="display:none;"></iframe>
           </div>
-
-          <div id="reports" class="module-content">
-              <div class="loading">Loading Reports...</div>
-              <iframe class="module-frame" src="reports.html" style="display:none;"></iframe>
-          </div>
       </main>
 
       <!-- Minimal Footer -->
@@ -851,7 +849,7 @@
                   <input type="password" id="editNewPassword" placeholder="Enter new password">
               </div>
               <div class="form-group">
-                  <button type="submit" class="btn btn-primary">Update Account</button>
+                  <button type="submit" class="btn btn-primary" id="updateAccountBtn">Update Account</button>
                   <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
               </div>
           </form>
@@ -859,6 +857,20 @@
   </div>
 
   <script>
+      // Firebase Configuration
+      const firebaseConfig = {
+          apiKey: "AIzaSyDdx6QyXzCWz7BRZInLu16LGnYBKvFO1CM",
+          authDomain: "tnl-management-app.firebaseapp.com",
+          projectId: "tnl-management-app",
+          storageBucket: "tnl-management-app.appspot.com",
+          messagingSenderId: "590918430866",
+          appId: "1:590918430866:web:123456789abcdef"
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+
       // User session management
       let currentUser = {
           username: '',
@@ -877,22 +889,93 @@
           }
       };
 
-      // Save accounts to localStorage
-      function saveAccounts() {
-          localStorage.setItem('schoolManagementAccounts', JSON.stringify(userAccounts));
-      }
-
-      // Load accounts from localStorage
-      function loadAccounts() {
-          const saved = localStorage.getItem('schoolManagementAccounts');
-          if (saved) {
-              userAccounts = JSON.parse(saved);
+      // Save accounts to Firestore
+      async function saveAccountToFirestore(username, accountData) {
+          try {
+              await db.collection('userAccounts').doc(username).set({
+                  ...accountData,
+                  updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              console.log('Account saved to Firestore:', username);
+          } catch (error) {
+              console.error('Error saving to Firestore:', error);
+              throw error;
           }
       }
 
+      // Load accounts from Firestore
+      async function loadAccountsFromFirestore() {
+          try {
+              const snapshot = await db.collection('userAccounts').get();
+              const firestoreAccounts = {};
+              
+              snapshot.forEach(doc => {
+                  const data = doc.data();
+                  firestoreAccounts[doc.id] = {
+                      password: data.password,
+                      role: data.role,
+                      fullName: data.fullName,
+                      fullAccess: data.fullAccess || data.role === 'admin',
+                      created: data.created
+                  };
+              });
+
+                            // Merge with local accounts (admin account takes precedence)
+              userAccounts = { ...firestoreAccounts, ...userAccounts };
+              
+              console.log('Accounts loaded from Firestore');
+              return true;
+          } catch (error) {
+              console.error('Error loading from Firestore:', error);
+              // Fall back to localStorage if Firestore fails
+              return loadAccountsFromLocalStorage();
+          }
+      }
+
+      // Delete account from Firestore
+      async function deleteAccountFromFirestore(username) {
+          try {
+              await db.collection('userAccounts').doc(username).delete();
+              console.log('Account deleted from Firestore:', username);
+          } catch (error) {
+              console.error('Error deleting from Firestore:', error);
+              throw error;
+          }
+      }
+
+      // Fallback: Save accounts to localStorage
+      function saveAccountsToLocalStorage() {
+          try {
+              localStorage.setItem('schoolManagementAccounts', JSON.stringify(userAccounts));
+          } catch (error) {
+              console.error('Error saving to localStorage:', error);
+          }
+      }
+
+      // Fallback: Load accounts from localStorage
+      function loadAccountsFromLocalStorage() {
+          try {
+              const saved = localStorage.getItem('schoolManagementAccounts');
+              if (saved) {
+                  const localAccounts = JSON.parse(saved);
+                  userAccounts = { ...userAccounts, ...localAccounts };
+                  return true;
+              }
+          } catch (error) {
+              console.error('Error loading from localStorage:', error);
+          }
+          return false;
+      }
+
       // Initialize the app
-      function initializeApp() {
-          loadAccounts();
+      async function initializeApp() {
+          try {
+              // Try to load from Firestore first
+              await loadAccountsFromFirestore();
+          } catch (error) {
+              console.error('Failed to initialize with Firestore, using localStorage fallback');
+              loadAccountsFromLocalStorage();
+          }
       }
 
       // Handle login form submission
@@ -935,7 +1018,7 @@
           return false;
       }
 
-            // Show main application after successful login
+      // Show main application after successful login
       function showMainApp() {
           document.getElementById('login-screen').style.display = 'none';
           document.getElementById('main-app').style.display = 'flex';
@@ -995,7 +1078,7 @@
               }
               
               // Load iframe if needed
-              if (['admission', 'students', 'courses', 'tuition', 'reports'].includes(moduleName)) {
+              if (['admission', 'students', 'courses', 'tuition'].includes(moduleName)) {
                   loadModuleIframe(moduleName);
               }
           }
@@ -1017,7 +1100,7 @@
       }
 
       // Create new account
-      function createAccount(event) {
+      async function createAccount(event) {
           event.preventDefault();
           
           const username = document.getElementById('newUsername').value.toLowerCase();
@@ -1025,48 +1108,69 @@
           const role = document.getElementById('newRole').value;
           const fullName = document.getElementById('newFullName').value;
           
-          const messageDiv = document.getElementById('account-message');
+          const createBtn = document.getElementById('createAccountBtn');
+          const originalText = createBtn.textContent;
           
-          // Check if username already exists
-          if (userAccounts[username]) {
-              showAccountMessage('Username already exists. Please choose a different username.', 'error');
-              return false;
+          // Disable button and show loading
+          createBtn.disabled = true;
+          createBtn.textContent = 'Creating...';
+          
+          try {
+              // Check if username already exists
+              if (userAccounts[username]) {
+                  showAccountMessage('Username already exists. Please choose a different username.', 'error');
+                  return false;
+              }
+              
+              // Validate inputs
+              if (username.length < 3) {
+                  showAccountMessage('Username must be at least 3 characters long.', 'error');
+                  return false;
+              }
+              
+              if (password.length < 6) {
+                  showAccountMessage('Password must be at least 6 characters long.', 'error');
+                  return false;
+              }
+              
+              // Create new account object
+              const accountData = {
+                  password: password,
+                  role: role,
+                  fullName: fullName,
+                  fullAccess: role === 'admin',
+                  created: new Date().toISOString()
+              };
+              
+              // Save to Firestore first
+              await saveAccountToFirestore(username, accountData);
+              
+              // Add to local accounts
+              userAccounts[username] = accountData;
+              
+              // Also save to localStorage as backup
+              saveAccountsToLocalStorage();
+              
+              // Show success message
+              showAccountMessage(`Account created successfully for ${fullName} (${username}).`, 'success');
+              
+              // Clear form
+              document.getElementById('newUsername').value = '';
+              document.getElementById('newPassword').value = '';
+              document.getElementById('newRole').value = '';
+              document.getElementById('newFullName').value = '';
+              
+              // Reload accounts table
+              loadAccountsTable();
+              
+          } catch (error) {
+              console.error('Error creating account:', error);
+              showAccountMessage('Failed to create account. Please try again.', 'error');
+          } finally {
+              // Re-enable button
+              createBtn.disabled = false;
+              createBtn.textContent = originalText;
           }
-          
-          // Validate inputs
-          if (username.length < 3) {
-              showAccountMessage('Username must be at least 3 characters long.', 'error');
-              return false;
-          }
-          
-          if (password.length < 6) {
-              showAccountMessage('Password must be at least 6 characters long.', 'error');
-              return false;
-          }
-          
-          // Create new account
-          userAccounts[username] = {
-              password: password,
-              role: role,
-              fullName: fullName,
-              fullAccess: role === 'admin',
-              created: new Date().toISOString()
-          };
-          
-          // Save to localStorage
-          saveAccounts();
-          
-          // Show success message
-          showAccountMessage(`Account created successfully for ${fullName} (${username}).`, 'success');
-          
-          // Clear form
-          document.getElementById('newUsername').value = '';
-          document.getElementById('newPassword').value = '';
-          document.getElementById('newRole').value = '';
-          document.getElementById('newFullName').value = '';
-          
-          // Reload accounts table
-          loadAccountsTable();
           
           return false;
       }
@@ -1094,29 +1198,45 @@
       }
 
       // Load accounts table
-      function loadAccountsTable() {
+      async function loadAccountsTable() {
           const tbody = document.getElementById('accounts-tbody');
+          const loadingDiv = document.getElementById('accounts-loading');
+          
+          // Show loading
+          loadingDiv.style.display = 'flex';
           tbody.innerHTML = '';
           
-          Object.keys(userAccounts).forEach(username => {
-              const account = userAccounts[username];
-              const row = document.createElement('tr');
+          try {
+              // Reload from Firestore to get latest data
+              await loadAccountsFromFirestore();
               
-              const createdDate = new Date(account.created).toLocaleDateString();
+              Object.keys(userAccounts).forEach(username => {
+                  const account = userAccounts[username];
+                  const row = document.createElement('tr');
+                  
+                  const createdDate = new Date(account.created).toLocaleDateString();
+                  
+                  row.innerHTML = `
+                      <td>${username}</td>
+                      <td>${account.fullName}</td>
+                      <td><span class="role-badge role-${account.role}">${account.role.charAt(0).toUpperCase() + account.role.slice(1)}</span></td>
+                      <td>${createdDate}</td>
+                      <td>
+                          <button class="btn btn-secondary" onclick="editAccount('${username}')" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-right: 0.25rem;">Edit</button>
+                          ${username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteAccount('${username}')" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Delete</button>` : ''}
+                      </td>
+                  `;
+                  
+                  tbody.appendChild(row);
+              });
               
-              row.innerHTML = `
-                  <td>${username}</td>
-                  <td>${account.fullName}</td>
-                  <td><span class="role-badge role-${account.role}">${account.role.charAt(0).toUpperCase() + account.role.slice(1)}</span></td>
-                  <td>${createdDate}</td>
-                  <td>
-                      <button class="btn btn-secondary" onclick="editAccount('${username}')" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-right: 0.25rem;">Edit</button>
-                      ${username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteAccount('${username}')" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Delete</button>` : ''}
-                  </td>
-              `;
-              
-              tbody.appendChild(row);
-          });
+          } catch (error) {
+              console.error('Error loading accounts table:', error);
+              showAccountMessage('Failed to load accounts. Please refresh the page.', 'error');
+          } finally {
+              // Hide loading
+              loadingDiv.style.display = 'none';
+          }
       }
 
       // Edit account
@@ -1133,7 +1253,7 @@
       }
 
       // Update account
-      function updateAccount(event) {
+      async function updateAccount(event) {
           event.preventDefault();
           
           const username = document.getElementById('editUsername').value;
@@ -1141,51 +1261,90 @@
           const role = document.getElementById('editRole').value;
           const newPassword = document.getElementById('editNewPassword').value;
           
-          if (!userAccounts[username]) {
-              alert('Account not found.');
-              return false;
-          }
+          const updateBtn = document.getElementById('updateAccountBtn');
+          const originalText = updateBtn.textContent;
           
-          // Update account
-          userAccounts[username].fullName = fullName;
-          userAccounts[username].role = role;
-          userAccounts[username].fullAccess = role === 'admin';
+          // Disable button and show loading
+          updateBtn.disabled = true;
+          updateBtn.textContent = 'Updating...';
           
-          if (newPassword.trim()) {
-              if (newPassword.length < 6) {
-                  alert('Password must be at least 6 characters long.');
+          try {
+              if (!userAccounts[username]) {
+                  alert('Account not found.');
                   return false;
               }
-              userAccounts[username].password = newPassword;
+              
+              // Update account data
+              const updatedAccount = {
+                  ...userAccounts[username],
+                  fullName: fullName,
+                  role: role,
+                  fullAccess: role === 'admin'
+              };
+              
+              if (newPassword.trim()) {
+                  if (newPassword.length < 6) {
+                      alert('Password must be at least 6 characters long.');
+                      return false;
+                  }
+                  updatedAccount.password = newPassword;
+              }
+              
+              // Save to Firestore
+              await saveAccountToFirestore(username, updatedAccount);
+              
+              // Update local accounts
+              userAccounts[username] = updatedAccount;
+              
+              // Also save to localStorage as backup
+              saveAccountsToLocalStorage();
+              
+              // Close modal
+              closeEditModal();
+              
+              // Show success message
+              showAccountMessage(`Account updated successfully for ${fullName}.`, 'success');
+              
+              // Reload accounts table
+              loadAccountsTable();
+              
+          } catch (error) {
+              console.error('Error updating account:', error);
+              alert('Failed to update account. Please try again.');
+          } finally {
+              // Re-enable button
+              updateBtn.disabled = false;
+              updateBtn.textContent = originalText;
           }
-          
-          // Save to localStorage
-          saveAccounts();
-          
-          // Close modal
-          closeEditModal();
-          
-          // Show success message
-          showAccountMessage(`Account updated successfully for ${fullName}.`, 'success');
-          
-          // Reload accounts table
-          loadAccountsTable();
           
           return false;
       }
 
       // Delete account
-      function deleteAccount(username) {
+      async function deleteAccount(username) {
           if (username === 'admin') {
               alert('Cannot delete the admin account.');
               return;
           }
           
           if (confirm(`Are you sure you want to delete the account for ${userAccounts[username].fullName} (${username})?`)) {
-              delete userAccounts[username];
-              saveAccounts();
-              showAccountMessage(`Account deleted successfully.`, 'success');
-              loadAccountsTable();
+              try {
+                  // Delete from Firestore
+                  await deleteAccountFromFirestore(username);
+                  
+                  // Delete from local accounts
+                  delete userAccounts[username];
+                  
+                  // Also update localStorage
+                  saveAccountsToLocalStorage();
+                  
+                  showAccountMessage(`Account deleted successfully.`, 'success');
+                  loadAccountsTable();
+                  
+              } catch (error) {
+                  console.error('Error deleting account:', error);
+                  showAccountMessage('Failed to delete account. Please try again.', 'error');
+              }
           }
       }
 
@@ -1220,8 +1379,8 @@
       }
 
       // Initialize app when page loads
-      window.onload = function() {
-          initializeApp();
+      window.onload = async function() {
+          await initializeApp();
       }
   </script>
 </body>
