@@ -642,6 +642,12 @@
                   Access granted! Loading system...
               </div>
           </form>
+          
+          <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 6px; font-size: 0.8rem; color: #666;">
+              <strong>Default Admin Account:</strong><br>
+              Username: admin<br>
+              Password: admin123
+          </div>
       </div>
   </div>
 
@@ -665,6 +671,9 @@
               <div class="nav-item">
                   <a href="#" class="nav-link active" onclick="showModule('home')">🏠 Home</a>
               </div>
+		<div class="nav-item admin-only">
+                  <a href="#" class="nav-link" onclick="showModule('workflow')">📚 Work Flow</a>
+              </div>
               <div class="nav-item">
                   <a href="#" class="nav-link" onclick="showModule('admission')">📝 Admission</a>
               </div>
@@ -676,6 +685,9 @@
               </div>
               <div class="nav-item admin-only">
                   <a href="#" class="nav-link" onclick="showModule('tuition')">💰 Tuition</a>
+              </div>
+		<div class="nav-item admin-only">
+                  <a href="#" class="nav-link" onclick="showModule('facilities')">🏫 Facilities</a>
               </div>
               <div class="nav-item admin-only">
                   <a href="#" class="nav-link" onclick="showModule('accounts')">👤 Accounts</a>
@@ -694,6 +706,12 @@
                   </div>
 
                   <div class="features-grid">
+			<div class="feature-card" onclick="showModule('workflow')" data-module="workflow">
+                          <div class="feature-icon">📚</div>
+                          <h3>Work Flow Management</h3>
+                          <p>Assign and track tasks across team members.</p>
+                      </div>
+
                       <div class="feature-card" onclick="showModule('admission')" data-module="admission">
                           <div class="feature-icon">📝</div>
                           <h3>Admission Management</h3>
@@ -710,6 +728,12 @@
                           <div class="feature-icon">📚</div>
                           <h3>Course Management</h3>
                           <p>Organize courses, manage schedules, track attendance, and monitor student performance.</p>
+                      </div>
+			
+			<div class="feature-card" onclick="showModule('facilities')" data-module="facilities">
+                          <div class="feature-icon">🏫</div>
+                          <h3>Facility Management</h3>
+                          <p>Track and manage facilities and keep inventory.</p>
                       </div>
 
                       <div class="feature-card admin-only" onclick="showModule('tuition')" data-module="tuition">
@@ -789,7 +813,12 @@
           </div>
 
           <!-- Other Modules (loaded via iframe) -->
-          <div id="admission" class="module-content">
+	<div id="workflow" class="module-content">
+              <div class="loading">Loading Work Flow Module...</div>
+              <iframe class="module-frame" src="workflow2.2.html" style="display:none;"></iframe>
+          </div>          
+
+		<div id="admission" class="module-content">
               <div class="loading">Loading Admission Module...</div>
               <iframe class="module-frame" src="admission2.2.html" style="display:none;"></iframe>
           </div>
@@ -802,6 +831,11 @@
           <div id="courses" class="module-content">
               <div class="loading">Loading Course Management...</div>
               <iframe class="module-frame" src="courses2.2.html" style="display:none;"></iframe>
+          </div>
+
+          <div id="facilities" class="module-content">
+              <div class="loading">Loading Facility Management...</div>
+              <iframe class="module-frame" src="facilities2.2.html" style="display:none;"></iframe>
           </div>
 
           <div id="tuition" class="module-content">
@@ -1376,232 +1410,6 @@
       window.onload = async function() {
           await initializeApp();
       }
-
-	// Add this to your existing JavaScript code
-
-// Session management with localStorage
-function saveSession() {
-    if (currentUser.username) {
-        const sessionData = {
-            username: currentUser.username,
-            role: currentUser.role,
-            loginTime: currentUser.loginTime,
-            fullAccess: currentUser.fullAccess,
-            currentModule: getCurrentActiveModule()
-        };
-        localStorage.setItem('schoolManagementSession', JSON.stringify(sessionData));
-    }
-}
-
-function loadSession() {
-    try {
-        const sessionData = localStorage.getItem('schoolManagementSession');
-        if (sessionData) {
-            const session = JSON.parse(sessionData);
-            
-            // Check if session is still valid (optional: add expiration check)
-            if (session.username && userAccounts[session.username]) {
-                currentUser = {
-                    username: session.username,
-                    role: session.role,
-                    loginTime: new Date(session.loginTime),
-                    fullAccess: session.fullAccess
-                };
-                
-                // Show main app instead of login
-                showMainApp();
-                
-                // Restore the current module
-                if (session.currentModule) {
-                    showModule(session.currentModule);
-                }
-                
-                return true;
-            }
-        }
-    } catch (error) {
-        console.error('Error loading session:', error);
-    }
-    return false;
-}
-
-function clearSession() {
-    localStorage.removeItem('schoolManagementSession');
-}
-
-function getCurrentActiveModule() {
-    const activeModule = document.querySelector('.module-content.active');
-    return activeModule ? activeModule.id : 'home';
-}
-
-// Update the existing showModule function to save session
-function showModule(moduleName) {
-    // Hide all modules
-    const modules = document.querySelectorAll('.module-content');
-    modules.forEach(module => {
-        module.classList.remove('active');
-    });
-    
-    // Remove active class from all nav links
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-    });
-    
-    // Show selected module
-    const selectedModule = document.getElementById(moduleName);
-    if (selectedModule) {
-        selectedModule.classList.add('active');
-        
-        // Add active class to corresponding nav link
-        const navLink = document.querySelector(`[onclick="showModule('${moduleName}')"]`);
-        if (navLink) {
-            navLink.classList.add('active');
-        }
-        
-        // Load iframe if needed
-        if (['admission', 'students', 'courses', 'tuition'].includes(moduleName)) {
-            loadModuleIframe(moduleName);
-        }
-        
-        // Save current session with active module
-        saveSession();
-    }
-}
-
-// Update the existing handleLogin function to save session
-function handleLogin(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('username').value.toLowerCase();
-    const password = document.getElementById('password').value;
-    
-    const errorMsg = document.getElementById('error-message');
-    const successMsg = document.getElementById('success-message');
-    
-    // Hide previous messages
-    errorMsg.style.display = 'none';
-    successMsg.style.display = 'none';
-    
-    // Validate credentials
-    if (userAccounts[username] && userAccounts[username].password === password) {
-        
-        // Successful login
-        currentUser = {
-            username: username,
-            role: userAccounts[username].role,
-            loginTime: new Date(),
-            fullAccess: userAccounts[username].fullAccess || userAccounts[username].role === 'admin'
-        };
-        
-        // Save session
-        saveSession();
-        
-        successMsg.style.display = 'block';
-        
-        // Delay transition to main app
-        setTimeout(() => {
-            showMainApp();
-        }, 1500);
-        
-    } else {
-        // Failed login
-        errorMsg.style.display = 'block';
-    }
-    
-    return false;
-}
-
-// Update the existing logout function to clear session
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        // Clear session
-        clearSession();
-        
-        currentUser = { username: '', role: '', loginTime: null };
-        document.getElementById('main-app').style.display = 'none';
-        document.getElementById('login-screen').style.display = 'flex';
-        
-        // Clear login form
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
-        
-        // Hide any messages
-        document.getElementById('error-message').style.display = 'none';
-        document.getElementById('success-message').style.display = 'none';
-    }
-}
-
-// Update the existing initializeApp function to check for existing session
-async function initializeApp() {
-    try {
-        // Try to load from Firestore first
-        await loadAccountsFromFirestore();
-        
-        // Check for existing session after accounts are loaded
-        const hasValidSession = loadSession();
-        
-        // If no valid session, show login screen
-        if (!hasValidSession) {
-            document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('main-app').style.display = 'none';
-        }
-        
-    } catch (error) {
-        console.error('Failed to initialize with Firestore, using localStorage fallback');
-        loadAccountsFromLocalStorage();
-        
-        // Still check for session even with fallback
-        const hasValidSession = loadSession();
-        if (!hasValidSession) {
-            document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('main-app').style.display = 'none';
-        }
-    }
-}
-
-// Optional: Add session expiration (uncomment if you want sessions to expire)
-function isSessionExpired(loginTime) {
-    const now = new Date();
-    const sessionDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    return (now - new Date(loginTime)) > sessionDuration;
-}
-
-// Update loadSession to check expiration
-function loadSession() {
-    try {
-        const sessionData = localStorage.getItem('schoolManagementSession');
-        if (sessionData) {
-            const session = JSON.parse(sessionData);
-            
-            // Check if session exists and is not expired
-            if (session.username && userAccounts[session.username] && !isSessionExpired(session.loginTime)) {
-                currentUser = {
-                    username: session.username,
-                    role: session.role,
-                    loginTime: new Date(session.loginTime),
-                    fullAccess: session.fullAccess
-                };
-                
-                showMainApp();
-                
-                if (session.currentModule) {
-                    showModule(session.currentModule);
-                }
-                
-                return true;
-            } else if (isSessionExpired(session.loginTime)) {
-                // Clear expired session
-                clearSession();
-            }
-        }
-    } catch (error) {
-        console.error('Error loading session:', error);
-    }
-    return false;
-}
   </script>
-
-
 </body>
 </html>
