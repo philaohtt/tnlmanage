@@ -154,12 +154,24 @@
                 <!-- Monthly Tuition Calculation -->
                 <div id="monthlyContent" class="hidden">
                     <!-- Filters -->
-                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-blue-900">Select Month and Year to Get Started</h3>
+                                <p class="text-sm text-blue-700">Choose specific month and year to load student data and calculate tuition fees</p>
+                            </div>
+                        </div>
+                        
                         <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Month</label>
-                                <select id="monthFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="loadStudents()">
-                                    <option value="">All Months</option>
+                                <label class="block text-sm font-medium text-blue-800 mb-1">Month *</label>
+                                <select id="monthFilter" class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" onchange="checkFiltersAndLoadStudents()">
+                                    <option value="">Select Month</option>
                                     <option value="1">January</option>
                                     <option value="2">February</option>
                                     <option value="3">March</option>
@@ -175,9 +187,9 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                                <select id="yearFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="loadStudents()">
-                                    <option value="">All Years</option>
+                                <label class="block text-sm font-medium text-blue-800 mb-1">Year *</label>
+                                <select id="yearFilter" class="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" onchange="checkFiltersAndLoadStudents()">
+                                    <option value="">Select Year</option>
                                     <option value="2023">2023</option>
                                     <option value="2024">2024</option>
                                     <option value="2025">2025</option>
@@ -190,13 +202,13 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Class</label>
-                                <select id="classFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="loadStudents()">
+                                <select id="classFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="loadStudentsWithFilters()">
                                     <option value="">All Classes</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Class Status</label>
-                                <select id="classStatusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="loadStudents()">
+                                <select id="classStatusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="loadStudentsWithFilters()">
                                     <option value="">All Status</option>
                                     <option value="Active">Active</option>
                                     <option value="Completed">Completed</option>
@@ -204,7 +216,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Student Status</label>
-                                <select id="studentStatusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="loadStudents()">
+                                <select id="studentStatusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="loadStudentsWithFilters()">
                                     <option value="">All Status</option>
                                     <option value="Active">Active</option>
                                     <option value="Inactive">Inactive</option>
@@ -213,10 +225,50 @@
                                 </select>
                             </div>
                         </div>
+                        
+                        <!-- Load Button -->
+                        <div class="mt-4 flex justify-center">
+                            <button id="loadStudentsBtn" onclick="loadStudentsWithFilters()" disabled class="px-6 py-2 bg-gray-400 text-white rounded-md text-sm opacity-50 cursor-not-allowed">
+                                Select Month and Year First
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading Indicator -->
+                    <div id="monthlyLoadingIndicator" class="hidden bg-white border rounded-lg p-8 mb-6">
+                        <div class="flex items-center justify-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+                            <span class="text-gray-600">Loading student data...</span>
+                        </div>
+                    </div>
+
+                    <!-- Getting Started Message -->
+                    <div id="monthlyGettingStarted" class="bg-white border rounded-lg p-12 text-center">
+                        <div class="max-w-md mx-auto">
+                            <div class="bg-gray-100 p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">Choose Month and Year to Get Started</h3>
+                            <p class="text-gray-500 mb-4">Select a specific month and year from the filters above to load student attendance data and calculate tuition fees.</p>
+                            <div class="text-sm text-gray-400">
+                                <p>💡 Tip: Start with the current month for the most recent data</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Students Table -->
-                    <div class="bg-white border rounded-lg overflow-hidden">
+                    <div id="monthlyStudentsTable" class="bg-white border rounded-lg overflow-hidden hidden">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-semibold text-gray-900">Student Tuition Calculation</h3>
+                                <div class="text-sm text-gray-500">
+                                    <span id="studentsCount">0 students</span> • 
+                                    <span id="selectedPeriod">No period selected</span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -981,7 +1033,17 @@
             return numValue * 1000;
         }
 
-        // Tab switching functions with smart caching
+        // Global tab state tracking
+        let tabDataLoaded = {
+            calculator: true, // Always loaded on startup
+            student: false,
+            payment: false,
+            planner: true, // Always loaded on startup
+            monthly: false,
+            extraFees: false
+        };
+
+        // Tab switching functions with data preservation
         function switchTab(tabName) {
             // Hide all content
             document.getElementById('calculatorContent').classList.add('hidden');
@@ -1001,19 +1063,25 @@
                 document.getElementById('calculatorContent').classList.remove('hidden');
                 document.getElementById('calculatorTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('calculatorTab').classList.remove('border-transparent', 'text-gray-500');
-                // Calculator data is already loaded on startup
+                // Calculator data is already loaded on startup - no refresh needed
             } else if (tabName === 'student') {
                 document.getElementById('studentContent').classList.remove('hidden');
                 document.getElementById('studentTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('studentTab').classList.remove('border-transparent', 'text-gray-500');
-                // Load student tuition data with caching
-                loadStudentTuitionDataCached();
+                // Only load data if not already loaded
+                if (!tabDataLoaded.student) {
+                    loadStudentTuitionDataCached();
+                    tabDataLoaded.student = true;
+                }
             } else if (tabName === 'payment') {
                 document.getElementById('paymentContent').classList.remove('hidden');
                 document.getElementById('paymentTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('paymentTab').classList.remove('border-transparent', 'text-gray-500');
-                // Load payment tracker data with caching
-                loadPaymentTrackerCached();
+                // Only load data if not already loaded
+                if (!tabDataLoaded.payment) {
+                    loadPaymentTrackerCached();
+                    tabDataLoaded.payment = true;
+                }
             }
         }
 
@@ -1036,17 +1104,25 @@
                 document.getElementById('plannerContent').classList.remove('hidden');
                 document.getElementById('plannerSubTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('plannerSubTab').classList.remove('border-transparent', 'text-gray-500');
-                // Course plans are already loaded on startup
+                // Course plans are already loaded on startup - no refresh needed
             } else if (tabName === 'monthly') {
                 document.getElementById('monthlyContent').classList.remove('hidden');
                 document.getElementById('monthlySubTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('monthlySubTab').classList.remove('border-transparent', 'text-gray-500');
-                loadStudentsCached();
+                // Preserve the current state - don't reset to getting started if data is already loaded
+                if (!tabDataLoaded.monthly) {
+                    showGettingStartedMessage();
+                }
+                // If data was previously loaded, keep showing it
             } else if (tabName === 'extraFees') {
                 document.getElementById('extraFeesContent').classList.remove('hidden');
                 document.getElementById('extraFeesSubTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('extraFeesSubTab').classList.remove('border-transparent', 'text-gray-500');
-                loadExtraFeesDataCached();
+                // Only load data if not already loaded
+                if (!tabDataLoaded.extraFees) {
+                    loadExtraFeesDataCached();
+                    tabDataLoaded.extraFees = true;
+                }
             }
         }
 
@@ -1171,14 +1247,67 @@
             }
         }
 
-        async function loadStudentsCached() {
-            try {
-                // Always load fresh data for Monthly Tuition Calculation to ensure all students are shown
-                console.log('Loading students for Monthly Tuition Calculation...');
+        // New function to check if required filters are selected
+        function checkFiltersAndLoadStudents() {
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const selectedYear = document.getElementById('yearFilter').value;
+            const loadBtn = document.getElementById('loadStudentsBtn');
+            
+            if (selectedMonth && selectedYear) {
+                // Enable the load button
+                loadBtn.disabled = false;
+                loadBtn.className = 'px-6 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 cursor-pointer';
+                loadBtn.textContent = 'Load Student Data';
                 
-                // Get filter values
-                const selectedMonth = document.getElementById('monthFilter').value;
-                const selectedYear = document.getElementById('yearFilter').value;
+                // Auto-load when both month and year are selected
+                loadStudentsWithFilters();
+            } else {
+                // Disable the load button
+                loadBtn.disabled = true;
+                loadBtn.className = 'px-6 py-2 bg-gray-400 text-white rounded-md text-sm opacity-50 cursor-not-allowed';
+                loadBtn.textContent = 'Select Month and Year First';
+                
+                // Show getting started message
+                showGettingStartedMessage();
+            }
+        }
+
+        function showGettingStartedMessage() {
+            document.getElementById('monthlyGettingStarted').classList.remove('hidden');
+            document.getElementById('monthlyStudentsTable').classList.add('hidden');
+            document.getElementById('monthlyLoadingIndicator').classList.add('hidden');
+        }
+
+        function showLoadingIndicator() {
+            document.getElementById('monthlyGettingStarted').classList.add('hidden');
+            document.getElementById('monthlyStudentsTable').classList.add('hidden');
+            document.getElementById('monthlyLoadingIndicator').classList.remove('hidden');
+        }
+
+        function showStudentsTable() {
+            document.getElementById('monthlyGettingStarted').classList.add('hidden');
+            document.getElementById('monthlyLoadingIndicator').classList.add('hidden');
+            document.getElementById('monthlyStudentsTable').classList.remove('hidden');
+        }
+
+        async function loadStudentsWithFilters() {
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const selectedYear = document.getElementById('yearFilter').value;
+            
+            // Require both month and year to be selected
+            if (!selectedMonth || !selectedYear) {
+                showGettingStartedMessage();
+                tabDataLoaded.monthly = false;
+                return;
+            }
+            
+            try {
+                showLoadingIndicator();
+                updateSyncStatus('syncing', 'Loading student data...');
+                
+                console.log(`Loading students for ${selectedMonth}/${selectedYear}...`);
+                
+                // Get other filter values
                 const selectedClass = document.getElementById('classFilter').value;
                 const selectedClassStatus = document.getElementById('classStatusFilter').value;
                 const selectedStudentStatus = document.getElementById('studentStatusFilter').value;
@@ -1190,6 +1319,8 @@
                 console.log(`Found ${snapshot.size} total students in database`);
                 
                 const studentsData = [];
+                const year = parseInt(selectedYear);
+                const month = parseInt(selectedMonth);
                 
                 for (const doc of snapshot.docs) {
                     const studentData = { id: doc.id, ...doc.data() };
@@ -1211,51 +1342,65 @@
                         continue;
                     }
                     
-                    // Determine which years and months to check
-                    let years, months;
+                    // Get attendance data for the specific month/year
+                    const attendanceData = await getMonthlyAttendance(studentData.studentId, year, month, false);
                     
-                    if (!selectedMonth && !selectedYear) {
-                        // Show all students for current year if no filters
-                        years = [new Date().getFullYear()];
-                        months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-                    } else {
-                        years = selectedYear ? [parseInt(selectedYear)] : [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
-                        months = selectedMonth ? [parseInt(selectedMonth)] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-                    }
-                    
-                    // Check attendance for each year/month combination
-                    for (const year of years) {
-                        for (const month of months) {
-                            const attendanceData = await getMonthlyAttendance(studentData.studentId, year, month, false);
-                            
-                            // Include student even if no attendance (show 0 lessons/courses)
-                            // This ensures all students appear in the list
-                            const studentEntry = {
-                                ...studentData,
-                                id: `${doc.id}_${year}_${month}`,
-                                originalId: doc.id,
-                                displayMonth: month,
-                                displayYear: year,
-                                attendedLessons: attendanceData.attendedLessons || 0,
-                                coursesCount: attendanceData.coursesCount || 0,
-                                lessonLength: 1.5,
-                                studyHours: (attendanceData.attendedLessons || 0) * 1.5
-                            };
-                            studentsData.push(studentEntry);
-                        }
-                    }
+                    // Include student even if no attendance (show 0 lessons/courses)
+                    // This ensures all students appear in the list
+                    const studentEntry = {
+                        ...studentData,
+                        id: `${doc.id}_${year}_${month}`,
+                        originalId: doc.id,
+                        displayMonth: month,
+                        displayYear: year,
+                        attendedLessons: attendanceData.attendedLessons || 0,
+                        coursesCount: attendanceData.coursesCount || 0,
+                        lessonLength: 1.5,
+                        studyHours: (attendanceData.attendedLessons || 0) * 1.5
+                    };
+                    studentsData.push(studentEntry);
                 }
                 
                 console.log(`Processed ${studentsData.length} student entries after filtering`);
                 
                 students = studentsData;
+                
+                // Update the period display
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                document.getElementById('selectedPeriod').textContent = `${monthNames[month - 1]} ${year}`;
+                document.getElementById('studentsCount').textContent = `${studentsData.length} students`;
+                
                 renderStudentsTable();
+                showStudentsTable();
+                
+                // Mark monthly tab as loaded with data
+                tabDataLoaded.monthly = true;
+                
+                updateSyncStatus(isOnline ? 'connected' : 'offline');
                 
             } catch (error) {
                 console.error('Error loading students:', error);
                 students = [];
                 renderStudentsTable();
+                showStudentsTable();
+                tabDataLoaded.monthly = false;
+                updateSyncStatus('error', 'Load failed');
             }
+        }
+
+        // Keep the old function for backward compatibility but make it use the new approach
+        async function loadStudentsCached() {
+            // For the monthly tab, we now require explicit filter selection
+            // This function will only be called from other tabs
+            const selectedMonth = document.getElementById('monthFilter')?.value;
+            const selectedYear = document.getElementById('yearFilter')?.value;
+            
+            if (!selectedMonth || !selectedYear) {
+                showGettingStartedMessage();
+                return;
+            }
+            
+            await loadStudentsWithFilters();
         }
 
         async function loadExtraFeesDataCached() {
@@ -1371,23 +1516,33 @@
 
         async function loadTuitionClassesCached() {
             try {
+                console.log('Loading classes data...');
+                
                 const data = await loadDataWithCache('classes', async () => {
+                    console.log('Fetching classes from database...');
                     const snapshot = await db.collection('classes').get();
+                    console.log(`Found ${snapshot.size} class documents`);
+                    
                     const classesData = [];
                     
                     snapshot.forEach(doc => {
                         const classData = doc.data();
-                        classesData.push({
+                        const processedClass = {
                             id: doc.id,
                             classCode: classData.classCode || doc.id,
                             className: classData.className || classData.classCode || doc.id
-                        });
+                        };
+                        classesData.push(processedClass);
+                        console.log(`Processed class: ${processedClass.classCode} - ${processedClass.className}`);
                     });
                     
+                    console.log(`Successfully processed ${classesData.length} classes`);
                     return classesData;
                 });
 
-                // Update all class filter dropdowns
+                console.log(`Using ${data.length} classes for dropdowns`);
+
+                // Update all class filter dropdowns immediately
                 const classFilters = [
                     'classFilter',
                     'tuitionClassFilter', 
@@ -1397,19 +1552,37 @@
                 classFilters.forEach(filterId => {
                     const classFilter = document.getElementById(filterId);
                     if (classFilter) {
+                        // Clear existing options
                         classFilter.innerHTML = '<option value="">All Classes</option>';
                         
+                        // Add classes
                         data.forEach(classData => {
                             const option = document.createElement('option');
                             option.value = classData.classCode;
                             option.textContent = classData.className;
                             classFilter.appendChild(option);
                         });
+                        
+                        console.log(`Updated ${filterId} with ${data.length} classes`);
+                    } else {
+                        console.warn(`Class filter ${filterId} not found in DOM`);
                     }
                 });
                 
+                console.log('Classes loading completed successfully');
+                
             } catch (error) {
                 console.error('Error loading classes:', error);
+                updateSyncStatus('error', 'Failed to load classes');
+                
+                // Show error in dropdowns
+                const classFilters = ['classFilter', 'tuitionClassFilter', 'extraFeeClassFilter'];
+                classFilters.forEach(filterId => {
+                    const classFilter = document.getElementById(filterId);
+                    if (classFilter) {
+                        classFilter.innerHTML = '<option value="">Error loading classes</option>';
+                    }
+                });
             }
         }
 
@@ -1563,60 +1736,56 @@
 
         async function loadCoursePlans(forceReload = false) {
             try {
-                // Check cache first unless force reload
-                if (!forceReload) {
-                    const cachedData = getCacheData('coursePlans');
-                    if (cachedData) {
-                        coursePlans = cachedData.coursePlans;
-                        renderCoursePlansUI(cachedData.activePlans, cachedData.archivedPlans);
-                        return;
-                    }
-                }
-
-                updateSyncStatus('syncing', 'Loading plans...');
-                
-                // Load all course plans first
-                const allPlansSnapshot = await db.collection('coursePlans').get();
-                
-                coursePlans = [];
-                let activePlans = [];
-                let archivedPlans = [];
-
-                // Process all plans and separate by status
-                allPlansSnapshot.forEach(doc => {
-                    const plan = { id: doc.id, ...doc.data() };
-                    coursePlans.push(plan);
+                // Use the cached loading approach for consistency
+                const data = await loadDataWithCache('coursePlans', async () => {
+                    console.log('Loading course plans from database...');
                     
-                    // Default to active if no status is set
-                    const status = plan.status || 'active';
-                    if (status === 'active') {
-                        activePlans.push(plan);
-                    } else if (status === 'archived') {
-                        archivedPlans.push(plan);
-                    } else {
-                        // Default unknown status to active
-                        activePlans.push(plan);
-                    }
-                });
+                    // Load all course plans
+                    const allPlansSnapshot = await db.collection('coursePlans').get();
+                    console.log(`Found ${allPlansSnapshot.size} course plan documents`);
+                    
+                    const allPlans = [];
+                    let activePlans = [];
+                    let archivedPlans = [];
 
-                console.log(`Loaded ${coursePlans.length} course plans: ${activePlans.length} active, ${archivedPlans.length} archived`);
+                    // Process all plans and separate by status
+                    allPlansSnapshot.forEach(doc => {
+                        const plan = { id: doc.id, ...doc.data() };
+                        allPlans.push(plan);
+                        
+                        // Default to active if no status is set
+                        const status = plan.status || 'active';
+                        if (status === 'active') {
+                            activePlans.push(plan);
+                        } else if (status === 'archived') {
+                            archivedPlans.push(plan);
+                        } else {
+                            // Default unknown status to active
+                            activePlans.push(plan);
+                        }
+                    });
 
-                // Cache the data
-                setCacheData('coursePlans', {
-                    coursePlans: coursePlans,
-                    activePlans: activePlans,
-                    archivedPlans: archivedPlans
-                });
+                    console.log(`Processed ${allPlans.length} course plans: ${activePlans.length} active, ${archivedPlans.length} archived`);
+
+                    return {
+                        coursePlans: allPlans,
+                        activePlans: activePlans,
+                        archivedPlans: archivedPlans
+                    };
+                }, forceReload);
+
+                // Set global variables
+                coursePlans = data.coursePlans;
 
                 // Render UI
-                renderCoursePlansUI(activePlans, archivedPlans);
+                renderCoursePlansUI(data.activePlans, data.archivedPlans);
 
-                updateSyncStatus(isOnline ? 'connected' : 'offline');
             } catch (error) {
-                console.error('Error loading plans:', error);
-                updateSyncStatus('error', 'Load failed');
+                console.error('Error loading course plans:', error);
+                updateSyncStatus('error', 'Failed to load course plans');
                 
                 // Show empty state on error
+                coursePlans = [];
                 renderCoursePlansUI([], []);
             }
         }
@@ -2117,21 +2286,12 @@
         // Load classes for filter dropdown
         async function loadClasses() {
             try {
-                const snapshot = await db.collection('classes').get();
-                const classFilter = document.getElementById('classFilter');
-                
-                // Clear existing options except "All Classes"
-                classFilter.innerHTML = '<option value="">All Classes</option>';
-                
-                snapshot.forEach(doc => {
-                    const classData = doc.data();
-                    const option = document.createElement('option');
-                    option.value = classData.classCode || doc.id;
-                    option.textContent = classData.className || classData.classCode || doc.id;
-                    classFilter.appendChild(option);
-                });
+                console.log('Loading classes (legacy function)...');
+                // Use the cached version for consistency
+                await loadTuitionClassesCached();
             } catch (error) {
                 console.error('Error loading classes:', error);
+                updateSyncStatus('error', 'Failed to load classes');
             }
         }
 
@@ -3630,6 +3790,16 @@
                 // Clear all cache
                 clearCache();
                 
+                // Reset tab data loaded states to force fresh data on next visit
+                tabDataLoaded = {
+                    calculator: true, // Always loaded on startup
+                    student: false,
+                    payment: false,
+                    planner: true, // Always loaded on startup
+                    monthly: false,
+                    extraFees: false
+                };
+                
                 // Force reload all data based on current active tab
                 await loadCoursePlans(true);
                 
@@ -3639,8 +3809,10 @@
                     const tabId = activeTab.id;
                     if (tabId === 'studentTab') {
                         await loadStudentTuitionDataCached();
+                        tabDataLoaded.student = true;
                     } else if (tabId === 'paymentTab') {
                         await loadPaymentTrackerCached();
+                        tabDataLoaded.payment = true;
                     }
                 }
                 
@@ -3649,9 +3821,17 @@
                 if (activeSubTab) {
                     const subTabId = activeSubTab.id;
                     if (subTabId === 'monthlySubTab') {
-                        await loadStudentsCached();
+                        // For monthly tab, check if filters are set before loading
+                        const selectedMonth = document.getElementById('monthFilter').value;
+                        const selectedYear = document.getElementById('yearFilter').value;
+                        if (selectedMonth && selectedYear) {
+                            await loadStudentsWithFilters();
+                        } else {
+                            showGettingStartedMessage();
+                        }
                     } else if (subTabId === 'extraFeesSubTab') {
                         await loadExtraFeesDataCached();
+                        tabDataLoaded.extraFees = true;
                     }
                 }
                 
@@ -4309,7 +4489,9 @@
         }
 
         // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Initializing Tuition Management System...');
+            
             // Load cache from localStorage first
             loadCacheFromStorage();
             
@@ -4319,9 +4501,8 @@
                 pendingOperations = JSON.parse(savedOperations);
             }
             
-            // Set current year as default
+            // Set default year values
             const currentYear = new Date().getFullYear();
-            document.getElementById('yearFilter').value = currentYear;
             document.getElementById('tuitionYearFilter').value = currentYear;
             document.getElementById('paymentYearFilter').value = currentYear;
             document.getElementById('modalYearSelect').value = currentYear;
@@ -4330,16 +4511,38 @@
             document.getElementById('feeTypeManagementContent').classList.add('hidden');
             document.getElementById('feeTypesListContent').classList.add('hidden');
             
-            // Load initial data with caching
-            loadCoursePlans();
-            loadTuitionClassesCached();
+            // Load critical data immediately and in parallel
+            console.log('📊 Loading initial data...');
+            updateSyncStatus('syncing', 'Loading initial data...');
+            
+            try {
+                // Load course plans and classes in parallel for faster startup
+                await Promise.all([
+                    loadCoursePlans().catch(error => {
+                        console.error('Failed to load course plans:', error);
+                        return null;
+                    }),
+                    loadTuitionClassesCached().catch(error => {
+                        console.error('Failed to load classes:', error);
+                        return null;
+                    })
+                ]);
+                
+                console.log('✅ Initial data loaded successfully');
+                updateSyncStatus(isOnline ? 'connected' : 'offline', 'Ready');
+                
+            } catch (error) {
+                console.error('❌ Error during initialization:', error);
+                updateSyncStatus('error', 'Initialization failed');
+            }
             
             // Process pending operations if online
             if (isOnline && pendingOperations.length > 0) {
+                console.log(`📤 Processing ${pendingOperations.length} pending operations...`);
                 processPendingOperations();
             }
             
-            console.log('🚀 Tuition Management System initialized with smart caching');
+            console.log('🎉 Tuition Management System initialized successfully');
             console.log('📊 Cache status:', {
                 coursePlans: isCacheLoaded('coursePlans') ? '✅ Cached' : '❌ Not cached',
                 students: isCacheLoaded('students') ? '✅ Cached' : '❌ Not cached',
@@ -4350,5 +4553,5 @@
             });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974840c7942f849a',t:'MTc1NjA5NTE2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974a76a9335604d3',t:'MTc1NjExODM0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
