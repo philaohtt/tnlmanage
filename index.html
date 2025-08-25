@@ -72,7 +72,7 @@
           font-weight: 500;
       }
       
-      .form-group input {
+      .form-group input, .form-group select {
           width: 100%;
           padding: 0.75rem;
           border: 2px solid #e1e8ed;
@@ -81,7 +81,7 @@
           transition: border-color 0.3s ease;
       }
       
-      .form-group input:focus {
+      .form-group input:focus, .form-group select:focus {
           outline: none;
           border-color: #667eea;
       }
@@ -214,6 +214,15 @@
           border-bottom-color: #667eea;
       }
       
+      /* Hide admin-only items for non-admin users */
+      .nav-item.admin-only {
+          display: none;
+      }
+      
+      .nav-item.admin-only.show {
+          display: block;
+      }
+      
       /* Maximized Content Area */
       .content {
           flex: 1;
@@ -281,10 +290,22 @@
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           transition: transform 0.3s ease;
           text-align: center;
+          cursor: pointer;
+          border: 2px solid transparent;
       }
       
       .feature-card:hover {
           transform: translateY(-2px);
+          border-color: #667eea;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      }
+      
+      .feature-card.admin-only {
+          display: none;
+      }
+      
+      .feature-card.admin-only.show {
+          display: block;
       }
       
       .feature-icon {
@@ -301,6 +322,175 @@
       .feature-card p {
           color: #666;
           font-size: 0.85rem;
+      }
+      
+      /* Account Management Styles */
+      .account-management {
+          flex: 1;
+          padding: 1.5rem;
+          overflow-y: auto;
+      }
+      
+      .account-section {
+          background: white;
+          padding: 1.5rem;
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .account-section h3 {
+          color: #2c3e50;
+          margin-bottom: 1rem;
+          font-size: 1.25rem;
+      }
+      
+      .account-form {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1rem;
+      }
+      
+      .account-form .form-group {
+          margin-bottom: 0;
+      }
+      
+      .account-form .form-group.full-width {
+          grid-column: 1 / -1;
+      }
+      
+      .btn {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          margin-right: 0.5rem;
+      }
+      
+      .btn-primary {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+      }
+      
+      .btn-primary:hover {
+          transform: translateY(-1px);
+      }
+      
+      .btn-danger {
+          background: #e74c3c;
+          color: white;
+      }
+      
+      .btn-danger:hover {
+          background: #c0392b;
+      }
+      
+      .btn-secondary {
+          background: #6c757d;
+          color: white;
+      }
+      
+      .btn-secondary:hover {
+          background: #5a6268;
+      }
+      
+      .accounts-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 1rem;
+      }
+      
+      .accounts-table th,
+      .accounts-table td {
+          padding: 0.75rem;
+          text-align: left;
+          border-bottom: 1px solid #e1e8ed;
+      }
+      
+      .accounts-table th {
+          background: #f8f9fa;
+          font-weight: 600;
+          color: #2c3e50;
+      }
+      
+      .accounts-table tr:hover {
+          background: #f8f9fa;
+      }
+      
+      .role-badge {
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.8rem;
+          font-weight: 500;
+      }
+      
+      .role-admin {
+          background: #e74c3c;
+          color: white;
+      }
+      
+      .role-teacher {
+          background: #3498db;
+          color: white;
+      }
+      
+      .role-staff {
+          background: #27ae60;
+          color: white;
+      }
+      
+      .role-registrar {
+          background: #f39c12;
+          color: white;
+      }
+      
+      /* Modal Styles */
+      .modal {
+          display: none;
+          position: fixed;
+          z-index: 1000;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0,0,0,0.5);
+      }
+      
+      .modal-content {
+          background-color: white;
+          margin: 10% auto;
+          padding: 2rem;
+          border-radius: 8px;
+          width: 90%;
+          max-width: 500px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      }
+      
+      .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1rem;
+      }
+      
+      .modal-header h3 {
+          color: #2c3e50;
+          margin: 0;
+      }
+      
+      .close {
+          color: #aaa;
+          font-size: 28px;
+          font-weight: bold;
+          cursor: pointer;
+      }
+      
+      .close:hover {
+          color: #000;
       }
       
       /* Minimal Footer */
@@ -374,7 +564,7 @@
               font-size: 0.8rem;
           }
           
-          .home-content {
+          .home-content, .account-management {
               padding: 1rem;
           }
           
@@ -393,6 +583,20 @@
           .feature-card {
               padding: 1rem;
           }
+          
+          .account-form {
+              grid-template-columns: 1fr;
+          }
+          
+          .modal-content {
+              margin: 5% auto;
+              width: 95%;
+              padding: 1.5rem;
+          }
+          
+          .accounts-table {
+              font-size: 0.8rem;
+          }
       }
       
       /* Ensure full height usage */
@@ -407,30 +611,32 @@
       <div class="login-box">
           <div class="login-header">
               <h1>🏫 School Management System</h1>
-              <p>Please enter your access code to continue</p>
+              <p>Please enter your credentials to access the system</p>
           </div>
           
           <form class="login-form" onsubmit="return handleLogin(event)">
               <div class="form-group">
-                  <label for="username">Username (Optional)</label>
-                  <input type="text" id="username" name="username" placeholder="Enter your name">
+                  <label for="username">Username</label>
+                  <input type="text" id="username" name="username" required placeholder="Enter your username">
               </div>
               
               <div class="form-group">
-                  <label for="password">Access Code</label>
-                  <input type="password" id="password" name="password" required placeholder="Enter your access code">
+                  <label for="password">Password</label>
+                  <input type="password" id="password" name="password" required placeholder="Enter your password">
               </div>
               
               <button type="submit" class="login-btn">Access System</button>
               
               <div id="error-message" class="error-message">
-                  Invalid access code. Please try again.
+                  Invalid credentials. Please check your username and password.
               </div>
               
               <div id="success-message" class="success-message">
                   Access granted! Loading system...
               </div>
           </form>
+          
+          
       </div>
   </div>
 
@@ -440,272 +646,583 @@
       <header class="header">
           <div class="header-info">
               <div id="current-user">User: Guest</div>
+              <div id="current-role">Role: --</div>
               <div id="login-time">Login: --</div>
           </div>
           <h1>🏫 School Management System</h1>
-          <p>Educational Administration Platform v2.2</p>
+          <p>Educational Administration Platform</p>
           <button class="logout-btn" onclick="logout()">Logout</button>
       </header>
-      
+
       <!-- Compact Navigation -->
       <nav class="nav">
           <div class="nav-container">
               <div class="nav-item">
-                  <div class="nav-link active" onclick="showModule('home', this)">
-                      🏠 Home
-                  </div>
+                  <a href="#" class="nav-link active" onclick="showModule('home')">🏠 Home</a>
               </div>
               <div class="nav-item">
-                  <div class="nav-link" onclick="showModule('admission', this)">
-                      📝 Admission
-                  </div>
+                  <a href="#" class="nav-link" onclick="showModule('admission')">📝 Admission</a>
               </div>
               <div class="nav-item">
-                  <div class="nav-link" onclick="showModule('students', this)">
-                      👥 Students
-                  </div>
+                  <a href="#" class="nav-link" onclick="showModule('students')">👥 Students</a>
               </div>
               <div class="nav-item">
-                  <div class="nav-link" onclick="showModule('courses', this)">
-                      📚 Courses
-                  </div>
+                  <a href="#" class="nav-link" onclick="showModule('courses')">📚 Courses</a>
+              </div>
+              <div class="nav-item admin-only">
+                  <a href="#" class="nav-link" onclick="showModule('tuition')">💰 Tuition</a>
+              </div>
+              <div class="nav-item admin-only">
+                  <a href="#" class="nav-link" onclick="showModule('accounts')">👤 Accounts</a>
               </div>
               <div class="nav-item">
-                  <div class="nav-link" onclick="showModule('tuition', this)">
-                      💰 Tuition
-                  </div>
+                  <a href="#" class="nav-link" onclick="showModule('reports')">📊 Reports</a>
               </div>
           </div>
       </nav>
-      
-      <!-- Maximized Content -->
+
+      <!-- Content Area -->
       <main class="content">
-          <!-- Compact Home Page -->
-          <div id="home-content" class="module-content active">
+          <!-- Home Module -->
+          <div id="home" class="module-content active">
               <div class="home-content">
                   <div class="welcome-section">
                       <h2>Welcome to School Management System</h2>
-                      <p>Comprehensive platform for educational administration. Select a module above to get started.</p>
+                      <p>Streamline your educational administration with our comprehensive platform. Manage admissions, students, courses, and more from one central location.</p>
                   </div>
-                  
+
                   <div class="features-grid">
-                      <div class="feature-card">
+                      <div class="feature-card" onclick="showModule('admission')" data-module="admission">
                           <div class="feature-icon">📝</div>
                           <h3>Admission Management</h3>
-                          <p>Handle applications and enrollment processes</p>
+                          <p>Handle student applications, track admission status, and manage enrollment processes efficiently.</p>
                       </div>
-                      
-                      <div class="feature-card">
+
+                      <div class="feature-card" onclick="showModule('students')" data-module="students">
                           <div class="feature-icon">👥</div>
-                          <h3>Student Records</h3>
-                          <p>Maintain student profiles and academic records</p>
+                          <h3>Student Directory</h3>
+                          <p>Comprehensive student profiles with contact information, academic records, and progress tracking.</p>
                       </div>
-                      
-                      <div class="feature-card">
+
+                      <div class="feature-card" onclick="showModule('courses')" data-module="courses">
                           <div class="feature-icon">📚</div>
                           <h3>Course Management</h3>
-                          <p>Organize curriculum and class schedules</p>
+                          <p>Organize courses, manage schedules, track attendance, and monitor student performance.</p>
                       </div>
-                      
-                      <div class="feature-card">
+
+                      <div class="feature-card admin-only" onclick="showModule('tuition')" data-module="tuition">
                           <div class="feature-icon">💰</div>
                           <h3>Tuition & Fees</h3>
-                          <p>Track payments and manage fee structures</p>
+                          <p>Handle fee collection, payment tracking, financial reports, and billing management.</p>
+                      </div>
+
+                      <div class="feature-card admin-only" onclick="showModule('accounts')" data-module="accounts">
+                          <div class="feature-icon">👤</div>
+                          <h3>Account Management</h3>
+                          <p>Create and manage user accounts, set permissions, and control system access.</p>
+                      </div>
+
+                      <div class="feature-card" onclick="showModule('reports')" data-module="reports">
+                          <div class="feature-icon">📊</div>
+                          <h3>Reports & Analytics</h3>
+                          <p>Generate comprehensive reports and gain insights into institutional performance.</p>
                       </div>
                   </div>
               </div>
           </div>
-          
-          <!-- Full-Height Module Contents -->
-          <div id="admission-content" class="module-content">
-              <div class="loading" id="admission-loading">Loading Admission Module...</div>
-              <iframe id="admission-frame" class="module-frame" src="admission2.2.html" style="display:none;" onload="hideLoading('admission')"></iframe>
+
+          <!-- Account Management Module -->
+          <div id="accounts" class="module-content">
+              <div class="account-management">
+                  <div class="account-section">
+                      <h3>Create New Account</h3>
+                      <form class="account-form" onsubmit="return createAccount(event)">
+                          <div class="form-group">
+                              <label for="newUsername">Username</label>
+                              <input type="text" id="newUsername" required placeholder="Enter username">
+                          </div>
+                          
+                          <div class="form-group">
+                              <label for="newPassword">Password</label>
+                              <input type="password" id="newPassword" required placeholder="Enter password">
+                          </div>
+                          
+                          <div class="form-group">
+                              <label for="newRole">Role</label>
+                              <select id="newRole" required>
+                                  <option value="">Select role</option>
+                                  <option value="admin">Administrator</option>
+                                  <option value="teacher">Teacher</option>
+                                  <option value="staff">Staff Member</option>
+                                  <option value="registrar">Registrar</option>
+                              </select>
+                          </div>
+                          
+                          <div class="form-group">
+                              <label for="newFullName">Full Name</label>
+                              <input type="text" id="newFullName" required placeholder="Enter full name">
+                          </div>
+                          
+                          <div class="form-group full-width">
+                              <button type="submit" class="btn btn-primary">Create Account</button>
+                          </div>
+                      </form>
+                      
+                      <div id="account-message" style="display: none; margin-top: 1rem; padding: 0.75rem; border-radius: 4px;"></div>
+                  </div>
+
+                  <div class="account-section">
+                      <h3>Existing Accounts</h3>
+                      <table class="accounts-table">
+                          <thead>
+                              <tr>
+                                  <th>Username</th>
+                                  <th>Full Name</th>
+                                  <th>Role</th>
+                                  <th>Created</th>
+                                  <th>Actions</th>
+                              </tr>
+                          </thead>
+                          <tbody id="accounts-tbody">
+                              <!-- Accounts will be populated here -->
+                          </tbody>
+                      </table>
+                  </div>
+              </div>
           </div>
-          
-          <div id="students-content" class="module-content">
-              <div class="loading" id="students-loading">Loading Students Module...</div>
-              <iframe id="students-frame" class="module-frame" src="student2.2.html" style="display:none;" onload="hideLoading('students')"></iframe>
+
+          <!-- Other Modules (loaded via iframe) -->
+          <div id="admission" class="module-content">
+              <div class="loading">Loading Admission Module...</div>
+              <iframe class="module-frame" src="admission2.2.html" style="display:none;"></iframe>
           </div>
-          
-          <div id="courses-content" class="module-content">
-              <div class="loading" id="courses-loading">Loading Courses Module...</div>
-              <iframe id="courses-frame" class="module-frame" src="courses2.2.html" style="display:none;" onload="hideLoading('courses')"></iframe>
+
+          <div id="students" class="module-content">
+              <div class="loading">Loading Student Directory...</div>
+              <iframe class="module-frame" src="student2.2.html" style="display:none;"></iframe>
           </div>
-          
-          <div id="tuition-content" class="module-content">
-              <div class="loading" id="tuition-loading">Loading Tuition Module...</div>
-              <iframe id="tuition-frame" class="module-frame" src="tuition2.2.html" style="display:none;" onload="hideLoading('tuition')"></iframe>
+
+          <div id="courses" class="module-content">
+              <div class="loading">Loading Course Management...</div>
+              <iframe class="module-frame" src="courses2.2.html" style="display:none;"></iframe>
+          </div>
+
+          <div id="tuition" class="module-content">
+              <div class="loading">Loading Tuition Management...</div>
+              <iframe class="module-frame" src="tuition2.2.html" style="display:none;"></iframe>
+          </div>
+
+          <div id="reports" class="module-content">
+              <div class="loading">Loading Reports...</div>
+              <iframe class="module-frame" src="reports.html" style="display:none;"></iframe>
           </div>
       </main>
-      
+
       <!-- Minimal Footer -->
       <footer class="footer">
-          <p>&copy; 2025 School Management System v2.2</p>
+          <p>&copy; 2024 School Management System. All rights reserved.</p>
       </footer>
   </div>
-  
+
+  <!-- Edit Account Modal -->
+  <div id="editModal" class="modal">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h3>Edit Account</h3>
+              <span class="close" onclick="closeEditModal()">&times;</span>
+          </div>
+          <form onsubmit="return updateAccount(event)">
+              <input type="hidden" id="editUsername">
+              <div class="form-group">
+                  <label for="editFullName">Full Name</label>
+                  <input type="text" id="editFullName" required>
+              </div>
+              <div class="form-group">
+                  <label for="editRole">Role</label>
+                  <select id="editRole" required>
+                      <option value="admin">Administrator</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="staff">Staff Member</option>
+                      <option value="registrar">Registrar</option>
+                  </select>
+              </div>
+              <div class="form-group">
+                  <label for="editNewPassword">New Password (leave blank to keep current)</label>
+                  <input type="password" id="editNewPassword" placeholder="Enter new password">
+              </div>
+              <div class="form-group">
+                  <button type="submit" class="btn btn-primary">Update Account</button>
+                  <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+              </div>
+          </form>
+      </div>
+  </div>
+
   <script>
-      // Password Configuration with user roles
-      const userCredentials = {
-          'board2025': { role: 'Board Member', isAdmin: false },
-          'admin123': { role: 'Administrator', isAdmin: true },
-          'staff2025': { role: 'Staff Member', isAdmin: false },
-          'principal': { role: 'Principal', isAdmin: true },
-          'secretary': { role: 'Secretary', isAdmin: false },
-          'finance2025': { role: 'Finance Team', isAdmin: false }
+      // User session management
+      let currentUser = {
+          username: '',
+          role: '',
+          loginTime: null
       };
-      
-      let currentUser = null;
-      
-      // Check if user is already logged in
-      function checkLoginStatus() {
-          const savedUser = sessionStorage.getItem('schoolSystemUser');
-          if (savedUser) {
-              try {
-                  currentUser = JSON.parse(savedUser);
-                  showMainApp();
-              } catch (e) {
-                  console.error('Error parsing saved user:', e);
-                  sessionStorage.removeItem('schoolSystemUser');
-              }
+
+      // Initialize with only admin account
+      let userAccounts = {
+          'admin': { 
+              password: 'admin123', 
+              role: 'admin', 
+              fullAccess: true,
+              fullName: 'System Administrator',
+              created: new Date().toISOString()
+          }
+      };
+
+      // Save accounts to localStorage
+      function saveAccounts() {
+          localStorage.setItem('schoolManagementAccounts', JSON.stringify(userAccounts));
+      }
+
+      // Load accounts from localStorage
+      function loadAccounts() {
+          const saved = localStorage.getItem('schoolManagementAccounts');
+          if (saved) {
+              userAccounts = JSON.parse(saved);
           }
       }
-      
-      // Handle login
+
+      // Initialize the app
+      function initializeApp() {
+          loadAccounts();
+      }
+
+      // Handle login form submission
       function handleLogin(event) {
           event.preventDefault();
           
+          const username = document.getElementById('username').value.toLowerCase();
           const password = document.getElementById('password').value;
-          const username = document.getElementById('username').value.trim();
-          const errorMessage = document.getElementById('error-message');
-          const successMessage = document.getElementById('success-message');
           
-          errorMessage.style.display = 'none';
-          successMessage.style.display = 'none';
+          const errorMsg = document.getElementById('error-message');
+          const successMsg = document.getElementById('success-message');
           
-          if (userCredentials[password]) {
+          // Hide previous messages
+          errorMsg.style.display = 'none';
+          successMsg.style.display = 'none';
+          
+          // Validate credentials
+          if (userAccounts[username] && userAccounts[username].password === password) {
+              
+              // Successful login
               currentUser = {
-                  name: username || userCredentials[password].role,
-                  role: userCredentials[password].role,
-                  isAdmin: userCredentials[password].isAdmin,
-                  loginTime: new Date().toISOString()
+                  username: username,
+                  role: userAccounts[username].role,
+                  loginTime: new Date(),
+                  fullAccess: userAccounts[username].fullAccess || userAccounts[username].role === 'admin'
               };
               
-              sessionStorage.setItem('schoolSystemUser', JSON.stringify(currentUser));
+              successMsg.style.display = 'block';
               
-              successMessage.style.display = 'block';
-              successMessage.textContent = 'Access granted! Loading system...';
-              
+              // Delay transition to main app
               setTimeout(() => {
                   showMainApp();
-              }, 1000);
+              }, 1500);
+              
           } else {
-              errorMessage.style.display = 'block';
-              errorMessage.textContent = 'Invalid access code. Please try again.';
+              // Failed login
+              errorMsg.style.display = 'block';
           }
           
           return false;
       }
-      
-      // Show main application
+
+            // Show main application after successful login
       function showMainApp() {
           document.getElementById('login-screen').style.display = 'none';
           document.getElementById('main-app').style.display = 'flex';
           
           // Update header info
-          document.getElementById('current-user').textContent = `User: ${currentUser.name}`;
-          document.getElementById('login-time').textContent = `Login: ${new Date(currentUser.loginTime).toLocaleTimeString()}`;
-      }
-      
-      // Show specific module
-      function showModule(moduleName, navElement) {
-          // Hide all modules
-          const modules = document.querySelectorAll('.module-content');
-          modules.forEach(module => module.classList.remove('active'));
+          document.getElementById('current-user').textContent = `User: ${currentUser.username}`;
+          document.getElementById('current-role').textContent = `Role: ${currentUser.role}`;
+          document.getElementById('login-time').textContent = `Login: ${currentUser.loginTime.toLocaleTimeString()}`;
           
-          // Remove active class from all nav links
-          const navLinks = document.querySelectorAll('.nav-link');
-          navLinks.forEach(link => link.classList.remove('active'));
+          // Show/hide admin-only features
+          toggleAdminFeatures(currentUser.fullAccess);
           
-          // Show selected module
-          document.getElementById(moduleName + '-content').classList.add('active');
-          navElement.classList.add('active');
-      }
-      
-      // Hide loading indicator when iframe loads
-      function hideLoading(moduleName) {
-          const loadingElement = document.getElementById(moduleName + '-loading');
-          const frameElement = document.getElementById(moduleName + '-frame');
-          
-          if (loadingElement) loadingElement.style.display = 'none';
-          if (frameElement) frameElement.style.display = 'block';
-      }
-      
-      // Handle iframe load errors
-      function handleIframeError(moduleName) {
-          const loadingElement = document.getElementById(moduleName + '-loading');
-          if (loadingElement) {
-              loadingElement.innerHTML = `
-                  <div style="text-align: center; color: #e74c3c;">
-                      <h3>⚠️ Module Not Found</h3>
-                      <p>The file "${moduleName}2.2.html" could not be loaded.</p>
-                      <p>Please ensure the file exists in the same directory as this index file.</p>
-                  </div>
-              `;
+          // Load accounts table if admin
+          if (currentUser.fullAccess) {
+              loadAccountsTable();
           }
-      }
-      
-      // Set up iframe error handlers
-      function setupIframeErrorHandlers() {
-          const modules = ['admission', 'students', 'courses', 'tuition'];
           
-          modules.forEach(module => {
-              const iframe = document.getElementById(module + '-frame');
-              if (iframe) {
-                  iframe.onerror = () => handleIframeError(module);
-                  
-                  // Also check if iframe fails to load after a timeout
-                  setTimeout(() => {
-                      if (iframe.style.display === 'none') {
-                          handleIframeError(module);
-                      }
-                  }, 5000);
+          // Show home module by default
+          showModule('home');
+      }
+
+      // Toggle admin-only features visibility
+      function toggleAdminFeatures(showAdmin) {
+          const adminElements = document.querySelectorAll('.admin-only');
+          adminElements.forEach(element => {
+              if (showAdmin) {
+                  element.classList.add('show');
+              } else {
+                  element.classList.remove('show');
               }
           });
       }
-      
+
+      // Show specific module
+      function showModule(moduleName) {
+          // Hide all modules
+          const modules = document.querySelectorAll('.module-content');
+          modules.forEach(module => {
+              module.classList.remove('active');
+          });
+          
+          // Remove active class from all nav links
+          const navLinks = document.querySelectorAll('.nav-link');
+          navLinks.forEach(link => {
+              link.classList.remove('active');
+          });
+          
+          // Show selected module
+          const selectedModule = document.getElementById(moduleName);
+          if (selectedModule) {
+              selectedModule.classList.add('active');
+              
+              // Add active class to corresponding nav link
+              const navLink = document.querySelector(`[onclick="showModule('${moduleName}')"]`);
+              if (navLink) {
+                  navLink.classList.add('active');
+              }
+              
+              // Load iframe if needed
+              if (['admission', 'students', 'courses', 'tuition', 'reports'].includes(moduleName)) {
+                  loadModuleIframe(moduleName);
+              }
+          }
+      }
+
+      // Load module iframe
+      function loadModuleIframe(moduleName) {
+          const moduleDiv = document.getElementById(moduleName);
+          const iframe = moduleDiv.querySelector('.module-frame');
+          const loading = moduleDiv.querySelector('.loading');
+          
+          if (iframe && loading && iframe.style.display === 'none') {
+              // Show iframe and hide loading after a short delay
+              setTimeout(() => {
+                  loading.style.display = 'none';
+                  iframe.style.display = 'block';
+              }, 1000);
+          }
+      }
+
+      // Create new account
+      function createAccount(event) {
+          event.preventDefault();
+          
+          const username = document.getElementById('newUsername').value.toLowerCase();
+          const password = document.getElementById('newPassword').value;
+          const role = document.getElementById('newRole').value;
+          const fullName = document.getElementById('newFullName').value;
+          
+          const messageDiv = document.getElementById('account-message');
+          
+          // Check if username already exists
+          if (userAccounts[username]) {
+              showAccountMessage('Username already exists. Please choose a different username.', 'error');
+              return false;
+          }
+          
+          // Validate inputs
+          if (username.length < 3) {
+              showAccountMessage('Username must be at least 3 characters long.', 'error');
+              return false;
+          }
+          
+          if (password.length < 6) {
+              showAccountMessage('Password must be at least 6 characters long.', 'error');
+              return false;
+          }
+          
+          // Create new account
+          userAccounts[username] = {
+              password: password,
+              role: role,
+              fullName: fullName,
+              fullAccess: role === 'admin',
+              created: new Date().toISOString()
+          };
+          
+          // Save to localStorage
+          saveAccounts();
+          
+          // Show success message
+          showAccountMessage(`Account created successfully for ${fullName} (${username}).`, 'success');
+          
+          // Clear form
+          document.getElementById('newUsername').value = '';
+          document.getElementById('newPassword').value = '';
+          document.getElementById('newRole').value = '';
+          document.getElementById('newFullName').value = '';
+          
+          // Reload accounts table
+          loadAccountsTable();
+          
+          return false;
+      }
+
+      // Show account message
+      function showAccountMessage(message, type) {
+          const messageDiv = document.getElementById('account-message');
+          messageDiv.textContent = message;
+          messageDiv.style.display = 'block';
+          
+          if (type === 'error') {
+              messageDiv.style.backgroundColor = '#fee';
+              messageDiv.style.color = '#c33';
+              messageDiv.style.borderLeft = '4px solid #e74c3c';
+          } else {
+              messageDiv.style.backgroundColor = '#efe';
+              messageDiv.style.color = '#363';
+              messageDiv.style.borderLeft = '4px solid #27ae60';
+          }
+          
+          // Hide message after 5 seconds
+          setTimeout(() => {
+              messageDiv.style.display = 'none';
+          }, 5000);
+      }
+
+      // Load accounts table
+      function loadAccountsTable() {
+          const tbody = document.getElementById('accounts-tbody');
+          tbody.innerHTML = '';
+          
+          Object.keys(userAccounts).forEach(username => {
+              const account = userAccounts[username];
+              const row = document.createElement('tr');
+              
+              const createdDate = new Date(account.created).toLocaleDateString();
+              
+              row.innerHTML = `
+                  <td>${username}</td>
+                  <td>${account.fullName}</td>
+                  <td><span class="role-badge role-${account.role}">${account.role.charAt(0).toUpperCase() + account.role.slice(1)}</span></td>
+                  <td>${createdDate}</td>
+                  <td>
+                      <button class="btn btn-secondary" onclick="editAccount('${username}')" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-right: 0.25rem;">Edit</button>
+                      ${username !== 'admin' ? `<button class="btn btn-danger" onclick="deleteAccount('${username}')" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Delete</button>` : ''}
+                  </td>
+              `;
+              
+              tbody.appendChild(row);
+          });
+      }
+
+      // Edit account
+      function editAccount(username) {
+          const account = userAccounts[username];
+          if (!account) return;
+          
+          document.getElementById('editUsername').value = username;
+          document.getElementById('editFullName').value = account.fullName;
+          document.getElementById('editRole').value = account.role;
+          document.getElementById('editNewPassword').value = '';
+          
+          document.getElementById('editModal').style.display = 'block';
+      }
+
+      // Update account
+      function updateAccount(event) {
+          event.preventDefault();
+          
+          const username = document.getElementById('editUsername').value;
+          const fullName = document.getElementById('editFullName').value;
+          const role = document.getElementById('editRole').value;
+          const newPassword = document.getElementById('editNewPassword').value;
+          
+          if (!userAccounts[username]) {
+              alert('Account not found.');
+              return false;
+          }
+          
+          // Update account
+          userAccounts[username].fullName = fullName;
+          userAccounts[username].role = role;
+          userAccounts[username].fullAccess = role === 'admin';
+          
+          if (newPassword.trim()) {
+              if (newPassword.length < 6) {
+                  alert('Password must be at least 6 characters long.');
+                  return false;
+              }
+              userAccounts[username].password = newPassword;
+          }
+          
+          // Save to localStorage
+          saveAccounts();
+          
+          // Close modal
+          closeEditModal();
+          
+          // Show success message
+          showAccountMessage(`Account updated successfully for ${fullName}.`, 'success');
+          
+          // Reload accounts table
+          loadAccountsTable();
+          
+          return false;
+      }
+
+      // Delete account
+      function deleteAccount(username) {
+          if (username === 'admin') {
+              alert('Cannot delete the admin account.');
+              return;
+          }
+          
+          if (confirm(`Are you sure you want to delete the account for ${userAccounts[username].fullName} (${username})?`)) {
+              delete userAccounts[username];
+              saveAccounts();
+              showAccountMessage(`Account deleted successfully.`, 'success');
+              loadAccountsTable();
+          }
+      }
+
+      // Close edit modal
+      function closeEditModal() {
+          document.getElementById('editModal').style.display = 'none';
+      }
+
       // Logout function
       function logout() {
           if (confirm('Are you sure you want to logout?')) {
-              sessionStorage.removeItem('schoolSystemUser');
-              currentUser = null;
-              
-              // Reset UI
+              currentUser = { username: '', role: '', loginTime: null };
               document.getElementById('main-app').style.display = 'none';
               document.getElementById('login-screen').style.display = 'flex';
               
-              // Reset form
+              // Clear login form
               document.getElementById('username').value = '';
               document.getElementById('password').value = '';
+              
+              // Hide any messages
               document.getElementById('error-message').style.display = 'none';
               document.getElementById('success-message').style.display = 'none';
-              
-              // Reset navigation
-              document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-              document.querySelector('.nav-link').classList.add('active');
-              document.querySelectorAll('.module-content').forEach(module => module.classList.remove('active'));
-              document.getElementById('home-content').classList.add('active');
           }
       }
-      
-      // Initialize the application
-      function initializeApp() {
-          checkLoginStatus();
-          setupIframeErrorHandlers();
+
+      // Close modal when clicking outside
+      window.onclick = function(event) {
+          const modal = document.getElementById('editModal');
+          if (event.target === modal) {
+              closeEditModal();
+          }
       }
-      
-      // Run initialization when page loads
-      document.addEventListener('DOMContentLoaded', initializeApp);
+
+      // Initialize app when page loads
+      window.onload = function() {
+          initializeApp();
+      }
   </script>
 </body>
 </html>
