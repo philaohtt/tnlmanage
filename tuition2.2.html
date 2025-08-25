@@ -243,39 +243,53 @@
                 <div id="extraFeesContent" class="hidden">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                         <!-- Fee Types Management -->
-                        <div class="bg-gray-50 rounded-lg p-6">
-                            <h3 class="text-lg font-semibold mb-4">Fee Types Management</h3>
-                            <form id="feeTypeForm" class="space-y-4 mb-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Fee Type Name *</label>
-                                    <input type="text" id="feeTypeName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Default Amount</label>
-                                    <div class="relative">
-                                        <input type="number" id="feeTypeAmount" step="0.001" class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <span class="absolute right-3 top-2 text-gray-500 text-sm">.000</span>
+                        <div class="bg-gray-50 rounded-lg">
+                            <button onclick="toggleFeeSection('feeTypeManagement')" class="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors rounded-lg">
+                                <h3 class="text-lg font-semibold text-gray-900">Fee Types Management</h3>
+                                <svg id="feeTypeManagementIcon" class="w-5 h-5 text-gray-600 transform transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="feeTypeManagementContent" class="hidden p-6 pt-0">
+                                <form id="feeTypeForm" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Fee Type Name *</label>
+                                        <input type="text" id="feeTypeName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     </div>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                    <textarea id="feeTypeDescription" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                                </div>
-                                <div class="flex items-center">
-                                    <input type="checkbox" id="feeTypeActive" checked class="rounded mr-2">
-                                    <label class="text-sm text-gray-700">Active</label>
-                                </div>
-                                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-                                    <span id="feeTypeSubmitText">Add Fee Type</span>
-                                </button>
-                            </form>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Default Amount</label>
+                                        <div class="relative">
+                                            <input type="number" id="feeTypeAmount" step="0.001" class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <span class="absolute right-3 top-2 text-gray-500 text-sm">.000</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                        <textarea id="feeTypeDescription" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="feeTypeActive" checked class="rounded mr-2">
+                                        <label class="text-sm text-gray-700">Active</label>
+                                    </div>
+                                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                                        <span id="feeTypeSubmitText">Add Fee Type</span>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
                         <!-- Fee Types List -->
-                        <div class="bg-white border rounded-lg p-6">
-                            <h3 class="text-lg font-semibold mb-4">Fee Types</h3>
-                            <div id="feeTypesList" class="space-y-3">
-                                <!-- Fee types will be loaded here -->
+                        <div class="bg-white border rounded-lg">
+                            <button onclick="toggleFeeSection('feeTypesList')" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors rounded-lg">
+                                <h3 class="text-lg font-semibold text-gray-900">Fee Types</h3>
+                                <svg id="feeTypesListIcon" class="w-5 h-5 text-gray-600 transform transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="feeTypesListContent" class="hidden p-6 pt-0">
+                                <div id="feeTypesList" class="space-y-3">
+                                    <!-- Fee types will be loaded here -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -783,15 +797,47 @@
         let allStudentsForExtraFees = [];
         let currentEditingFeeType = null;
 
-        // Data caching system
+        // Enhanced data caching system with localStorage persistence
         let dataCache = {
-            coursePlans: { data: null, timestamp: null },
-            students: { data: null, timestamp: null },
-            studentTuition: { data: null, timestamp: null },
-            payments: { data: null, timestamp: null },
-            classes: { data: null, timestamp: null }
+            coursePlans: { data: null, timestamp: null, loaded: false },
+            students: { data: null, timestamp: null, loaded: false },
+            studentTuition: { data: null, timestamp: null, loaded: false },
+            payments: { data: null, timestamp: null, loaded: false },
+            classes: { data: null, timestamp: null, loaded: false },
+            feeTypes: { data: null, timestamp: null, loaded: false },
+            studentsForSearch: { data: null, timestamp: null, loaded: false },
+            studentsForExtraFees: { data: null, timestamp: null, loaded: false }
         };
-        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+        const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
+        const CACHE_STORAGE_KEY = 'tuitionSystemCache';
+
+        // Load cache from localStorage on startup
+        function loadCacheFromStorage() {
+            try {
+                const storedCache = localStorage.getItem(CACHE_STORAGE_KEY);
+                if (storedCache) {
+                    const parsedCache = JSON.parse(storedCache);
+                    // Merge with current cache structure
+                    Object.keys(dataCache).forEach(key => {
+                        if (parsedCache[key]) {
+                            dataCache[key] = parsedCache[key];
+                        }
+                    });
+                    console.log('Cache loaded from localStorage');
+                }
+            } catch (error) {
+                console.warn('Failed to load cache from localStorage:', error);
+            }
+        }
+
+        // Save cache to localStorage
+        function saveCacheToStorage() {
+            try {
+                localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(dataCache));
+            } catch (error) {
+                console.warn('Failed to save cache to localStorage:', error);
+            }
+        }
 
         function isCacheValid(cacheEntry) {
             if (!cacheEntry.data || !cacheEntry.timestamp) return false;
@@ -801,25 +847,71 @@
         function setCacheData(key, data) {
             dataCache[key] = {
                 data: data,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                loaded: true
             };
+            saveCacheToStorage();
+            console.log(`Cache updated for ${key}:`, {
+                dataSize: Array.isArray(data) ? data.length : typeof data === 'object' ? Object.keys(data).length : 'single item',
+                timestamp: new Date().toLocaleTimeString()
+            });
         }
 
         function getCacheData(key) {
             if (isCacheValid(dataCache[key])) {
+                console.log(`Using cached data for ${key}`);
                 return dataCache[key].data;
             }
             return null;
         }
 
-        function clearCache() {
-            dataCache = {
-                coursePlans: { data: null, timestamp: null },
-                students: { data: null, timestamp: null },
-                studentTuition: { data: null, timestamp: null },
-                payments: { data: null, timestamp: null },
-                classes: { data: null, timestamp: null }
-            };
+        function isCacheLoaded(key) {
+            return dataCache[key].loaded && isCacheValid(dataCache[key]);
+        }
+
+        function clearCache(specificKey = null) {
+            if (specificKey) {
+                dataCache[specificKey] = { data: null, timestamp: null, loaded: false };
+            } else {
+                Object.keys(dataCache).forEach(key => {
+                    dataCache[key] = { data: null, timestamp: null, loaded: false };
+                });
+            }
+            saveCacheToStorage();
+            console.log(specificKey ? `Cache cleared for ${specificKey}` : 'All cache cleared');
+        }
+
+        // Smart data loading with cache-first approach
+        async function loadDataWithCache(key, loadFunction, forceReload = false) {
+            // Check cache first unless force reload
+            if (!forceReload && isCacheLoaded(key)) {
+                const cachedData = getCacheData(key);
+                if (cachedData) {
+                    return cachedData;
+                }
+            }
+
+            // Load fresh data
+            console.log(`Loading fresh data for ${key}...`);
+            updateSyncStatus('syncing', `Loading ${key}...`);
+            
+            try {
+                const freshData = await loadFunction();
+                setCacheData(key, freshData);
+                updateSyncStatus(isOnline ? 'connected' : 'offline');
+                return freshData;
+            } catch (error) {
+                console.error(`Error loading ${key}:`, error);
+                updateSyncStatus('error', `Failed to load ${key}`);
+                
+                // Try to return stale cache data as fallback
+                const staleData = dataCache[key].data;
+                if (staleData) {
+                    console.log(`Using stale cache data for ${key}`);
+                    return staleData;
+                }
+                throw error;
+            }
         }
 
         // Offline detection
@@ -889,7 +981,7 @@
             return numValue * 1000;
         }
 
-        // Tab switching functions
+        // Tab switching functions with smart caching
         function switchTab(tabName) {
             // Hide all content
             document.getElementById('calculatorContent').classList.add('hidden');
@@ -909,16 +1001,19 @@
                 document.getElementById('calculatorContent').classList.remove('hidden');
                 document.getElementById('calculatorTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('calculatorTab').classList.remove('border-transparent', 'text-gray-500');
+                // Calculator data is already loaded on startup
             } else if (tabName === 'student') {
                 document.getElementById('studentContent').classList.remove('hidden');
                 document.getElementById('studentTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('studentTab').classList.remove('border-transparent', 'text-gray-500');
-                loadStudentTuitionData();
+                // Load student tuition data with caching
+                loadStudentTuitionDataCached();
             } else if (tabName === 'payment') {
                 document.getElementById('paymentContent').classList.remove('hidden');
                 document.getElementById('paymentTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('paymentTab').classList.remove('border-transparent', 'text-gray-500');
-                loadPaymentTracker();
+                // Load payment tracker data with caching
+                loadPaymentTrackerCached();
             }
         }
 
@@ -941,17 +1036,386 @@
                 document.getElementById('plannerContent').classList.remove('hidden');
                 document.getElementById('plannerSubTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('plannerSubTab').classList.remove('border-transparent', 'text-gray-500');
+                // Course plans are already loaded on startup
             } else if (tabName === 'monthly') {
                 document.getElementById('monthlyContent').classList.remove('hidden');
                 document.getElementById('monthlySubTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('monthlySubTab').classList.remove('border-transparent', 'text-gray-500');
-                loadStudents();
+                loadStudentsCached();
             } else if (tabName === 'extraFees') {
                 document.getElementById('extraFeesContent').classList.remove('hidden');
                 document.getElementById('extraFeesSubTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('extraFeesSubTab').classList.remove('border-transparent', 'text-gray-500');
-                loadExtraFeesData();
+                loadExtraFeesDataCached();
             }
+        }
+
+        // Cached loading functions for instant tab switching
+        async function loadStudentTuitionDataCached() {
+            try {
+                const data = await loadDataWithCache('studentTuition', async () => {
+                    // Load all students
+                    const studentsSnapshot = await db.collection('students').get();
+                    const studentTuitionData = [];
+                    
+                    for (const doc of studentsSnapshot.docs) {
+                        const studentData = { id: doc.id, ...doc.data() };
+                        
+                        // Get enrollment year from student data or default to current year
+                        const enrollmentYear = studentData.enrollmentYear || new Date().getFullYear();
+                        
+                        // Get the display year from filter or current year
+                        const displayYear = parseInt(document.getElementById('tuitionYearFilter').value) || new Date().getFullYear();
+                        
+                        // Load tuition data for the display year
+                        const tuitionData = await loadStudentYearlyTuition(studentData.studentId, displayYear);
+                        
+                        studentData.enrollmentYear = enrollmentYear;
+                        studentData.tuitionData = tuitionData;
+                        
+                        studentTuitionData.push(studentData);
+                    }
+                    
+                    return studentTuitionData;
+                });
+
+                allStudentTuition = data;
+                
+                // Load classes for filter if not already cached
+                if (!isCacheLoaded('classes')) {
+                    await loadTuitionClassesCached();
+                }
+                
+                // Apply initial filters and render
+                filterStudentTuition();
+                
+            } catch (error) {
+                console.error('Error loading student tuition data:', error);
+                allStudentTuition = [];
+                filterStudentTuition();
+            }
+        }
+
+        async function loadPaymentTrackerCached() {
+            try {
+                const data = await loadDataWithCache('payments', async () => {
+                    let paymentsSnapshot;
+                    try {
+                        paymentsSnapshot = await db.collection('paymentTransactions')
+                            .orderBy('paymentDate', 'desc')
+                            .get();
+                    } catch (orderError) {
+                        console.log('No orderBy index, loading without ordering...');
+                        paymentsSnapshot = await db.collection('paymentTransactions').get();
+                    }
+                    
+                    const payments = [];
+                    
+                    paymentsSnapshot.forEach(doc => {
+                        try {
+                            const data = doc.data();
+                            
+                            // Handle different date formats
+                            let paymentDate;
+                            if (data.paymentDate) {
+                                if (data.paymentDate.toDate) {
+                                    paymentDate = data.paymentDate.toDate();
+                                } else if (typeof data.paymentDate === 'string') {
+                                    paymentDate = new Date(data.paymentDate);
+                                } else {
+                                    paymentDate = data.paymentDate;
+                                }
+                            } else {
+                                paymentDate = new Date();
+                            }
+                            
+                            if (data.studentId && (data.amountPaid || data.amount)) {
+                                payments.push({
+                                    id: doc.id,
+                                    paymentDate: paymentDate,
+                                    studentId: data.studentId,
+                                    studentName: data.studentName || data.fullName || data.name || 'Unknown',
+                                    classAssignment: data.classAssignment || data.class || 'N/A',
+                                    tuitionYear: parseInt(data.tuitionYear || data.year) || new Date().getFullYear(),
+                                    tuitionMonth: parseInt(data.tuitionMonth || data.month) || 1,
+                                    amountPaid: parseFloat(data.amountPaid || data.amount) || 0,
+                                    paymentStatus: data.paymentStatus || data.status || 'received',
+                                    recordedAt: data.recordedAt || data.createdAt,
+                                    recordedBy: data.recordedBy || 'system',
+                                    source: data.source || 'manual',
+                                    transactionType: data.transactionType || 'tuition_payment'
+                                });
+                            }
+                        } catch (docError) {
+                            console.warn('Error processing payment document:', doc.id, docError);
+                        }
+                    });
+                    
+                    return payments;
+                });
+
+                allPayments = data;
+                
+                // Load students for search if not already cached
+                if (!isCacheLoaded('studentsForSearch')) {
+                    await loadStudentsForSearchCached();
+                }
+                
+                // Apply filters and render
+                filterPayments();
+                
+            } catch (error) {
+                console.error('Error loading payments:', error);
+                allPayments = [];
+                filterPayments();
+            }
+        }
+
+        async function loadStudentsCached() {
+            try {
+                // Always load fresh data for Monthly Tuition Calculation to ensure all students are shown
+                console.log('Loading students for Monthly Tuition Calculation...');
+                
+                // Get filter values
+                const selectedMonth = document.getElementById('monthFilter').value;
+                const selectedYear = document.getElementById('yearFilter').value;
+                const selectedClass = document.getElementById('classFilter').value;
+                const selectedClassStatus = document.getElementById('classStatusFilter').value;
+                const selectedStudentStatus = document.getElementById('studentStatusFilter').value;
+                
+                console.log('Filters:', { selectedMonth, selectedYear, selectedClass, selectedClassStatus, selectedStudentStatus });
+                
+                // Load ALL students first (no filters on the query to ensure we get everyone)
+                const snapshot = await db.collection('students').get();
+                console.log(`Found ${snapshot.size} total students in database`);
+                
+                const studentsData = [];
+                
+                for (const doc of snapshot.docs) {
+                    const studentData = { id: doc.id, ...doc.data() };
+                    
+                    // Apply client-side filters
+                    let includeStudent = true;
+                    
+                    // Apply student status filter
+                    if (selectedStudentStatus && studentData.status !== selectedStudentStatus) {
+                        includeStudent = false;
+                    }
+                    
+                    // Apply class filter
+                    if (selectedClass && studentData.classAssignment !== selectedClass) {
+                        includeStudent = false;
+                    }
+                    
+                    if (!includeStudent) {
+                        continue;
+                    }
+                    
+                    // Determine which years and months to check
+                    let years, months;
+                    
+                    if (!selectedMonth && !selectedYear) {
+                        // Show all students for current year if no filters
+                        years = [new Date().getFullYear()];
+                        months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                    } else {
+                        years = selectedYear ? [parseInt(selectedYear)] : [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
+                        months = selectedMonth ? [parseInt(selectedMonth)] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                    }
+                    
+                    // Check attendance for each year/month combination
+                    for (const year of years) {
+                        for (const month of months) {
+                            const attendanceData = await getMonthlyAttendance(studentData.studentId, year, month, false);
+                            
+                            // Include student even if no attendance (show 0 lessons/courses)
+                            // This ensures all students appear in the list
+                            const studentEntry = {
+                                ...studentData,
+                                id: `${doc.id}_${year}_${month}`,
+                                originalId: doc.id,
+                                displayMonth: month,
+                                displayYear: year,
+                                attendedLessons: attendanceData.attendedLessons || 0,
+                                coursesCount: attendanceData.coursesCount || 0,
+                                lessonLength: 1.5,
+                                studyHours: (attendanceData.attendedLessons || 0) * 1.5
+                            };
+                            studentsData.push(studentEntry);
+                        }
+                    }
+                }
+                
+                console.log(`Processed ${studentsData.length} student entries after filtering`);
+                
+                students = studentsData;
+                renderStudentsTable();
+                
+            } catch (error) {
+                console.error('Error loading students:', error);
+                students = [];
+                renderStudentsTable();
+            }
+        }
+
+        async function loadExtraFeesDataCached() {
+            try {
+                // Load fee types with caching
+                await loadFeeTypesCached();
+                
+                // Load students for extra fees with caching
+                await loadStudentsForExtraFeesCached();
+                
+                // Load extra fee classes for filter
+                if (!isCacheLoaded('classes')) {
+                    await loadExtraFeeClassesCached();
+                }
+                
+                // Set current year as default
+                const currentYear = new Date().getFullYear();
+                document.getElementById('extraFeeYearFilter').value = currentYear;
+                
+                // Filter and render students
+                filterExtraFeeStudents();
+                
+            } catch (error) {
+                console.error('Error loading extra fees data:', error);
+            }
+        }
+
+        async function loadFeeTypesCached() {
+            try {
+                const data = await loadDataWithCache('feeTypes', async () => {
+                    const snapshot = await db.collection('feeTypes').get();
+                    const feeTypesData = [];
+                    
+                    snapshot.forEach(doc => {
+                        feeTypesData.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    return feeTypesData;
+                });
+
+                feeTypes = data;
+                renderFeeTypes();
+                
+            } catch (error) {
+                console.error('Error loading fee types:', error);
+                feeTypes = [];
+                renderFeeTypes();
+            }
+        }
+
+        async function loadStudentsForSearchCached() {
+            try {
+                const data = await loadDataWithCache('studentsForSearch', async () => {
+                    const studentsSnapshot = await db.collection('students').get();
+                    const studentsData = [];
+                    
+                    studentsSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        
+                        if (data.studentId && data.fullName) {
+                            studentsData.push({
+                                id: doc.id,
+                                studentId: data.studentId,
+                                fullName: data.fullName,
+                                classAssignment: data.classAssignment || 'N/A',
+                                status: data.status || 'Active'
+                            });
+                        }
+                    });
+                    
+                    studentsData.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
+                    return studentsData;
+                });
+
+                allStudentsForSearch = data;
+                
+            } catch (error) {
+                console.error('Error loading students for search:', error);
+                allStudentsForSearch = [];
+            }
+        }
+
+        async function loadStudentsForExtraFeesCached() {
+            try {
+                const data = await loadDataWithCache('studentsForExtraFees', async () => {
+                    const studentsSnapshot = await db.collection('students').get();
+                    const studentsData = [];
+                    
+                    studentsSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.studentId && data.fullName) {
+                            studentsData.push({
+                                id: doc.id,
+                                studentId: data.studentId,
+                                fullName: data.fullName,
+                                classAssignment: data.classAssignment || 'N/A',
+                                status: data.status || 'Active'
+                            });
+                        }
+                    });
+                    
+                    studentsData.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
+                    return studentsData;
+                });
+
+                allStudentsForExtraFees = data;
+                
+            } catch (error) {
+                console.error('Error loading students for extra fees:', error);
+                allStudentsForExtraFees = [];
+            }
+        }
+
+        async function loadTuitionClassesCached() {
+            try {
+                const data = await loadDataWithCache('classes', async () => {
+                    const snapshot = await db.collection('classes').get();
+                    const classesData = [];
+                    
+                    snapshot.forEach(doc => {
+                        const classData = doc.data();
+                        classesData.push({
+                            id: doc.id,
+                            classCode: classData.classCode || doc.id,
+                            className: classData.className || classData.classCode || doc.id
+                        });
+                    });
+                    
+                    return classesData;
+                });
+
+                // Update all class filter dropdowns
+                const classFilters = [
+                    'classFilter',
+                    'tuitionClassFilter', 
+                    'extraFeeClassFilter'
+                ];
+                
+                classFilters.forEach(filterId => {
+                    const classFilter = document.getElementById(filterId);
+                    if (classFilter) {
+                        classFilter.innerHTML = '<option value="">All Classes</option>';
+                        
+                        data.forEach(classData => {
+                            const option = document.createElement('option');
+                            option.value = classData.classCode;
+                            option.textContent = classData.className;
+                            classFilter.appendChild(option);
+                        });
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading classes:', error);
+            }
+        }
+
+        async function loadExtraFeeClassesCached() {
+            // This uses the same classes data as tuition classes
+            await loadTuitionClassesCached();
         }
 
         // Firebase sync status
@@ -1111,26 +1575,31 @@
 
                 updateSyncStatus('syncing', 'Loading plans...');
                 
-                // Load active plans
-                const activeSnapshot = await db.collection('coursePlans').where('status', '==', 'active').get();
-                const archivedSnapshot = await db.collection('coursePlans').where('status', '==', 'archived').get();
+                // Load all course plans first
+                const allPlansSnapshot = await db.collection('coursePlans').get();
                 
                 coursePlans = [];
                 let activePlans = [];
                 let archivedPlans = [];
 
-                // Process active plans
-                activeSnapshot.forEach(doc => {
+                // Process all plans and separate by status
+                allPlansSnapshot.forEach(doc => {
                     const plan = { id: doc.id, ...doc.data() };
                     coursePlans.push(plan);
-                    activePlans.push(plan);
+                    
+                    // Default to active if no status is set
+                    const status = plan.status || 'active';
+                    if (status === 'active') {
+                        activePlans.push(plan);
+                    } else if (status === 'archived') {
+                        archivedPlans.push(plan);
+                    } else {
+                        // Default unknown status to active
+                        activePlans.push(plan);
+                    }
                 });
 
-                // Process archived plans
-                archivedSnapshot.forEach(doc => {
-                    const plan = { id: doc.id, ...doc.data() };
-                    archivedPlans.push(plan);
-                });
+                console.log(`Loaded ${coursePlans.length} course plans: ${activePlans.length} active, ${archivedPlans.length} archived`);
 
                 // Cache the data
                 setCacheData('coursePlans', {
@@ -1146,6 +1615,9 @@
             } catch (error) {
                 console.error('Error loading plans:', error);
                 updateSyncStatus('error', 'Load failed');
+                
+                // Show empty state on error
+                renderCoursePlansUI([], []);
             }
         }
 
@@ -1309,100 +1781,25 @@
             }
         }
 
-        // Student Management
-        async function loadStudents() {
-            try {
-                updateSyncStatus('syncing', 'Loading students...');
-                
-                // Get filter values
-                const selectedMonth = document.getElementById('monthFilter').value;
-                const selectedYear = document.getElementById('yearFilter').value;
-                const selectedClass = document.getElementById('classFilter').value;
-                const selectedClassStatus = document.getElementById('classStatusFilter').value;
-                const selectedStudentStatus = document.getElementById('studentStatusFilter').value;
-                
-                let studentsQuery = db.collection('students');
-                
-                // Apply student status filter
-                if (selectedStudentStatus) {
-                    studentsQuery = studentsQuery.where('status', '==', selectedStudentStatus);
-                }
-                
-                // Apply class filter
-                if (selectedClass) {
-                    studentsQuery = studentsQuery.where('classAssignment', '==', selectedClass);
-                }
-                
-                const snapshot = await studentsQuery.get();
-                students = [];
-                
-                // If no month/year filters, show all students for all months/years
-                if (!selectedMonth && !selectedYear) {
-                    // Show all students for all months and years
-                    for (const doc of snapshot.docs) {
-                        const studentData = { id: doc.id, ...doc.data() };
-                        
-                        // Get all years this student has data for
-                        const years = [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
-                        
-                        for (const year of years) {
-                            for (let month = 1; month <= 12; month++) {
-                                const attendanceData = await getMonthlyAttendance(studentData.studentId, year, month, false);
-                                
-                                if (attendanceData.attendedLessons > 0 || attendanceData.coursesCount > 0) {
-                                    const studentEntry = {
-                                        ...studentData,
-                                        id: `${doc.id}_${year}_${month}`,
-                                        originalId: doc.id,
-                                        displayMonth: month,
-                                        displayYear: year,
-                                        attendedLessons: attendanceData.attendedLessons,
-                                        coursesCount: attendanceData.coursesCount,
-                                        lessonLength: 1.5,
-                                        studyHours: attendanceData.attendedLessons * 1.5
-                                    };
-                                    students.push(studentEntry);
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Show students for specific month/year combinations
-                    const years = selectedYear ? [parseInt(selectedYear)] : [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
-                    const months = selectedMonth ? [parseInt(selectedMonth)] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-                    
-                    for (const doc of snapshot.docs) {
-                        const studentData = { id: doc.id, ...doc.data() };
-                        
-                        for (const year of years) {
-                            for (const month of months) {
-                                const attendanceData = await getMonthlyAttendance(studentData.studentId, year, month, false);
-                                
-                                if (attendanceData.attendedLessons > 0 || attendanceData.coursesCount > 0) {
-                                    const studentEntry = {
-                                        ...studentData,
-                                        id: `${doc.id}_${year}_${month}`,
-                                        originalId: doc.id,
-                                        displayMonth: month,
-                                        displayYear: year,
-                                        attendedLessons: attendanceData.attendedLessons,
-                                        coursesCount: attendanceData.coursesCount,
-                                        lessonLength: 1.5,
-                                        studyHours: attendanceData.attendedLessons * 1.5
-                                    };
-                                    students.push(studentEntry);
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                renderStudentsTable();
-                updateSyncStatus(isOnline ? 'connected' : 'offline');
-            } catch (error) {
-                console.error('Error loading students:', error);
-                updateSyncStatus('error', 'Load failed');
+        function toggleFeeSection(sectionName) {
+            const content = document.getElementById(sectionName + 'Content');
+            const icon = document.getElementById(sectionName + 'Icon');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.remove('rotate-180');
+                icon.classList.add('rotate-0');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-0');
+                icon.classList.add('rotate-180');
             }
+        }
+
+        // Student Management - Updated to show all students
+        async function loadStudents() {
+            // Use the cached version for consistency
+            await loadStudentsCached();
         }
 
         async function getMonthlyAttendance(studentId, year, month, showAllTime = false) {
@@ -3233,10 +3630,30 @@
                 // Clear all cache
                 clearCache();
                 
-                // Force reload all data
+                // Force reload all data based on current active tab
                 await loadCoursePlans(true);
-                await loadStudentTuitionData(true);
-                await loadPaymentTracker(true);
+                
+                // Check which tab is currently active and reload its data
+                const activeTab = document.querySelector('[id$="Tab"].border-blue-500');
+                if (activeTab) {
+                    const tabId = activeTab.id;
+                    if (tabId === 'studentTab') {
+                        await loadStudentTuitionDataCached();
+                    } else if (tabId === 'paymentTab') {
+                        await loadPaymentTrackerCached();
+                    }
+                }
+                
+                // Check which calculator sub-tab is active
+                const activeSubTab = document.querySelector('[id$="SubTab"].border-blue-500');
+                if (activeSubTab) {
+                    const subTabId = activeSubTab.id;
+                    if (subTabId === 'monthlySubTab') {
+                        await loadStudentsCached();
+                    } else if (subTabId === 'extraFeesSubTab') {
+                        await loadExtraFeesDataCached();
+                    }
+                }
                 
                 updateSyncStatus('connected', 'Data refreshed');
                 
@@ -3505,17 +3922,58 @@
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50';
                 
-                // Render current extra fees
+                // Render current extra fees with payment controls
                 let currentFeesHtml = '';
                 if (extraFees.length === 0) {
                     currentFeesHtml = '<span class="text-gray-500 text-sm">No extra fees</span>';
                 } else {
-                    currentFeesHtml = extraFees.map(fee => `
-                        <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-2 py-1 mb-1">
-                            <span class="text-sm">${fee.feeTypeName}: ${formatVNDFull(fee.amount)}</span>
-                            <button onclick="removeStudentExtraFee('${fee.id}')" class="text-red-600 hover:text-red-800 text-xs ml-2">×</button>
-                        </div>
-                    `).join('');
+                    currentFeesHtml = extraFees.map(fee => {
+                        // Determine color based on payment status
+                        let cardClass = 'rounded px-2 py-1 mb-1 border';
+                        let textClass = 'text-sm';
+                        
+                        if (fee.processed) {
+                            // Processed: Green
+                            cardClass += ' bg-green-50 border-green-200';
+                            textClass += ' text-green-800';
+                        } else if (fee.paid) {
+                            // Paid but not processed: Yellow
+                            cardClass += ' bg-yellow-50 border-yellow-200';
+                            textClass += ' text-yellow-800';
+                        } else {
+                            // Assigned but not paid: Red
+                            cardClass += ' bg-red-50 border-red-200';
+                            textClass += ' text-red-800';
+                        }
+                        
+                        return `
+                            <div class="${cardClass}">
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="${textClass} font-medium">${fee.feeTypeName}: ${formatVNDFull(fee.amount)}</div>
+                                    <button onclick="removeStudentExtraFee('${fee.id}')" class="text-red-600 hover:text-red-800 text-xs ml-2">×</button>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <label class="flex items-center space-x-1">
+                                        <input type="checkbox" ${fee.paid ? 'checked' : ''} 
+                                               onchange="updateExtraFeePaid('${fee.id}', this.checked)"
+                                               class="rounded text-xs">
+                                        <span class="text-xs">Paid</span>
+                                    </label>
+                                    <input type="date" value="${fee.paymentDate || ''}" 
+                                           ${!fee.paid ? 'disabled' : ''}
+                                           class="text-xs border rounded px-1 py-0.5 w-24" 
+                                           onchange="updateExtraFeePaymentDate('${fee.id}', this.value)">
+                                    <label class="flex items-center space-x-1">
+                                        <input type="checkbox" ${fee.processed ? 'checked' : ''} 
+                                               ${!fee.paid ? 'disabled' : ''}
+                                               onchange="updateExtraFeeProcessed('${fee.id}', this.checked)"
+                                               class="rounded text-xs">
+                                        <span class="text-xs">Processed</span>
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
                 }
                 
                 // Create fee type dropdown
@@ -3625,6 +4083,7 @@
                     amount: amount,
                     paid: false,
                     processed: false,
+                    paymentDate: null,
                     assignedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     status: 'assigned'
                 };
@@ -3640,18 +4099,185 @@
                     });
                 }
                 
-                // Clear form
+                // Clear form inputs for this student
                 document.getElementById(`feeType_${studentElementId}`).value = '';
                 document.getElementById(`customAmount_${studentElementId}`).value = '';
                 
-                // Refresh the table
-                filterExtraFeeStudents();
+                // Update only this student's row instead of refreshing entire table
+                await updateStudentExtraFeesRow(studentId, studentElementId, year);
                 
                 updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Fee assigned' : 'Fee assigned offline');
             } catch (error) {
                 console.error('Error assigning extra fee:', error);
                 updateSyncStatus('error', 'Assignment failed');
                 alert('Error assigning fee: ' + error.message);
+            }
+        }
+
+        async function updateStudentExtraFeesRow(studentId, studentElementId, year) {
+            try {
+                // Find the row for this student
+                const tbody = document.getElementById('extraFeeStudentsTable');
+                const rows = tbody.querySelectorAll('tr');
+                
+                for (const row of rows) {
+                    const studentInfo = row.querySelector('.text-sm.font-medium.text-gray-900');
+                    if (studentInfo && studentInfo.textContent.includes(studentId)) {
+                        // Load updated extra fees for this student
+                        const extraFees = await loadStudentExtraFees(studentId, year);
+                        
+                        // Update the Current Extra Fees column
+                        const currentFeesCell = row.children[1];
+                        let currentFeesHtml = '';
+                        
+                        if (extraFees.length === 0) {
+                            currentFeesHtml = '<span class="text-gray-500 text-sm">No extra fees</span>';
+                        } else {
+                            currentFeesHtml = extraFees.map(fee => {
+                                // Determine color based on payment status
+                                let cardClass = 'flex items-center justify-between rounded px-2 py-1 mb-1 border';
+                                let textClass = 'text-sm';
+                                
+                                if (fee.processed) {
+                                    // Processed: Green
+                                    cardClass += ' bg-green-50 border-green-200';
+                                    textClass += ' text-green-800';
+                                } else if (fee.paid) {
+                                    // Paid but not processed: Yellow
+                                    cardClass += ' bg-yellow-50 border-yellow-200';
+                                    textClass += ' text-yellow-800';
+                                } else {
+                                    // Assigned but not paid: Red
+                                    cardClass += ' bg-red-50 border-red-200';
+                                    textClass += ' text-red-800';
+                                }
+                                
+                                return `
+                                    <div class="${cardClass}">
+                                        <div>
+                                            <div class="${textClass} font-medium">${fee.feeTypeName}: ${formatVNDFull(fee.amount)}</div>
+                                            <div class="flex items-center space-x-2 mt-1">
+                                                <label class="flex items-center space-x-1">
+                                                    <input type="checkbox" ${fee.paid ? 'checked' : ''} 
+                                                           onchange="updateExtraFeePaid('${fee.id}', this.checked)"
+                                                           class="rounded text-xs">
+                                                    <span class="text-xs">Paid</span>
+                                                </label>
+                                                <input type="date" value="${fee.paymentDate || ''}" 
+                                                       ${!fee.paid ? 'disabled' : ''}
+                                                       class="text-xs border rounded px-1 py-0.5 w-24" 
+                                                       onchange="updateExtraFeePaymentDate('${fee.id}', this.value)">
+                                                <label class="flex items-center space-x-1">
+                                                    <input type="checkbox" ${fee.processed ? 'checked' : ''} 
+                                                           ${!fee.paid ? 'disabled' : ''}
+                                                           onchange="updateExtraFeeProcessed('${fee.id}', this.checked)"
+                                                           class="rounded text-xs">
+                                                    <span class="text-xs">Processed</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <button onclick="removeStudentExtraFee('${fee.id}')" class="text-red-600 hover:text-red-800 text-xs ml-2">×</button>
+                                    </div>
+                                `;
+                            }).join('');
+                        }
+                        
+                        currentFeesCell.innerHTML = `<div class="max-w-xs">${currentFeesHtml}</div>`;
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating student row:', error);
+            }
+        }
+
+        async function updateExtraFeePaid(extraFeeId, paid) {
+            try {
+                const updateData = {
+                    paid: paid,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (paid) {
+                    // Set payment date to today if not already set
+                    updateData.paymentDate = new Date().toISOString().split('T')[0];
+                    updateData.status = 'paid';
+                } else {
+                    // Clear payment date and processed status when unmarking as paid
+                    updateData.paymentDate = null;
+                    updateData.processed = false;
+                    updateData.status = 'assigned';
+                }
+                
+                if (isOnline) {
+                    await db.collection('extraFees').doc(extraFeeId).update(updateData);
+                } else {
+                    addPendingOperation({
+                        type: 'update',
+                        collection: 'extraFees',
+                        docId: extraFeeId,
+                        data: updateData
+                    });
+                }
+                
+                // Refresh the table to show updated colors and states
+                filterExtraFeeStudents();
+                
+            } catch (error) {
+                console.error('Error updating extra fee paid status:', error);
+                alert('Error updating payment status: ' + error.message);
+            }
+        }
+
+        async function updateExtraFeePaymentDate(extraFeeId, paymentDate) {
+            try {
+                const updateData = {
+                    paymentDate: paymentDate,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (isOnline) {
+                    await db.collection('extraFees').doc(extraFeeId).update(updateData);
+                } else {
+                    addPendingOperation({
+                        type: 'update',
+                        collection: 'extraFees',
+                        docId: extraFeeId,
+                        data: updateData
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error updating extra fee payment date:', error);
+                alert('Error updating payment date: ' + error.message);
+            }
+        }
+
+        async function updateExtraFeeProcessed(extraFeeId, processed) {
+            try {
+                const updateData = {
+                    processed: processed,
+                    status: processed ? 'processed' : 'paid',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (isOnline) {
+                    await db.collection('extraFees').doc(extraFeeId).update(updateData);
+                } else {
+                    addPendingOperation({
+                        type: 'update',
+                        collection: 'extraFees',
+                        docId: extraFeeId,
+                        data: updateData
+                    });
+                }
+                
+                // Refresh the table to show updated colors
+                filterExtraFeeStudents();
+                
+            } catch (error) {
+                console.error('Error updating extra fee processed status:', error);
+                alert('Error updating processed status: ' + error.message);
             }
         }
 
@@ -3684,6 +4310,9 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            // Load cache from localStorage first
+            loadCacheFromStorage();
+            
             // Load pending operations from localStorage
             const savedOperations = localStorage.getItem('pendingOperations');
             if (savedOperations) {
@@ -3697,15 +4326,29 @@
             document.getElementById('paymentYearFilter').value = currentYear;
             document.getElementById('modalYearSelect').value = currentYear;
             
-            // Load initial data
+            // Set initial collapsed state for fee type sections
+            document.getElementById('feeTypeManagementContent').classList.add('hidden');
+            document.getElementById('feeTypesListContent').classList.add('hidden');
+            
+            // Load initial data with caching
             loadCoursePlans();
-            loadClasses();
+            loadTuitionClassesCached();
             
             // Process pending operations if online
             if (isOnline && pendingOperations.length > 0) {
                 processPendingOperations();
             }
+            
+            console.log('🚀 Tuition Management System initialized with smart caching');
+            console.log('📊 Cache status:', {
+                coursePlans: isCacheLoaded('coursePlans') ? '✅ Cached' : '❌ Not cached',
+                students: isCacheLoaded('students') ? '✅ Cached' : '❌ Not cached',
+                studentTuition: isCacheLoaded('studentTuition') ? '✅ Cached' : '❌ Not cached',
+                payments: isCacheLoaded('payments') ? '✅ Cached' : '❌ Not cached',
+                classes: isCacheLoaded('classes') ? '✅ Cached' : '❌ Not cached',
+                feeTypes: isCacheLoaded('feeTypes') ? '✅ Cached' : '❌ Not cached'
+            });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9747b23a27028502',t:'MTc1NjA4OTMyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974840c7942f849a',t:'MTc1NjA5NTE2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
