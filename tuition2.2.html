@@ -27,11 +27,21 @@
                         <p class="text-gray-600">Comprehensive tuition tracking and payment management</p>
                     </div>
                 </div>
-                <!-- Sync Status -->
-                <div id="syncIndicator" class="flex items-center px-3 py-2 rounded-lg text-xs border">
-                    <div id="syncIcon" class="w-2 h-2 rounded-full mr-2 bg-green-500"></div>
-                    <span id="syncText">Connected</span>
+                <!-- Sync Status and Refresh -->
+                <div class="flex items-center space-x-3">
+                    <button onclick="refreshAllData()" class="flex items-center px-3 py-2 text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50" title="Refresh all data">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                    <div id="syncIndicator" class="flex items-center px-3 py-2 rounded-lg text-xs border">
+                        <div id="syncIcon" class="w-2 h-2 rounded-full mr-2 bg-green-500"></div>
+                        <span id="syncText">Connected</span>
+                    </div>
                 </div>
+
+
             </div>
         </div>
 
@@ -61,6 +71,9 @@
                         </button>
                         <button onclick="switchCalculatorTab('monthly')" id="monthlySubTab" class="py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
                             Monthly Tuition Calculation
+                        </button>
+                        <button onclick="switchCalculatorTab('extraFees')" id="extraFeesSubTab" class="py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+                            Extra Fees Management
                         </button>
                     </nav>
                 </div>
@@ -95,7 +108,7 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Standard Fee</label>
                                     <div class="relative">
-                                        <input type="number" id="standardFee" step="0.01" class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <input type="number" id="standardFee" step="0.001" class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <span class="absolute right-3 top-2 text-gray-500 text-sm">.000</span>
                                     </div>
                                 </div>
@@ -208,10 +221,9 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            <input type="checkbox" id="selectAll" class="rounded">
-                                        </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Info</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Actual</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course Planner</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calculated Fee</th>
@@ -226,6 +238,101 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Extra Fees Management -->
+                <div id="extraFeesContent" class="hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <!-- Fee Types Management -->
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4">Fee Types Management</h3>
+                            <form id="feeTypeForm" class="space-y-4 mb-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Fee Type Name *</label>
+                                    <input type="text" id="feeTypeName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Default Amount</label>
+                                    <div class="relative">
+                                        <input type="number" id="feeTypeAmount" step="0.001" class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <span class="absolute right-3 top-2 text-gray-500 text-sm">.000</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                    <textarea id="feeTypeDescription" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="feeTypeActive" checked class="rounded mr-2">
+                                    <label class="text-sm text-gray-700">Active</label>
+                                </div>
+                                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                                    <span id="feeTypeSubmitText">Add Fee Type</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Fee Types List -->
+                        <div class="bg-white border rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-4">Fee Types</h3>
+                            <div id="feeTypesList" class="space-y-3">
+                                <!-- Fee types will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student Extra Fees Assignment -->
+                    <div class="bg-white border rounded-lg">
+                        <div class="p-6 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold mb-4">Assign Extra Fees to Students</h3>
+                            
+                            <!-- Filters -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Search Students</label>
+                                    <input type="text" id="extraFeeStudentSearch" placeholder="Search by name or ID..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="filterExtraFeeStudents()">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Class</label>
+                                    <select id="extraFeeClassFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterExtraFeeStudents()">
+                                        <option value="">All Classes</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                                    <select id="extraFeeYearFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterExtraFeeStudents()">
+                                        <option value="2023">2023</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2025">2025</option>
+                                        <option value="2026">2026</option>
+                                        <option value="2027">2027</option>
+                                        <option value="2028">2028</option>
+                                        <option value="2029">2029</option>
+                                        <option value="2030">2030</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Students Table -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Info</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Extra Fees</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assign New Fee</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="extraFeeStudentsTable" class="bg-white divide-y divide-gray-200">
+                                    <!-- Students will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
             </div>
 
             <!-- Student Tuition Tab -->
@@ -316,49 +423,63 @@
                         </table>
                     </div>
                 </div>
+
+
             </div>
 
             <!-- Payment Tracker Tab -->
             <div id="paymentContent" class="p-6 hidden">
                 <h2 class="text-xl font-semibold mb-6">Payment Tracking</h2>
                 
-                <!-- Record Payment Modal -->
-                <div class="bg-white border rounded-lg p-6 mb-6">
-                    <h3 class="text-lg font-semibold mb-4">Record Payment(s)</h3>
+                <!-- Record Payment Collapsible Section -->
+                <div class="bg-white border rounded-lg mb-6">
+                    <button onclick="togglePaymentRecorder()" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center">
+                            <svg id="paymentRecorderIcon" class="w-5 h-5 text-gray-600 mr-3 transform transition-transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                            <h3 class="text-lg font-semibold text-gray-900">Record Payment(s)</h3>
+                        </div>
+                        <span class="text-sm text-gray-500">Click to expand</span>
+                    </button>
                     
-                    <!-- Payment Records Table -->
-                    <div class="overflow-x-auto mb-4">
-                        <table class="min-w-full">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Payment Date</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tuition Year</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tuition Month</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Outstanding</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount Paid</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Payment Status</th>
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="paymentRecordsTable" class="divide-y divide-gray-200">
-                                <!-- Payment records will be added here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Action Buttons -->
-                    <div class="flex justify-between items-center">
-                        <button onclick="addPaymentRow()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
-                            Add Row
-                        </button>
-                        <div class="space-x-3">
-                            <button onclick="cancelPaymentRecording()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                                Cancel
-                            </button>
-                            <button onclick="recordPayments()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                Record Payment(s)
-                            </button>
+                    <div id="paymentRecorderContent" class="hidden border-t">
+                        <div class="p-6">
+                            <!-- Payment Records Table -->
+                            <div class="overflow-x-auto mb-4" style="max-height: 600px; overflow-y: auto;">
+                                <table class="min-w-full">
+                                    <thead class="bg-gray-50 sticky top-0">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Payment Date</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tuition Year</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tuition Month</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Outstanding</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount Paid</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Payment Status</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="paymentRecordsTable" class="divide-y divide-gray-200">
+                                        <!-- Payment records will be added here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="flex justify-between items-center">
+                                <button onclick="addPaymentRow()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
+                                    Add Row
+                                </button>
+                                <div class="space-x-3">
+                                    <button onclick="cancelPaymentRecording()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                                        Cancel
+                                    </button>
+                                    <button onclick="recordPayments()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                        Record Payment(s)
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -507,6 +628,8 @@
                         </table>
                     </div>
                 </div>
+
+
             </div>
         </div>
     </div>
@@ -606,6 +729,8 @@
                         </button>
                     </div>
                 </div>
+
+
             </div>
         </div>
     </div>
@@ -625,6 +750,21 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        
+        // Enable offline persistence
+        db.enablePersistence({ synchronizeTabs: true })
+            .then(() => {
+                console.log('Offline persistence enabled');
+                updateSyncStatus('connected', 'Offline ready');
+            })
+            .catch((err) => {
+                console.warn('Offline persistence failed:', err);
+                if (err.code === 'failed-precondition') {
+                    console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                } else if (err.code === 'unimplemented') {
+                    console.warn('The current browser does not support offline persistence');
+                }
+            });
 
         // Global variables
         let coursePlans = [];
@@ -637,6 +777,62 @@
         let filteredPayments = [];
         let paymentRowCounter = 0;
         let allStudentsForSearch = [];
+        let isOnline = navigator.onLine;
+        let pendingOperations = [];
+        let feeTypes = [];
+        let allStudentsForExtraFees = [];
+        let currentEditingFeeType = null;
+
+        // Data caching system
+        let dataCache = {
+            coursePlans: { data: null, timestamp: null },
+            students: { data: null, timestamp: null },
+            studentTuition: { data: null, timestamp: null },
+            payments: { data: null, timestamp: null },
+            classes: { data: null, timestamp: null }
+        };
+        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+        function isCacheValid(cacheEntry) {
+            if (!cacheEntry.data || !cacheEntry.timestamp) return false;
+            return (Date.now() - cacheEntry.timestamp) < CACHE_DURATION;
+        }
+
+        function setCacheData(key, data) {
+            dataCache[key] = {
+                data: data,
+                timestamp: Date.now()
+            };
+        }
+
+        function getCacheData(key) {
+            if (isCacheValid(dataCache[key])) {
+                return dataCache[key].data;
+            }
+            return null;
+        }
+
+        function clearCache() {
+            dataCache = {
+                coursePlans: { data: null, timestamp: null },
+                students: { data: null, timestamp: null },
+                studentTuition: { data: null, timestamp: null },
+                payments: { data: null, timestamp: null },
+                classes: { data: null, timestamp: null }
+            };
+        }
+
+        // Offline detection
+        window.addEventListener('online', () => {
+            isOnline = true;
+            updateSyncStatus('connected', 'Back online');
+            processPendingOperations();
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            updateSyncStatus('offline', 'Working offline');
+        });
 
         // Vietnamese text normalization for search
         function normalizeVietnamese(str) {
@@ -647,6 +843,8 @@
                 .replace(/đ/g, 'd')
                 .replace(/Đ/g, 'd');
         }
+
+
 
         // Vietnamese currency formatting
         function formatVNDForDisplay(amount, isTableCell = false) {
@@ -662,8 +860,24 @@
                 return amount.toFixed(0);
             } else {
                 // For other displays, show full format with .000
-                return amount.toLocaleString('vi-VN');
+                return (amount / 1000).toLocaleString('vi-VN') + '.000';
             }
+        }
+
+        function formatVNDFull(amount) {
+            if (!amount || amount === 0) return '0';
+            return (amount / 1000).toLocaleString('vi-VN') + '.000';
+        }
+
+        function formatVNDShort(amount) {
+            if (!amount || amount === 0) return '0';
+            
+            if (amount >= 1000000) {
+                return (amount / 1000000).toFixed(0) + 'M';
+            } else if (amount >= 1000) {
+                return (amount / 1000).toFixed(0) + 'K';
+            }
+            return (amount / 1000).toFixed(0);
         }
 
         function parseVNDInput(value) {
@@ -712,12 +926,15 @@
             // Hide all calculator content
             document.getElementById('plannerContent').classList.add('hidden');
             document.getElementById('monthlyContent').classList.add('hidden');
+            document.getElementById('extraFeesContent').classList.add('hidden');
 
             // Remove active classes
             document.getElementById('plannerSubTab').classList.remove('border-blue-500', 'text-blue-600');
             document.getElementById('plannerSubTab').classList.add('border-transparent', 'text-gray-500');
             document.getElementById('monthlySubTab').classList.remove('border-blue-500', 'text-blue-600');
             document.getElementById('monthlySubTab').classList.add('border-transparent', 'text-gray-500');
+            document.getElementById('extraFeesSubTab').classList.remove('border-blue-500', 'text-blue-600');
+            document.getElementById('extraFeesSubTab').classList.add('border-transparent', 'text-gray-500');
 
             // Show selected content and activate tab
             if (tabName === 'planner') {
@@ -729,6 +946,11 @@
                 document.getElementById('monthlySubTab').classList.add('border-blue-500', 'text-blue-600');
                 document.getElementById('monthlySubTab').classList.remove('border-transparent', 'text-gray-500');
                 loadStudents();
+            } else if (tabName === 'extraFees') {
+                document.getElementById('extraFeesContent').classList.remove('hidden');
+                document.getElementById('extraFeesSubTab').classList.add('border-blue-500', 'text-blue-600');
+                document.getElementById('extraFeesSubTab').classList.remove('border-transparent', 'text-gray-500');
+                loadExtraFeesData();
             }
         }
 
@@ -743,9 +965,68 @@
             } else if (status === 'syncing') {
                 syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-yellow-500 animate-pulse';
                 syncText.textContent = message || 'Syncing...';
+            } else if (status === 'offline') {
+                syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-orange-500';
+                syncText.textContent = message || 'Working offline';
             } else {
                 syncIcon.className = 'w-2 h-2 rounded-full mr-2 bg-red-500';
                 syncText.textContent = message || 'Disconnected';
+            }
+        }
+
+        // Offline operations handling
+        function addPendingOperation(operation) {
+            pendingOperations.push(operation);
+            localStorage.setItem('pendingOperations', JSON.stringify(pendingOperations));
+        }
+
+        async function processPendingOperations() {
+            if (pendingOperations.length === 0) return;
+            
+            updateSyncStatus('syncing', 'Syncing pending changes...');
+            
+            for (const operation of pendingOperations) {
+                try {
+                    await executeOperation(operation);
+                } catch (error) {
+                    console.error('Failed to sync operation:', error);
+                }
+            }
+            
+            pendingOperations = [];
+            localStorage.removeItem('pendingOperations');
+            updateSyncStatus('connected', 'All changes synced');
+        }
+
+        async function executeOperation(operation) {
+            switch (operation.type) {
+                case 'create':
+                    await db.collection(operation.collection).doc(operation.docId).set(operation.data);
+                    break;
+                case 'update':
+                    await db.collection(operation.collection).doc(operation.docId).update(operation.data);
+                    break;
+                case 'delete':
+                    await db.collection(operation.collection).doc(operation.docId).delete();
+                    break;
+            }
+        }
+
+        // Payment Recorder Toggle
+        function togglePaymentRecorder() {
+            const content = document.getElementById('paymentRecorderContent');
+            const icon = document.getElementById('paymentRecorderIcon');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.remove('rotate-90');
+                icon.classList.add('rotate-0');
+                
+                // Don't initialize with rows - let user add them manually
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-0');
+                icon.classList.add('rotate-90');
             }
         }
 
@@ -759,7 +1040,7 @@
                 numCourses: parseInt(document.getElementById('numCourses').value) || 0,
                 numLessons: parseInt(document.getElementById('numLessons').value) || 0,
                 numHours: parseFloat(document.getElementById('numHours').value) || 0,
-                standardFee: parseFloat(document.getElementById('standardFee').value) || 0,
+                standardFee: parseFloat(document.getElementById('standardFee').value) * 1000 || 0,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 status: 'active'
             };
@@ -768,14 +1049,23 @@
                 updateSyncStatus('syncing', 'Saving plan...');
                 
                 if (currentEditingPlan) {
-                    await db.collection('coursePlans').doc(currentEditingPlan).update(planData);
+                    if (isOnline) {
+                        await db.collection('coursePlans').doc(currentEditingPlan).update(planData);
+                    } else {
+                        addPendingOperation({
+                            type: 'update',
+                            collection: 'coursePlans',
+                            docId: currentEditingPlan,
+                            data: planData
+                        });
+                    }
                     currentEditingPlan = null;
                 } else {
                     // Check if plan code already exists
                     const existingPlan = await db.collection('coursePlans').where('planCode', '==', planData.planCode).get();
                     if (!existingPlan.empty) {
                         alert('Plan code already exists. Please use a unique code.');
-                        updateSyncStatus('connected');
+                        updateSyncStatus(isOnline ? 'connected' : 'offline');
                         return;
                     }
                     
@@ -784,12 +1074,22 @@
                     const planNumber = String(allPlans.size + 1).padStart(3, '0');
                     const docId = `coursePlan_${planNumber}`;
                     
-                    await db.collection('coursePlans').doc(docId).set(planData);
+                    if (isOnline) {
+                        await db.collection('coursePlans').doc(docId).set(planData);
+                    } else {
+                        addPendingOperation({
+                            type: 'create',
+                            collection: 'coursePlans',
+                            docId: docId,
+                            data: planData
+                        });
+                    }
                 }
                 
                 document.getElementById('coursePlanForm').reset();
-                await loadCoursePlans();
-                updateSyncStatus('connected', 'Plan saved');
+                clearCache(); // Clear cache to force fresh data load
+                await loadCoursePlans(true); // Force reload to refresh cache
+                updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Plan saved' : 'Plan saved offline');
             } catch (error) {
                 console.error('Error saving plan:', error);
                 updateSyncStatus('error', 'Save failed');
@@ -797,8 +1097,18 @@
             }
         });
 
-        async function loadCoursePlans() {
+        async function loadCoursePlans(forceReload = false) {
             try {
+                // Check cache first unless force reload
+                if (!forceReload) {
+                    const cachedData = getCacheData('coursePlans');
+                    if (cachedData) {
+                        coursePlans = cachedData.coursePlans;
+                        renderCoursePlansUI(cachedData.activePlans, cachedData.archivedPlans);
+                        return;
+                    }
+                }
+
                 updateSyncStatus('syncing', 'Loading plans...');
                 
                 // Load active plans
@@ -806,78 +1116,100 @@
                 const archivedSnapshot = await db.collection('coursePlans').where('status', '==', 'archived').get();
                 
                 coursePlans = [];
-                
-                const activePlansContent = document.getElementById('activePlansContent');
-                const archivedPlansContent = document.getElementById('archivedPlansContent');
-                
-                activePlansContent.innerHTML = '';
-                archivedPlansContent.innerHTML = '';
+                let activePlans = [];
+                let archivedPlans = [];
 
                 // Process active plans
-                if (activeSnapshot.empty) {
-                    activePlansContent.innerHTML = '<p class="text-gray-500 text-center py-4">No active course plans found</p>';
-                } else {
-                    activeSnapshot.forEach(doc => {
-                        const plan = { id: doc.id, ...doc.data() };
-                        coursePlans.push(plan);
-                        
-                        const planElement = document.createElement('div');
-                        planElement.className = 'border border-green-200 rounded-lg p-4 bg-green-50';
-                        planElement.innerHTML = `
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h4 class="font-semibold text-gray-900">${plan.planName}</h4>
-                                    <p class="text-sm text-gray-600">Code: ${plan.planCode}</p>
-                                    <div class="mt-2 text-sm text-gray-600">
-                                        <p>Courses: ${plan.numCourses} | Lessons: ${plan.numLessons} | Hours: ${plan.numHours}</p>
-                                        <p class="font-medium">Fee: ${formatVNDForDisplay(plan.standardFee * 1000)}</p>
-                                    </div>
-                                </div>
-                                <div class="flex space-x-2">
-                                    <button onclick="editPlan('${doc.id}')" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
-                                    <button onclick="deletePlan('${doc.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
-                                    <button onclick="archivePlan('${doc.id}')" class="text-gray-600 hover:text-gray-800 text-sm">Archive</button>
-                                </div>
-                            </div>
-                        `;
-                        activePlansContent.appendChild(planElement);
-                    });
-                }
+                activeSnapshot.forEach(doc => {
+                    const plan = { id: doc.id, ...doc.data() };
+                    coursePlans.push(plan);
+                    activePlans.push(plan);
+                });
 
                 // Process archived plans
-                if (archivedSnapshot.empty) {
-                    archivedPlansContent.innerHTML = '<p class="text-gray-500 text-center py-4">No archived course plans found</p>';
-                } else {
-                    archivedSnapshot.forEach(doc => {
-                        const plan = { id: doc.id, ...doc.data() };
-                        
-                        const planElement = document.createElement('div');
-                        planElement.className = 'border rounded-lg p-4 bg-gray-100';
-                        planElement.innerHTML = `
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h4 class="font-semibold text-gray-700">${plan.planName}</h4>
-                                    <p class="text-sm text-gray-500">Code: ${plan.planCode}</p>
-                                    <div class="mt-2 text-sm text-gray-500">
-                                        <p>Courses: ${plan.numCourses} | Lessons: ${plan.numLessons} | Hours: ${plan.numHours}</p>
-                                        <p class="font-medium">Fee: ${formatVNDForDisplay(plan.standardFee * 1000)}</p>
-                                    </div>
-                                    <span class="inline-block mt-2 px-2 py-1 text-xs bg-gray-200 text-gray-600 rounded">Archived</span>
-                                </div>
-                                <div class="flex space-x-2">
-                                    <button onclick="unarchivePlan('${doc.id}')" class="text-green-600 hover:text-green-800 text-sm">Unarchive</button>
-                                    <button onclick="deletePlan('${doc.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
-                                </div>
-                            </div>
-                        `;
-                        archivedPlansContent.appendChild(planElement);
-                    });
-                }
+                archivedSnapshot.forEach(doc => {
+                    const plan = { id: doc.id, ...doc.data() };
+                    archivedPlans.push(plan);
+                });
 
-                updateSyncStatus('connected');
+                // Cache the data
+                setCacheData('coursePlans', {
+                    coursePlans: coursePlans,
+                    activePlans: activePlans,
+                    archivedPlans: archivedPlans
+                });
+
+                // Render UI
+                renderCoursePlansUI(activePlans, archivedPlans);
+
+                updateSyncStatus(isOnline ? 'connected' : 'offline');
             } catch (error) {
                 console.error('Error loading plans:', error);
                 updateSyncStatus('error', 'Load failed');
+            }
+        }
+
+        function renderCoursePlansUI(activePlans, archivedPlans) {
+            const activePlansContent = document.getElementById('activePlansContent');
+            const archivedPlansContent = document.getElementById('archivedPlansContent');
+            
+            activePlansContent.innerHTML = '';
+            archivedPlansContent.innerHTML = '';
+
+            // Render active plans
+            if (activePlans.length === 0) {
+                activePlansContent.innerHTML = '<p class="text-gray-500 text-center py-4">No active course plans found</p>';
+            } else {
+                activePlans.forEach(plan => {
+                    const planElement = document.createElement('div');
+                    planElement.className = 'border border-green-200 rounded-lg p-4 bg-green-50';
+                    planElement.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold text-gray-900">${plan.planName}</h4>
+                                <p class="text-sm text-gray-600">Code: ${plan.planCode}</p>
+                                <div class="mt-2 text-sm text-gray-600">
+                                    <p>Courses: ${plan.numCourses} | Lessons: ${plan.numLessons} | Hours: ${plan.numHours}</p>
+                                    <p class="font-medium">Fee: ${formatVNDForDisplay(plan.standardFee)}</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="editPlan('${plan.id}')" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                                <button onclick="deletePlan('${plan.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                <button onclick="archivePlan('${plan.id}')" class="text-gray-600 hover:text-gray-800 text-sm">Archive</button>
+                            </div>
+                        </div>
+                    `;
+                    activePlansContent.appendChild(planElement);
+                });
+            }
+
+            // Render archived plans
+            if (archivedPlans.length === 0) {
+                archivedPlansContent.innerHTML = '<p class="text-gray-500 text-center py-4">No archived course plans found</p>';
+            } else {
+                archivedPlans.forEach(plan => {
+                    const planElement = document.createElement('div');
+                    planElement.className = 'border rounded-lg p-4 bg-gray-100';
+                    planElement.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-semibold text-gray-700">${plan.planName}</h4>
+                                <p class="text-sm text-gray-500">Code: ${plan.planCode}</p>
+                                <div class="mt-2 text-sm text-gray-500">
+                                    <p>Courses: ${plan.numCourses} | Lessons: ${plan.numLessons} | Hours: ${plan.numHours}</p>
+                                    <p class="font-medium">Fee: ${formatVNDForDisplay(plan.standardFee)}</p>
+                                </div>
+                                <span class="inline-block mt-2 px-2 py-1 text-xs bg-gray-200 text-gray-600 rounded">Archived</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="unarchivePlan('${plan.id}')" class="text-green-600 hover:text-green-800 text-sm">Unarchive</button>
+                                <button onclick="deletePlan('${plan.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                    archivedPlansContent.appendChild(planElement);
+                });
             }
         }
 
@@ -889,7 +1221,7 @@
                 document.getElementById('numCourses').value = plan.numCourses;
                 document.getElementById('numLessons').value = plan.numLessons;
                 document.getElementById('numHours').value = plan.numHours;
-                document.getElementById('standardFee').value = plan.standardFee;
+                document.getElementById('standardFee').value = plan.standardFee / 1000;
                 currentEditingPlan = planId;
             }
         }
@@ -898,9 +1230,19 @@
             if (confirm('Are you sure you want to delete this plan?')) {
                 try {
                     updateSyncStatus('syncing', 'Deleting...');
-                    await db.collection('coursePlans').doc(planId).delete();
+                    
+                    if (isOnline) {
+                        await db.collection('coursePlans').doc(planId).delete();
+                    } else {
+                        addPendingOperation({
+                            type: 'delete',
+                            collection: 'coursePlans',
+                            docId: planId
+                        });
+                    }
+                    
                     loadCoursePlans();
-                    updateSyncStatus('connected', 'Plan deleted');
+                    updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Plan deleted' : 'Delete queued');
                 } catch (error) {
                     console.error('Error deleting plan:', error);
                     updateSyncStatus('error', 'Delete failed');
@@ -911,9 +1253,20 @@
         async function archivePlan(planId) {
             try {
                 updateSyncStatus('syncing', 'Archiving...');
-                await db.collection('coursePlans').doc(planId).update({ status: 'archived' });
+                
+                if (isOnline) {
+                    await db.collection('coursePlans').doc(planId).update({ status: 'archived' });
+                } else {
+                    addPendingOperation({
+                        type: 'update',
+                        collection: 'coursePlans',
+                        docId: planId,
+                        data: { status: 'archived' }
+                    });
+                }
+                
                 loadCoursePlans();
-                updateSyncStatus('connected', 'Plan archived');
+                updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Plan archived' : 'Archive queued');
             } catch (error) {
                 console.error('Error archiving plan:', error);
                 updateSyncStatus('error', 'Archive failed');
@@ -923,9 +1276,20 @@
         async function unarchivePlan(planId) {
             try {
                 updateSyncStatus('syncing', 'Unarchiving...');
-                await db.collection('coursePlans').doc(planId).update({ status: 'active' });
+                
+                if (isOnline) {
+                    await db.collection('coursePlans').doc(planId).update({ status: 'active' });
+                } else {
+                    addPendingOperation({
+                        type: 'update',
+                        collection: 'coursePlans',
+                        docId: planId,
+                        data: { status: 'active' }
+                    });
+                }
+                
                 loadCoursePlans();
-                updateSyncStatus('connected', 'Plan unarchived');
+                updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Plan unarchived' : 'Unarchive queued');
             } catch (error) {
                 console.error('Error unarchiving plan:', error);
                 updateSyncStatus('error', 'Unarchive failed');
@@ -957,10 +1321,6 @@
                 const selectedClassStatus = document.getElementById('classStatusFilter').value;
                 const selectedStudentStatus = document.getElementById('studentStatusFilter').value;
                 
-                // Use current month/year if not specified
-                const currentMonth = selectedMonth ? parseInt(selectedMonth) : new Date().getMonth() + 1;
-                const currentYear = selectedYear ? parseInt(selectedYear) : new Date().getFullYear();
-                
                 let studentsQuery = db.collection('students');
                 
                 // Apply student status filter
@@ -976,41 +1336,69 @@
                 const snapshot = await studentsQuery.get();
                 students = [];
                 
-                for (const doc of snapshot.docs) {
-                    const studentData = { id: doc.id, ...doc.data() };
+                // If no month/year filters, show all students for all months/years
+                if (!selectedMonth && !selectedYear) {
+                    // Show all students for all months and years
+                    for (const doc of snapshot.docs) {
+                        const studentData = { id: doc.id, ...doc.data() };
+                        
+                        // Get all years this student has data for
+                        const years = [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
+                        
+                        for (const year of years) {
+                            for (let month = 1; month <= 12; month++) {
+                                const attendanceData = await getMonthlyAttendance(studentData.studentId, year, month, false);
+                                
+                                if (attendanceData.attendedLessons > 0 || attendanceData.coursesCount > 0) {
+                                    const studentEntry = {
+                                        ...studentData,
+                                        id: `${doc.id}_${year}_${month}`,
+                                        originalId: doc.id,
+                                        displayMonth: month,
+                                        displayYear: year,
+                                        attendedLessons: attendanceData.attendedLessons,
+                                        coursesCount: attendanceData.coursesCount,
+                                        lessonLength: 1.5,
+                                        studyHours: attendanceData.attendedLessons * 1.5
+                                    };
+                                    students.push(studentEntry);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Show students for specific month/year combinations
+                    const years = selectedYear ? [parseInt(selectedYear)] : [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030];
+                    const months = selectedMonth ? [parseInt(selectedMonth)] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
                     
-                    // Determine if we should show all-time data or filtered data
-                    const showAllTime = !selectedMonth && !selectedYear;
-                    
-                    // Calculate attendance for the selected period or all-time
-                    const attendanceData = await getMonthlyAttendance(
-                        studentData.studentId, 
-                        currentYear, 
-                        currentMonth, 
-                        showAllTime
-                    );
-                    
-                    // Only include students who have attendance data for the selected period
-                    // or include all if no specific month/year filter is applied
-                    if (showAllTime) {
-                        // Show all students with their all-time attendance data
-                        studentData.attendedLessons = attendanceData.attendedLessons;
-                        studentData.coursesCount = attendanceData.coursesCount;
-                        studentData.lessonLength = 1.5; // Default lesson length
-                        studentData.studyHours = attendanceData.attendedLessons * studentData.lessonLength;
-                        students.push(studentData);
-                    } else if (attendanceData.attendedLessons > 0 || attendanceData.coursesCount > 0) {
-                        // Only show students with attendance in the selected period
-                        studentData.attendedLessons = attendanceData.attendedLessons;
-                        studentData.coursesCount = attendanceData.coursesCount;
-                        studentData.lessonLength = 1.5; // Default lesson length
-                        studentData.studyHours = attendanceData.attendedLessons * studentData.lessonLength;
-                        students.push(studentData);
+                    for (const doc of snapshot.docs) {
+                        const studentData = { id: doc.id, ...doc.data() };
+                        
+                        for (const year of years) {
+                            for (const month of months) {
+                                const attendanceData = await getMonthlyAttendance(studentData.studentId, year, month, false);
+                                
+                                if (attendanceData.attendedLessons > 0 || attendanceData.coursesCount > 0) {
+                                    const studentEntry = {
+                                        ...studentData,
+                                        id: `${doc.id}_${year}_${month}`,
+                                        originalId: doc.id,
+                                        displayMonth: month,
+                                        displayYear: year,
+                                        attendedLessons: attendanceData.attendedLessons,
+                                        coursesCount: attendanceData.coursesCount,
+                                        lessonLength: 1.5,
+                                        studyHours: attendanceData.attendedLessons * 1.5
+                                    };
+                                    students.push(studentEntry);
+                                }
+                            }
+                        }
                     }
                 }
                 
                 renderStudentsTable();
-                updateSyncStatus('connected');
+                updateSyncStatus(isOnline ? 'connected' : 'offline');
             } catch (error) {
                 console.error('Error loading students:', error);
                 updateSyncStatus('error', 'Load failed');
@@ -1070,7 +1458,7 @@
             if (students.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">
                             No students found for the selected criteria
                         </td>
                     </tr>
@@ -1079,17 +1467,22 @@
             }
 
             students.forEach(student => {
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <input type="checkbox" class="rounded" data-student-id="${student.id}">
-                    </td>
+
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div>
                             <div class="text-sm font-medium text-gray-900">${student.fullName || 'N/A'}</div>
                             <div class="text-sm text-gray-500">ID: ${student.studentId || 'N/A'}</div>
                             <div class="text-sm text-gray-500">Class: ${student.classAssignment || 'N/A'}</div>
                         </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${monthNames[student.displayMonth - 1]}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${student.displayYear}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm text-gray-900">
@@ -1113,13 +1506,13 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="relative">
-                            <input type="number" step="0.01" placeholder="0" class="w-24 px-2 py-1 pr-8 border rounded text-sm" id="adjusted-${student.id}">
+                            <input type="number" step="0.01" placeholder="0" class="w-24 px-2 py-1 pr-10 border rounded text-sm" id="adjusted-${student.id}" onchange="updateAdjustedFee('${student.id}')">
                             <span class="absolute right-2 top-1 text-xs text-gray-500">.000</span>
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <button onclick="saveStudentTuition('${student.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2">Save</button>
-                        <button onclick="informStudent('${student.id}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 opacity-50" disabled id="inform-${student.id}">Inform</button>
+                        <button onclick="saveStudentTuition('${student.id}')" class="bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2" disabled id="save-${student.id}">Save</button>
+                        <button onclick="informStudent('${student.id}')" class="bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50" disabled id="inform-${student.id}">Inform</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1138,6 +1531,35 @@
             }
         }
 
+        function updateAdjustedFee(studentId) {
+            const adjustedInput = document.getElementById(`adjusted-${studentId}`);
+            const saveBtn = document.getElementById(`save-${studentId}`);
+            const informBtn = document.getElementById(`inform-${studentId}`);
+            
+            const adjustedValue = parseFloat(adjustedInput.value) || 0;
+            
+            if (adjustedValue > 0) {
+                // Enable Save button
+                saveBtn.disabled = false;
+                saveBtn.className = 'bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2';
+                saveBtn.textContent = 'Save';
+                
+                // Disable Inform button
+                informBtn.disabled = true;
+                informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                informBtn.textContent = 'Inform';
+            } else {
+                // Disable both buttons when no adjusted fee
+                saveBtn.disabled = true;
+                saveBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
+                saveBtn.textContent = 'Save';
+                
+                informBtn.disabled = true;
+                informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                informBtn.textContent = 'Inform';
+            }
+        }
+
         function updateStudentCoursePlan(studentId, planId) {
             const student = students.find(s => s.id === studentId);
             const planDetailsDiv = document.getElementById(`planDetails-${studentId}`);
@@ -1153,7 +1575,7 @@
                         planDetailsDiv.innerHTML = `
                             <div>Code: ${selectedPlan.planCode}</div>
                             <div>Courses: ${selectedPlan.numCourses} | Lessons: ${selectedPlan.numLessons}</div>
-                            <div>Hours: ${selectedPlan.numHours} | Fee: ${formatVNDForDisplay(selectedPlan.standardFee * 1000)}.000</div>
+                            <div>Hours: ${selectedPlan.numHours} | Fee: ${formatVNDFull(selectedPlan.standardFee)}</div>
                         `;
                         planDetailsDiv.classList.remove('hidden');
                         
@@ -1172,7 +1594,7 @@
                             calculatedFee = selectedPlan.standardFee;
                         }
                         
-                        calculatedFeeDiv.textContent = `${formatVNDForDisplay(calculatedFee)}.000`;
+                        calculatedFeeDiv.textContent = formatVNDFull(calculatedFee);
                     }
                 } else {
                     // Hide plan details and reset calculated fee
@@ -1189,9 +1611,9 @@
                 const student = students.find(s => s.id === studentId);
                 if (!student) return;
                 
-                // Get current month/year
-                const currentMonth = parseInt(document.getElementById('monthFilter').value) || new Date().getMonth() + 1;
-                const currentYear = parseInt(document.getElementById('yearFilter').value) || new Date().getFullYear();
+                // Use the display month/year from the student entry
+                const currentMonth = student.displayMonth;
+                const currentYear = student.displayYear;
                 
                 // Format document ID as tuition_studentID_yyyy-mm
                 const monthStr = String(currentMonth).padStart(2, '0');
@@ -1218,13 +1640,32 @@
                     status: 'saved'
                 };
                 
-                await db.collection('tuition').doc(docId).set(tuitionData);
+                if (isOnline) {
+                    await db.collection('tuition').doc(docId).set(tuitionData);
+                } else {
+                    addPendingOperation({
+                        type: 'create',
+                        collection: 'tuition',
+                        docId: docId,
+                        data: tuitionData
+                    });
+                }
                 
-                // Enable the inform button after saving
-                document.getElementById(`inform-${studentId}`).disabled = false;
-                document.getElementById(`inform-${studentId}`).classList.remove('opacity-50');
+                // Update button states after saving
+                const saveBtn = document.getElementById(`save-${studentId}`);
+                const informBtn = document.getElementById(`inform-${studentId}`);
                 
-                updateSyncStatus('connected', 'Tuition saved');
+                // Save button becomes "Saved", grayed out and inactive
+                saveBtn.disabled = true;
+                saveBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
+                saveBtn.textContent = 'Saved';
+                
+                // Inform button becomes active
+                informBtn.disabled = false;
+                informBtn.className = 'bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700';
+                informBtn.textContent = 'Inform';
+                
+                updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Tuition saved' : 'Tuition saved offline');
             } catch (error) {
                 console.error('Error saving tuition:', error);
                 updateSyncStatus('error', 'Save failed');
@@ -1232,14 +1673,49 @@
             }
         }
 
-        function informStudent(studentId) {
+        async function informStudent(studentId) {
             const student = students.find(s => s.id === studentId);
-            if (student) {
+            if (!student) return;
+            
+            try {
+                // Update tuition record to mark as informed
+                const currentMonth = student.displayMonth;
+                const currentYear = student.displayYear;
+                const monthStr = String(currentMonth).padStart(2, '0');
+                const docId = `tuition_${student.studentId}_${currentYear}-${monthStr}`;
+                
+                const updateData = {
+                    status: 'informed',
+                    informedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (isOnline) {
+                    await db.collection('tuition').doc(docId).update(updateData);
+                } else {
+                    addPendingOperation({
+                        type: 'update',
+                        collection: 'tuition',
+                        docId: docId,
+                        data: updateData
+                    });
+                }
+                
+                // Update button states after informing
+                const informBtn = document.getElementById(`inform-${studentId}`);
+                
+                // Inform button becomes "Informed", grayed out and inactive
+                informBtn.disabled = true;
+                informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                informBtn.textContent = 'Informed';
+                
+                // Push adjusted fee to Student Tuition tab (this will be handled by the tuition record update)
                 alert(`Tuition information sent to ${student.fullName}`);
+                
+            } catch (error) {
+                console.error('Error informing student:', error);
+                alert('Error informing student: ' + error.message);
             }
         }
-
-
 
         // Load classes for filter dropdown
         async function loadClasses() {
@@ -1263,8 +1739,19 @@
         }
 
         // Student Tuition Management Functions
-        async function loadStudentTuitionData() {
+        async function loadStudentTuitionData(forceReload = false) {
             try {
+                // Check cache first unless force reload
+                if (!forceReload) {
+                    const cachedData = getCacheData('studentTuition');
+                    if (cachedData) {
+                        allStudentTuition = cachedData;
+                        await loadTuitionClasses();
+                        filterStudentTuition();
+                        return;
+                    }
+                }
+
                 updateSyncStatus('syncing', 'Loading student tuition...');
                 
                 // Load all students
@@ -1274,11 +1761,14 @@
                 for (const doc of studentsSnapshot.docs) {
                     const studentData = { id: doc.id, ...doc.data() };
                     
-                    // Get enrollment year from student data
+                    // Get enrollment year from student data or default to current year
                     const enrollmentYear = studentData.enrollmentYear || new Date().getFullYear();
                     
-                    // Load tuition data for this student
-                    const tuitionData = await loadStudentYearlyTuition(studentData.studentId, enrollmentYear);
+                    // Get the display year from filter or current year
+                    const displayYear = parseInt(document.getElementById('tuitionYearFilter').value) || new Date().getFullYear();
+                    
+                    // Load tuition data for the display year
+                    const tuitionData = await loadStudentYearlyTuition(studentData.studentId, displayYear);
                     
                     studentData.enrollmentYear = enrollmentYear;
                     studentData.tuitionData = tuitionData;
@@ -1286,25 +1776,35 @@
                     allStudentTuition.push(studentData);
                 }
                 
+                // Cache the data
+                setCacheData('studentTuition', allStudentTuition);
+
                 // Load classes for filter
                 await loadTuitionClasses();
                 
                 // Apply initial filters and render
                 filterStudentTuition();
                 
-                updateSyncStatus('connected');
+                updateSyncStatus(isOnline ? 'connected' : 'offline');
             } catch (error) {
                 console.error('Error loading student tuition:', error);
                 updateSyncStatus('error', 'Load failed');
+                allStudentTuition = []; // Reset on error
+                filterStudentTuition(); // Show empty state
             }
         }
 
         async function loadStudentYearlyTuition(studentId, year) {
             try {
+                console.log(`Loading tuition data for student ${studentId}, year ${year}`);
+                
+                // Query tuition records for the specific student and year
                 const tuitionSnapshot = await db.collection('tuition')
                     .where('studentId', '==', studentId)
-                    .where('year', '==', year)
+                    .where('year', '==', parseInt(year))
                     .get();
+                
+                console.log(`Found ${tuitionSnapshot.size} tuition records for student ${studentId}`);
                 
                 const monthlyData = {};
                 let totalExpected = 0;
@@ -1312,22 +1812,33 @@
                 
                 tuitionSnapshot.forEach(doc => {
                     const data = doc.data();
-                    const month = data.month;
+                    console.log(`Processing tuition record:`, data);
                     
-                    monthlyData[month] = {
-                        fee: data.finalFee || data.calculatedFee || 0,
-                        paid: data.paid || false,
-                        processed: data.processed || false,
-                        paymentDate: data.paymentDate || null,
-                        status: data.status || 'informed',
-                        docId: doc.id
-                    };
+                    const month = parseInt(data.month);
                     
-                    totalExpected += data.finalFee || data.calculatedFee || 0;
-                    if (data.paid) {
-                        totalPaid += data.finalFee || data.calculatedFee || 0;
+                    if (month >= 1 && month <= 12) {
+                        // Try different field names for fee
+                        const fee = data.finalFee || data.adjustedFee || data.calculatedFee || data.fee || data.standardFee || 0;
+                        const isPaid = data.paid === true;
+                        const isProcessed = data.processed === true;
+                        
+                        monthlyData[month] = {
+                            fee: fee,
+                            paid: isPaid,
+                            processed: isProcessed,
+                            paymentDate: data.paymentDate || null,
+                            status: data.status || (fee > 0 ? 'informed' : 'no_fee'),
+                            docId: doc.id
+                        };
+                        
+                        totalExpected += fee;
+                        if (isPaid) {
+                            totalPaid += fee;
+                        }
                     }
                 });
+                
+                console.log(`Student ${studentId} summary: Expected=${totalExpected}, Paid=${totalPaid}, Monthly data:`, monthlyData);
                 
                 return {
                     monthlyData,
@@ -1336,7 +1847,7 @@
                     outstanding: totalExpected - totalPaid
                 };
             } catch (error) {
-                console.error('Error loading yearly tuition:', error);
+                console.error('Error loading yearly tuition for student', studentId, 'year', year, ':', error);
                 return {
                     monthlyData: {},
                     totalExpected: 0,
@@ -1366,12 +1877,31 @@
             }
         }
 
-        function filterStudentTuition() {
+        async function filterStudentTuition() {
             const searchTerm = normalizeVietnamese(document.getElementById('studentSearch').value);
             const yearFilter = document.getElementById('tuitionYearFilter').value;
             const classFilter = document.getElementById('tuitionClassFilter').value;
             const statusFilter = document.getElementById('tuitionStatusFilter').value;
             const sortBy = document.getElementById('tuitionSortBy').value;
+            
+            const displayYear = yearFilter ? parseInt(yearFilter) : new Date().getFullYear();
+            
+            // If year filter changed, reload tuition data for all students
+            const needsReload = allStudentTuition.length > 0 && 
+                allStudentTuition[0].tuitionData && 
+                allStudentTuition[0].lastLoadedYear !== displayYear;
+            
+            if (needsReload) {
+                updateSyncStatus('syncing', 'Loading tuition data...');
+                
+                // Reload tuition data for the new year
+                for (const student of allStudentTuition) {
+                    student.tuitionData = await loadStudentYearlyTuition(student.studentId, displayYear);
+                    student.lastLoadedYear = displayYear;
+                }
+                
+                updateSyncStatus(isOnline ? 'connected' : 'offline');
+            }
             
             let filteredStudents = allStudentTuition.filter(student => {
                 // Search filter with Vietnamese normalization
@@ -1380,8 +1910,7 @@
                     normalizeVietnamese(student.studentId || '').includes(searchTerm);
                 
                 // Year filter - show data from enrollment year onwards
-                const currentYear = yearFilter ? parseInt(yearFilter) : new Date().getFullYear();
-                const matchesYear = !yearFilter || student.enrollmentYear <= currentYear;
+                const matchesYear = !yearFilter || student.enrollmentYear <= displayYear;
                 
                 // Class filter
                 const matchesClass = !classFilter || student.classAssignment === classFilter;
@@ -1392,7 +1921,7 @@
                 // Status-based year limit: if student is not active, don't show beyond finished/dropped year
                 const isActiveStatus = student.status === 'Active' || student.status === 'Inactive';
                 const finishedYear = student.finishedYear || new Date().getFullYear();
-                const shouldShowYear = isActiveStatus || currentYear <= finishedYear;
+                const shouldShowYear = isActiveStatus || displayYear <= finishedYear;
                 
                 return matchesSearch && matchesYear && matchesClass && matchesStatus && shouldShowYear;
             });
@@ -1413,12 +1942,14 @@
                 }
             });
             
-            renderStudentTuitionTable(filteredStudents, yearFilter ? parseInt(yearFilter) : new Date().getFullYear());
+            renderStudentTuitionTable(filteredStudents, displayYear);
         }
 
         function renderStudentTuitionTable(students, displayYear) {
             const tbody = document.getElementById('studentTuitionTableBody');
             tbody.innerHTML = '';
+            
+            console.log(`Rendering ${students.length} students for year ${displayYear}`);
             
             if (students.length === 0) {
                 tbody.innerHTML = `
@@ -1431,7 +1962,14 @@
                 return;
             }
             
-            students.forEach(student => {
+            students.forEach((student, index) => {
+                console.log(`Rendering student ${index + 1}:`, {
+                    name: student.fullName,
+                    id: student.studentId,
+                    tuitionData: student.tuitionData ? 'Present' : 'Missing',
+                    monthlyDataCount: student.tuitionData?.monthlyData ? Object.keys(student.tuitionData.monthlyData).length : 0
+                });
+                
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50 cursor-pointer';
                 row.onclick = () => openStudentTuitionModal(student);
@@ -1453,8 +1991,8 @@
                                 // In edit mode, show input field
                                 cellContent = `<input type="number" value="${fee / 1000}" class="w-12 px-1 py-1 text-xs border rounded text-center" onchange="updateTuitionFee('${student.studentId}', ${month}, ${displayYear}, this.value)" onclick="event.stopPropagation()">`;
                             } else {
-                                // In view mode, show formatted amount
-                                cellContent = formatVNDForDisplay(fee, true);
+                                // In view mode, show short format
+                                cellContent = formatVNDShort(fee);
                             }
                             
                             // Color coding based on status
@@ -1502,9 +2040,9 @@
                     ${monthlyCells}
                     <td class="px-2 py-3 whitespace-nowrap text-xs">
                         <div class="space-y-1">
-                            <div>Total: <span class="font-medium">${formatVNDForDisplay(totalExpected)}</span></div>
-                            <div>Paid: <span class="text-green-600 font-medium">${formatVNDForDisplay(totalPaid)}</span></div>
-                            <div>Outstanding: <span class="text-red-600 font-medium">${formatVNDForDisplay(outstanding)}</span></div>
+                            <div>Total: <span class="font-medium">${formatVNDFull(totalExpected)}</span></div>
+                            <div>Paid: <span class="text-green-600 font-medium">${formatVNDFull(totalPaid)}</span></div>
+                            <div>Outstanding: <span class="text-red-600 font-medium">${formatVNDFull(outstanding)}</span></div>
                         </div>
                     </td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm">
@@ -1548,9 +2086,9 @@
                 const tuitionData = await loadStudentYearlyTuition(currentModalStudent.studentId, selectedYear);
                 
                 // Update summary
-                document.getElementById('modalTotalExpected').textContent = formatVNDForDisplay(tuitionData.totalExpected);
-                document.getElementById('modalTotalPaid').textContent = formatVNDForDisplay(tuitionData.totalPaid);
-                document.getElementById('modalOutstanding').textContent = formatVNDForDisplay(tuitionData.outstanding);
+                document.getElementById('modalTotalExpected').textContent = formatVNDFull(tuitionData.totalExpected);
+                document.getElementById('modalTotalPaid').textContent = formatVNDFull(tuitionData.totalPaid);
+                document.getElementById('modalOutstanding').textContent = formatVNDFull(tuitionData.outstanding);
                 
                 // Load notes
                 const notesDoc = await db.collection('studentNotes').doc(`${currentModalStudent.studentId}_${selectedYear}`).get();
@@ -1792,12 +2330,23 @@
                 
                 // Save notes
                 if (notes.trim()) {
-                    await db.collection('studentNotes').doc(`${currentModalStudent.studentId}_${selectedYear}`).set({
+                    const notesData = {
                         studentId: currentModalStudent.studentId,
                         year: selectedYear,
                         notes: notes,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    };
+                    
+                    if (isOnline) {
+                        await db.collection('studentNotes').doc(`${currentModalStudent.studentId}_${selectedYear}`).set(notesData);
+                    } else {
+                        addPendingOperation({
+                            type: 'create',
+                            collection: 'studentNotes',
+                            docId: `${currentModalStudent.studentId}_${selectedYear}`,
+                            data: notesData
+                        });
+                    }
                 }
                 
                 // Save monthly changes
@@ -1840,10 +2389,18 @@
                             updateData.paymentDate = changes.paymentDate;
                         }
                         
-                        await db.collection('tuition').doc(docId).set(updateData, { merge: true });
+                        if (isOnline) {
+                            await db.collection('tuition').doc(docId).set(updateData, { merge: true });
+                        } else {
+                            addPendingOperation({
+                                type: 'update',
+                                collection: 'tuition',
+                                docId: docId,
+                                data: updateData
+                            });
+                        }
                         
-                        // Create transaction record ONLY if marking as paid for the first time
-                        // Save to separate paymentTransactions collection instead of payments
+                        // Create/update transaction record when marking as paid or processed
                         if (changes.paid && !currentModalStudent.tuitionData?.monthlyData[month]?.paid) {
                             const fee = changes.fee !== undefined ? changes.fee : (currentModalStudent.tuitionData?.monthlyData[month]?.fee || 0);
                             
@@ -1862,15 +2419,51 @@
                                     tuitionYear: selectedYear,
                                     tuitionMonth: parseInt(month),
                                     amountPaid: fee,
-                                    paymentStatus: 'received', // Always start as received from tuition board
+                                    paymentStatus: changes.processed ? 'processed' : 'received',
                                     recordedAt: firebase.firestore.FieldValue.serverTimestamp(),
                                     recordedBy: 'tuition_board',
                                     source: 'tuition_modal',
                                     transactionType: 'tuition_payment'
                                 };
                                 
-                                await db.collection('paymentTransactions').doc(txnDocId).set(transactionData);
+                                if (isOnline) {
+                                    await db.collection('paymentTransactions').doc(txnDocId).set(transactionData);
+                                } else {
+                                    addPendingOperation({
+                                        type: 'create',
+                                        collection: 'paymentTransactions',
+                                        docId: txnDocId,
+                                        data: transactionData
+                                    });
+                                }
                             }
+                        } else if (changes.processed !== undefined && currentModalStudent.tuitionData?.monthlyData[month]?.paid) {
+                            // Update existing transaction status when processed status changes
+                            const existingTransactions = await db.collection('paymentTransactions')
+                                .where('studentId', '==', currentModalStudent.studentId)
+                                .where('tuitionYear', '==', selectedYear)
+                                .where('tuitionMonth', '==', parseInt(month))
+                                .get();
+                            
+                            existingTransactions.forEach(async (doc) => {
+                                const newStatus = changes.processed ? 'processed' : 'received';
+                                if (isOnline) {
+                                    await db.collection('paymentTransactions').doc(doc.id).update({
+                                        paymentStatus: newStatus,
+                                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                } else {
+                                    addPendingOperation({
+                                        type: 'update',
+                                        collection: 'paymentTransactions',
+                                        docId: doc.id,
+                                        data: {
+                                            paymentStatus: newStatus,
+                                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                        }
+                                    });
+                                }
+                            });
                         }
                     }
                 }
@@ -1882,7 +2475,7 @@
                 await loadStudentTuitionData();
                 closeStudentTuitionModal();
                 
-                updateSyncStatus('connected', 'Changes saved');
+                updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Changes saved' : 'Changes saved offline');
             } catch (error) {
                 console.error('Error saving tuition details:', error);
                 updateSyncStatus('error', 'Save failed');
@@ -1911,178 +2504,158 @@
             filterStudentTuition();
         }
 
-        async function updateTuitionFee(studentId, month, year, inputValue) {
+        // Payment Tracker Functions
+        async function loadPaymentTracker(forceReload = false) {
             try {
-                const fee = parseVNDInput(inputValue);
-                const monthStr = String(month).padStart(2, '0');
-                const docId = `tuition_${studentId}_${year}-${monthStr}`;
-                
-                // Find student data
-                const student = allStudentTuition.find(s => s.studentId === studentId);
-                if (!student) return;
-                
-                const updateData = {
-                    studentId: studentId,
-                    fullName: student.fullName,
-                    classAssignment: student.classAssignment,
-                    month: month,
-                    year: year,
-                    finalFee: fee,
-                    calculatedFee: fee,
-                    status: fee > 0 ? 'saved' : 'no_fee',
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
-                await db.collection('tuition').doc(docId).set(updateData, { merge: true });
-                
-                // Update local data
-                if (!student.tuitionData) {
-                    student.tuitionData = { monthlyData: {}, totalExpected: 0, totalPaid: 0, outstanding: 0 };
-                }
-                if (!student.tuitionData.monthlyData[month]) {
-                    student.tuitionData.monthlyData[month] = {};
-                }
-                student.tuitionData.monthlyData[month].fee = fee;
-                student.tuitionData.monthlyData[month].status = fee > 0 ? 'saved' : 'no_fee';
-                
-                // Recalculate totals
-                let totalExpected = 0;
-                let totalPaid = 0;
-                for (const monthData of Object.values(student.tuitionData.monthlyData)) {
-                    totalExpected += monthData.fee || 0;
-                    if (monthData.paid) {
-                        totalPaid += monthData.fee || 0;
+                // Check cache first unless force reload
+                if (!forceReload) {
+                    const cachedData = getCacheData('payments');
+                    if (cachedData) {
+                        allPayments = cachedData.payments;
+                        allStudentsForSearch = cachedData.studentsForSearch;
+                        filterPayments();
+                        return;
                     }
                 }
-                student.tuitionData.totalExpected = totalExpected;
-                student.tuitionData.totalPaid = totalPaid;
-                student.tuitionData.outstanding = totalExpected - totalPaid;
-                
-                updateSyncStatus('connected', 'Fee updated');
-            } catch (error) {
-                console.error('Error updating tuition fee:', error);
-                updateSyncStatus('error', 'Update failed');
-            }
-        }
 
-        async function deleteStudentTuition(studentId) {
-            if (!confirm('Are you sure you want to delete all tuition records for this student?')) {
-                return;
-            }
-            
-            try {
-                updateSyncStatus('syncing', 'Deleting records...');
+                updateSyncStatus('syncing', 'Loading payments...');
+                console.log('Starting to load payment transactions...');
                 
-                // Delete all tuition records for this student
-                const tuitionSnapshot = await db.collection('tuition')
-                    .where('studentId', '==', studentId)
-                    .get();
+                // Try to load payment transactions, but handle if collection doesn't exist
+                let paymentsSnapshot;
+                try {
+                    paymentsSnapshot = await db.collection('paymentTransactions')
+                        .orderBy('paymentDate', 'desc')
+                        .get();
+                } catch (orderError) {
+                    console.log('No orderBy index, loading without ordering...');
+                    paymentsSnapshot = await db.collection('paymentTransactions').get();
+                }
                 
-                const batch = db.batch();
-                tuitionSnapshot.forEach(doc => {
-                    batch.delete(doc.ref);
+                allPayments = [];
+                
+                console.log(`Found ${paymentsSnapshot.size} payment documents`);
+                
+                paymentsSnapshot.forEach(doc => {
+                    try {
+                        const data = doc.data();
+                        console.log('Processing payment document:', doc.id, data);
+                        
+                        // Handle different date formats
+                        let paymentDate;
+                        if (data.paymentDate) {
+                            if (data.paymentDate.toDate) {
+                                // Firestore Timestamp
+                                paymentDate = data.paymentDate.toDate();
+                            } else if (typeof data.paymentDate === 'string') {
+                                // String date
+                                paymentDate = new Date(data.paymentDate);
+                            } else {
+                                // Already a Date object
+                                paymentDate = data.paymentDate;
+                            }
+                        } else {
+                            paymentDate = new Date(); // Default to current date
+                        }
+                        
+                        // Validate required fields - be more lenient
+                        if (data.studentId && (data.amountPaid || data.amount)) {
+                            allPayments.push({
+                                id: doc.id,
+                                paymentDate: paymentDate,
+                                studentId: data.studentId,
+                                studentName: data.studentName || data.fullName || data.name || 'Unknown',
+                                classAssignment: data.classAssignment || data.class || 'N/A',
+                                tuitionYear: parseInt(data.tuitionYear || data.year) || new Date().getFullYear(),
+                                tuitionMonth: parseInt(data.tuitionMonth || data.month) || 1,
+                                amountPaid: parseFloat(data.amountPaid || data.amount) || 0,
+                                paymentStatus: data.paymentStatus || data.status || 'received',
+                                recordedAt: data.recordedAt || data.createdAt,
+                                recordedBy: data.recordedBy || 'system',
+                                source: data.source || 'manual',
+                                transactionType: data.transactionType || 'tuition_payment'
+                            });
+                        } else {
+                            console.log('Skipping document due to missing required fields:', doc.id);
+                        }
+                    } catch (docError) {
+                        console.warn('Error processing payment document:', doc.id, docError);
+                    }
                 });
                 
-                await batch.commit();
+                console.log(`Successfully loaded ${allPayments.length} payment transactions`);
                 
-                // Reload data
-                await loadStudentTuitionData();
-                
-                updateSyncStatus('connected', 'Records deleted');
-            } catch (error) {
-                console.error('Error deleting tuition records:', error);
-                updateSyncStatus('error', 'Delete failed');
-                alert('Error deleting records: ' + error.message);
-            }
-        }
+                // Load students for search
+                await loadStudentsForSearch();
 
-        // Payment Tracker Functions
-        async function loadPaymentTracker() {
-            try {
-                updateSyncStatus('syncing', 'Loading payments...');
-                
-                // Load all students for search functionality
-                await loadAllStudentsForSearch();
-                
-                // Load all payments
-                await loadAllPayments();
-                
-                // Clear any existing rows first
-                document.getElementById('paymentRecordsTable').innerHTML = '';
-                paymentRowCounter = 0;
+                // Cache the data
+                setCacheData('payments', {
+                    payments: allPayments,
+                    studentsForSearch: allStudentsForSearch
+                });
                 
                 // Apply filters and render
                 filterPayments();
                 
-                updateSyncStatus('connected');
-            } catch (error) {
-                console.error('Error loading payment tracker:', error);
-                updateSyncStatus('error', 'Load failed');
-            }
-        }
-
-        async function loadAllStudentsForSearch() {
-            try {
-                const snapshot = await db.collection('students').get();
-                allStudentsForSearch = [];
-                
-                snapshot.forEach(doc => {
-                    const student = { id: doc.id, ...doc.data() };
-                    allStudentsForSearch.push(student);
-                });
-            } catch (error) {
-                console.error('Error loading students for search:', error);
-            }
-        }
-
-        async function loadAllPayments() {
-            try {
-                const snapshot = await db.collection('paymentTransactions').get();
-                allPayments = [];
-                
-                snapshot.forEach(doc => {
-                    const payment = { id: doc.id, ...doc.data() };
-                    // Convert Firestore timestamp to Date if needed
-                    if (payment.paymentDate && payment.paymentDate.toDate) {
-                        payment.paymentDate = payment.paymentDate.toDate();
-                    }
-                    allPayments.push(payment);
-                });
+                updateSyncStatus(isOnline ? 'connected' : 'offline');
             } catch (error) {
                 console.error('Error loading payments:', error);
+                updateSyncStatus('error', 'Load failed');
+                allPayments = []; // Reset on error
+                filterPayments(); // Show empty state
+            }
+        }
+
+        async function loadStudentsForSearch() {
+            try {
+                const studentsSnapshot = await db.collection('students').get();
+                allStudentsForSearch = [];
+                
+                studentsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // Only include students with required fields
+                    if (data.studentId && data.fullName) {
+                        allStudentsForSearch.push({
+                            id: doc.id,
+                            studentId: data.studentId,
+                            fullName: data.fullName,
+                            classAssignment: data.classAssignment || 'N/A',
+                            status: data.status || 'Active'
+                        });
+                    }
+                });
+                
+                // Sort students by name for better UX
+                allStudentsForSearch.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
+                
+                console.log(`Loaded ${allStudentsForSearch.length} students for search`);
+            } catch (error) {
+                console.error('Error loading students for search:', error);
+                allStudentsForSearch = []; // Reset on error
             }
         }
 
         function addPaymentRow() {
-            paymentRowCounter++;
             const tbody = document.getElementById('paymentRecordsTable');
             const row = document.createElement('tr');
-            row.id = `paymentRow_${paymentRowCounter}`;
-            row.className = 'border-b';
-            
-            const today = new Date().toISOString().split('T')[0];
-            const currentYear = new Date().getFullYear();
+            paymentRowCounter++;
             
             row.innerHTML = `
                 <td class="px-4 py-2">
-                    <input type="date" value="${today}" class="w-full px-2 py-1 border rounded text-sm" id="paymentDate_${paymentRowCounter}">
+                    <input type="date" class="w-full px-2 py-1 border rounded text-sm" value="${new Date().toISOString().split('T')[0]}" id="paymentDate_${paymentRowCounter}">
                 </td>
                 <td class="px-4 py-2">
-                    <div class="relative">
-                        <input type="text" placeholder="Type to search students..." class="w-full px-2 py-1 border rounded text-sm" 
-                               id="studentSearch_${paymentRowCounter}" 
-                               oninput="filterStudentDropdown(${paymentRowCounter})"
-                               onfocus="showAllStudents(${paymentRowCounter})"
-                               onblur="hideStudentDropdown(${paymentRowCounter})"
-                               autocomplete="off">
-                        <div id="studentDropdown_${paymentRowCounter}" class="absolute z-[9999] w-full bg-white border rounded-md shadow-lg hidden max-h-40 overflow-y-auto">
-                            <!-- Student options will appear here -->
-                        </div>
-                        <input type="hidden" id="selectedStudentId_${paymentRowCounter}">
-                    </div>
+                    <select class="w-full px-2 py-1 border rounded text-sm" id="student_${paymentRowCounter}" onchange="updateOutstanding(${paymentRowCounter})">
+                        <option value="">Select Student</option>
+                        ${allStudentsForSearch.map(student => 
+                            `<option value="${student.studentId}">${student.fullName} (${student.studentId})</option>`
+                        ).join('')}
+                    </select>
                 </td>
                 <td class="px-4 py-2">
                     <select class="w-full px-2 py-1 border rounded text-sm" id="tuitionYear_${paymentRowCounter}" onchange="updateOutstanding(${paymentRowCounter})">
+                        <option value="">Select Year</option>
                         <option value="2023">2023</option>
                         <option value="2024">2024</option>
                         <option value="2025">2025</option>
@@ -2090,11 +2663,12 @@
                         <option value="2027">2027</option>
                         <option value="2028">2028</option>
                         <option value="2029">2029</option>
-                        <option value="2030" selected>2030</option>
+                        <option value="2030">2030</option>
                     </select>
                 </td>
                 <td class="px-4 py-2">
                     <select class="w-full px-2 py-1 border rounded text-sm" id="tuitionMonth_${paymentRowCounter}" onchange="updateOutstanding(${paymentRowCounter})">
+                        <option value="">Select Month</option>
                         <option value="1">January</option>
                         <option value="2">February</option>
                         <option value="3">March</option>
@@ -2110,11 +2684,11 @@
                     </select>
                 </td>
                 <td class="px-4 py-2">
-                    <div class="text-sm font-medium text-gray-900" id="outstanding_${paymentRowCounter}">-</div>
+                    <div class="text-sm text-gray-600" id="outstanding_${paymentRowCounter}">-</div>
                 </td>
                 <td class="px-4 py-2">
                     <div class="relative">
-                        <input type="number" step="0.01" placeholder="0" class="w-full px-2 py-1 pr-8 border rounded text-sm" id="amountPaid_${paymentRowCounter}">
+                        <input type="number" step="0.01" placeholder="0" class="w-20 px-2 py-1 pr-8 border rounded text-sm" id="amountPaid_${paymentRowCounter}">
                         <span class="absolute right-2 top-1 text-xs text-gray-500">.000</span>
                     </div>
                 </td>
@@ -2125,111 +2699,21 @@
                     </select>
                 </td>
                 <td class="px-4 py-2">
-                    <button onclick="deletePaymentRow(${paymentRowCounter})" class="text-red-600 hover:text-red-800 text-sm">
-                        Delete
-                    </button>
+                    <button onclick="removePaymentRow(this)" class="text-red-600 hover:text-red-800 text-sm">Remove</button>
                 </td>
             `;
             
-            // Set current year and month as defaults
-            row.querySelector(`#tuitionYear_${paymentRowCounter}`).value = currentYear;
-            row.querySelector(`#tuitionMonth_${paymentRowCounter}`).value = new Date().getMonth() + 1;
-            
             tbody.appendChild(row);
-            
-            // Pre-populate the dropdown with all students
-            populateStudentDropdown(paymentRowCounter);
         }
 
-        function deletePaymentRow(rowId) {
-            const row = document.getElementById(`paymentRow_${rowId}`);
-            if (row) {
-                row.remove();
-            }
-        }
-
-        function populateStudentDropdown(rowId) {
-            const dropdown = document.getElementById(`studentDropdown_${rowId}`);
-            dropdown.innerHTML = '';
-            
-            // Sort students by name for better UX
-            const sortedStudents = [...allStudentsForSearch].sort((a, b) => 
-                (a.fullName || '').localeCompare(b.fullName || '')
-            );
-            
-            sortedStudents.forEach(student => {
-                const option = document.createElement('div');
-                option.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm student-option';
-                option.dataset.studentName = normalizeVietnamese(student.fullName || '');
-                option.dataset.studentId = normalizeVietnamese(student.studentId || '');
-                option.innerHTML = `
-                    <div class="font-medium">${student.fullName || 'N/A'}</div>
-                    <div class="text-gray-500 text-xs">ID: ${student.studentId || 'N/A'} | Class: ${student.classAssignment || 'N/A'}</div>
-                `;
-                option.onmousedown = () => selectStudent(rowId, student);
-                dropdown.appendChild(option);
-            });
-        }
-
-        function filterStudentDropdown(rowId) {
-            const searchInput = document.getElementById(`studentSearch_${rowId}`);
-            const dropdown = document.getElementById(`studentDropdown_${rowId}`);
-            const searchTerm = normalizeVietnamese(searchInput.value);
-            
-            const options = dropdown.querySelectorAll('.student-option');
-            let visibleCount = 0;
-            
-            options.forEach(option => {
-                const nameMatch = option.dataset.studentName.includes(searchTerm);
-                const idMatch = option.dataset.studentId.includes(searchTerm);
-                
-                if (nameMatch || idMatch || searchTerm === '') {
-                    option.style.display = 'block';
-                    visibleCount++;
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-            
-            // Show dropdown if there are visible options
-            if (visibleCount > 0) {
-                dropdown.classList.remove('hidden');
-            } else {
-                dropdown.classList.add('hidden');
-            }
-        }
-
-        function showAllStudents(rowId) {
-            const dropdown = document.getElementById(`studentDropdown_${rowId}`);
-            const options = dropdown.querySelectorAll('.student-option');
-            
-            // Show all options
-            options.forEach(option => {
-                option.style.display = 'block';
-            });
-            
-            dropdown.classList.remove('hidden');
-        }
-
-        function selectStudent(rowId, student) {
-            document.getElementById(`studentSearch_${rowId}`).value = `${student.fullName} (${student.studentId})`;
-            document.getElementById(`selectedStudentId_${rowId}`).value = student.studentId;
-            document.getElementById(`studentDropdown_${rowId}`).classList.add('hidden');
-            
-            // Update outstanding amount when student is selected
-            updateOutstanding(rowId);
-        }
-
-        function hideStudentDropdown(rowId) {
-            setTimeout(() => {
-                document.getElementById(`studentDropdown_${rowId}`).classList.add('hidden');
-            }, 200);
+        function removePaymentRow(button) {
+            button.closest('tr').remove();
         }
 
         async function updateOutstanding(rowId) {
-            const studentId = document.getElementById(`selectedStudentId_${rowId}`).value;
-            const year = parseInt(document.getElementById(`tuitionYear_${rowId}`).value);
-            const month = parseInt(document.getElementById(`tuitionMonth_${rowId}`).value);
+            const studentId = document.getElementById(`student_${rowId}`).value;
+            const year = document.getElementById(`tuitionYear_${rowId}`).value;
+            const month = document.getElementById(`tuitionMonth_${rowId}`).value;
             const outstandingDiv = document.getElementById(`outstanding_${rowId}`);
             
             if (!studentId || !year || !month) {
@@ -2241,122 +2725,138 @@
                 // Get tuition record for this student/month/year
                 const monthStr = String(month).padStart(2, '0');
                 const docId = `tuition_${studentId}_${year}-${monthStr}`;
+                
                 const tuitionDoc = await db.collection('tuition').doc(docId).get();
                 
                 if (tuitionDoc.exists) {
-                    const tuitionData = tuitionDoc.data();
-                    const finalFee = tuitionData.finalFee || tuitionData.calculatedFee || 0;
-                    const paid = tuitionData.paid || false;
+                    const data = tuitionDoc.data();
+                    const finalFee = data.finalFee || data.calculatedFee || 0;
+                    const paid = data.paid || false;
                     
-                    if (finalFee > 0) {
-                        if (paid) {
-                            outstandingDiv.textContent = '0';
-                            outstandingDiv.className = 'text-sm font-medium text-green-600';
-                        } else {
-                            outstandingDiv.textContent = formatVNDForDisplay(finalFee, true);
-                            outstandingDiv.className = 'text-sm font-medium text-red-600';
-                        }
+                    if (paid) {
+                        outstandingDiv.innerHTML = '<span class="text-green-600">Paid</span>';
+                    } else if (finalFee > 0) {
+                        outstandingDiv.textContent = formatVNDFull(finalFee);
                     } else {
-                        outstandingDiv.textContent = 'No fee set';
-                        outstandingDiv.className = 'text-sm font-medium text-gray-500';
+                        outstandingDiv.innerHTML = '<span class="text-gray-500">No fee</span>';
                     }
                 } else {
-                    outstandingDiv.textContent = 'No record';
-                    outstandingDiv.className = 'text-sm font-medium text-gray-500';
+                    outstandingDiv.innerHTML = '<span class="text-gray-500">No record</span>';
                 }
             } catch (error) {
-                console.error('Error fetching outstanding amount:', error);
-                outstandingDiv.textContent = 'Error';
-                outstandingDiv.className = 'text-sm font-medium text-red-500';
+                console.error('Error getting outstanding amount:', error);
+                outstandingDiv.innerHTML = '<span class="text-red-500">Error</span>';
             }
         }
 
         async function recordPayments() {
+            const tbody = document.getElementById('paymentRecordsTable');
+            const rows = tbody.querySelectorAll('tr');
+            
+            if (rows.length === 0) {
+                alert('No payment records to save');
+                return;
+            }
+            
             try {
                 updateSyncStatus('syncing', 'Recording payments...');
                 
-                const tbody = document.getElementById('paymentRecordsTable');
-                const rows = tbody.querySelectorAll('tr');
-                const payments = [];
+                let recordedCount = 0;
                 
                 for (const row of rows) {
-                    const rowId = row.id.split('_')[1];
-                    const paymentDate = document.getElementById(`paymentDate_${rowId}`).value;
-                    const selectedStudentId = document.getElementById(`selectedStudentId_${rowId}`).value;
-                    const tuitionYear = parseInt(document.getElementById(`tuitionYear_${rowId}`).value);
-                    const tuitionMonth = parseInt(document.getElementById(`tuitionMonth_${rowId}`).value);
-                    const amountPaid = parseVNDInput(document.getElementById(`amountPaid_${rowId}`).value);
-                    const paymentStatus = document.getElementById(`paymentStatus_${rowId}`).value;
+                    const rowId = row.querySelector('input[id^="paymentDate_"]')?.id.split('_')[1];
+                    if (!rowId) continue;
                     
-                    // Validate required fields
-                    if (!paymentDate || !selectedStudentId || !amountPaid || amountPaid <= 0) {
-                        continue; // Skip incomplete rows
+                    const paymentDate = document.getElementById(`paymentDate_${rowId}`)?.value;
+                    const studentId = document.getElementById(`student_${rowId}`)?.value;
+                    const tuitionYear = document.getElementById(`tuitionYear_${rowId}`)?.value;
+                    const tuitionMonth = document.getElementById(`tuitionMonth_${rowId}`)?.value;
+                    const amountPaid = parseVNDInput(document.getElementById(`amountPaid_${rowId}`)?.value);
+                    const paymentStatus = document.getElementById(`paymentStatus_${rowId}`)?.value;
+                    
+                    // Skip empty rows
+                    if (!paymentDate || !studentId || !tuitionYear || !tuitionMonth || !amountPaid) {
+                        continue;
                     }
                     
                     // Find student details
-                    const student = allStudentsForSearch.find(s => s.studentId === selectedStudentId);
+                    const student = allStudentsForSearch.find(s => s.studentId === studentId);
                     if (!student) continue;
                     
-                    // Generate document ID: rec_YYYYMMDD_studentId_YYYYMM_timestamp
-                    const dateStr = paymentDate.replace(/-/g, '');
+                    // Generate transaction document ID
+                    const dateStr = new Date(paymentDate).toISOString().slice(0, 10).replace(/-/g, '');
                     const monthStr = String(tuitionMonth).padStart(2, '0');
                     const timestamp = Date.now();
-                    const recDocId = `rec_${dateStr}_${selectedStudentId}_${tuitionYear}${monthStr}_${timestamp}`;
+                    const txnDocId = `txn_${dateStr}_${studentId}_${tuitionYear}${monthStr}_${timestamp}`;
                     
-                    const paymentData = {
+                    // Create transaction record
+                    const transactionData = {
                         paymentDate: new Date(paymentDate),
-                        studentId: selectedStudentId,
+                        studentId: studentId,
                         studentName: student.fullName,
                         classAssignment: student.classAssignment,
-                        tuitionYear: tuitionYear,
-                        tuitionMonth: tuitionMonth,
+                        tuitionYear: parseInt(tuitionYear),
+                        tuitionMonth: parseInt(tuitionMonth),
                         amountPaid: amountPaid,
                         paymentStatus: paymentStatus,
                         recordedAt: firebase.firestore.FieldValue.serverTimestamp(),
                         recordedBy: 'payment_recorder',
                         source: 'payment_tracker',
-                        transactionType: 'manual_payment',
-                        docId: recDocId
+                        transactionType: 'tuition_payment'
                     };
                     
-                    payments.push(paymentData);
-                }
-                
-                if (payments.length === 0) {
-                    alert('No valid payment records to save. Please fill in all required fields.');
-                    updateSyncStatus('connected');
-                    return;
-                }
-                
-                // Save payments to new paymentTransactions collection
-                const batch = db.batch();
-                for (const payment of payments) {
-                    const docRef = db.collection('paymentTransactions').doc(payment.docId);
-                    batch.set(docRef, payment);
+                    if (isOnline) {
+                        await db.collection('paymentTransactions').doc(txnDocId).set(transactionData);
+                    } else {
+                        addPendingOperation({
+                            type: 'create',
+                            collection: 'paymentTransactions',
+                            docId: txnDocId,
+                            data: transactionData
+                        });
+                    }
                     
-                    // Update tuition record if exists
-                    const monthStr = String(payment.tuitionMonth).padStart(2, '0');
-                    const tuitionDocId = `tuition_${payment.studentId}_${payment.tuitionYear}-${monthStr}`;
-                    const tuitionRef = db.collection('tuition').doc(tuitionDocId);
-                    
-                    batch.set(tuitionRef, {
+                    // Update tuition record
+                    const tuitionDocId = `tuition_${studentId}_${tuitionYear}-${monthStr}`;
+                    const tuitionUpdateData = {
                         paid: true,
-                        paymentDate: payment.paymentDate,
-                        paymentAmount: payment.amountPaid,
-                        paymentStatus: payment.paymentStatus,
-                        status: payment.paymentStatus === 'processed' ? 'processed' : 'paid'
-                    }, { merge: true });
+                        paymentDate: paymentDate,
+                        processed: paymentStatus === 'processed',
+                        status: paymentStatus === 'processed' ? 'processed' : 'paid',
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    if (isOnline) {
+                        await db.collection('tuition').doc(tuitionDocId).update(tuitionUpdateData);
+                    } else {
+                        addPendingOperation({
+                            type: 'update',
+                            collection: 'tuition',
+                            docId: tuitionDocId,
+                            data: tuitionUpdateData
+                        });
+                    }
+                    
+                    recordedCount++;
                 }
                 
-                await batch.commit();
-                
-                // Clear the form and reload data
-                cancelPaymentRecording();
-                await loadAllPayments();
-                filterPayments();
-                
-                updateSyncStatus('connected', `${payments.length} payment(s) recorded`);
-                alert(`Successfully recorded ${payments.length} payment(s)!`);
+                if (recordedCount > 0) {
+                    // Clear the table
+                    tbody.innerHTML = '';
+                    paymentRowCounter = 0;
+                    
+                    // Reload payment data
+                    await loadPaymentTracker();
+                    
+                    // Collapse the payment recorder
+                    togglePaymentRecorder();
+                    
+                    updateSyncStatus(isOnline ? 'connected' : 'offline', 
+                        isOnline ? `${recordedCount} payments recorded` : `${recordedCount} payments saved offline`);
+                } else {
+                    alert('No valid payment records found to save');
+                    updateSyncStatus(isOnline ? 'connected' : 'offline');
+                }
                 
             } catch (error) {
                 console.error('Error recording payments:', error);
@@ -2366,12 +2866,11 @@
         }
 
         function cancelPaymentRecording() {
-            // Clear all payment rows
-            document.getElementById('paymentRecordsTable').innerHTML = '';
-            paymentRowCounter = 0;
-            
-            // Add one empty row
-            addPaymentRow();
+            if (confirm('Are you sure you want to cancel? All unsaved payment records will be lost.')) {
+                document.getElementById('paymentRecordsTable').innerHTML = '';
+                paymentRowCounter = 0;
+                togglePaymentRecorder();
+            }
         }
 
         function filterPayments() {
@@ -2388,10 +2887,10 @@
                     normalizeVietnamese(payment.studentId || '').includes(searchTerm);
                 
                 // Year filter
-                const matchesYear = !yearFilter || payment.tuitionYear == yearFilter;
+                const matchesYear = !yearFilter || payment.tuitionYear === parseInt(yearFilter);
                 
                 // Month filter
-                const matchesMonth = !monthFilter || payment.tuitionMonth == monthFilter;
+                const matchesMonth = !monthFilter || payment.tuitionMonth === parseInt(monthFilter);
                 
                 // Status filter
                 const matchesStatus = !statusFilter || payment.paymentStatus === statusFilter;
@@ -2419,71 +2918,67 @@
                 }
             });
             
-            renderPaymentTransactions();
+            renderPaymentTransactionsTable();
             updatePaymentSummary();
         }
 
-        function renderPaymentTransactions() {
+        function renderPaymentTransactionsTable() {
             const tbody = document.getElementById('paymentTransactionsTable');
             tbody.innerHTML = '';
+            
+            console.log(`Rendering ${filteredPayments.length} payment transactions`);
             
             if (filteredPayments.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="px-6 py-8 text-center text-gray-500">
-                            No payment records found for the selected criteria
+                            No payment transactions found for the selected criteria<br>
+                            <small class="text-xs">Total payments in database: ${allPayments.length}</small>
                         </td>
                     </tr>
                 `;
                 return;
             }
             
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            
             filteredPayments.forEach(payment => {
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50';
                 
-                const paymentDate = payment.paymentDate instanceof Date ? payment.paymentDate : new Date(payment.paymentDate);
-                const formattedDate = paymentDate.toLocaleDateString('en-GB');
+                const paymentDate = payment.paymentDate instanceof Date ? 
+                    payment.paymentDate.toLocaleDateString('en-CA') : 
+                    new Date(payment.paymentDate).toLocaleDateString('en-CA');
                 
-                const statusClass = payment.paymentStatus === 'processed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-                const statusText = payment.paymentStatus === 'processed' ? 'Processed' : 'Received';
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const tuitionPeriod = `${monthNames[payment.tuitionMonth - 1]} ${payment.tuitionYear}`;
+                
+                let statusBadge = '';
+                if (payment.paymentStatus === 'processed') {
+                    statusBadge = '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Processed</span>';
+                } else {
+                    statusBadge = '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Received</span>';
+                }
                 
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">
                         <input type="checkbox" class="rounded payment-checkbox" data-payment-id="${payment.id}">
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${formattedDate}
-                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${paymentDate}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">${payment.studentName || 'N/A'}</div>
                         <div class="text-sm text-gray-500">ID: ${payment.studentId || 'N/A'}</div>
-                        <div class="text-sm text-gray-500">Class: ${payment.classAssignment || 'N/A'}</div>
+                        <div class="text-sm text-gray-500">${payment.classAssignment || 'N/A'}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${monthNames[payment.tuitionMonth - 1]} ${payment.tuitionYear}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        ${formatVNDForDisplay(payment.amountPaid)}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
-                            ${statusText}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="editPayment('${payment.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                        <button onclick="deletePayment('${payment.id}')" class="text-red-600 hover:text-red-900">Delete</button>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${tuitionPeriod}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formatVNDFull(payment.amountPaid || 0)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <button onclick="editPayment('${payment.id}')" class="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
+                        <button onclick="deletePayment('${payment.id}')" class="text-red-600 hover:text-red-800">Delete</button>
                     </td>
                 `;
                 
                 tbody.appendChild(row);
             });
-            
-            // Update bulk action buttons
-            updateBulkActionButtons();
         }
 
         function updatePaymentSummary() {
@@ -2492,7 +2987,7 @@
             const pendingCount = filteredPayments.filter(payment => payment.paymentStatus === 'received').length;
             
             document.getElementById('totalPaymentsCount').textContent = totalCount;
-            document.getElementById('totalPaymentsAmount').textContent = formatVNDForDisplay(totalAmount);
+            document.getElementById('totalPaymentsAmount').textContent = formatVNDFull(totalAmount);
             document.getElementById('pendingProcessingCount').textContent = pendingCount;
         }
 
@@ -2508,11 +3003,11 @@
         }
 
         function updateBulkActionButtons() {
-            const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
+            const checkedBoxes = document.querySelectorAll('.payment-checkbox:checked');
             const bulkProcessBtn = document.getElementById('bulkProcessBtn');
             const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
             
-            const hasSelection = checkboxes.length > 0;
+            const hasSelection = checkedBoxes.length > 0;
             bulkProcessBtn.disabled = !hasSelection;
             bulkDeleteBtn.disabled = !hasSelection;
             
@@ -2525,72 +3020,126 @@
             }
         }
 
+        // Add event listeners to payment checkboxes
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('payment-checkbox')) {
+                updateBulkActionButtons();
+            }
+        });
+
         async function bulkUpdateStatus(newStatus) {
-            const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
-            if (checkboxes.length === 0) return;
+            const checkedBoxes = document.querySelectorAll('.payment-checkbox:checked');
+            const paymentIds = Array.from(checkedBoxes).map(cb => cb.dataset.paymentId);
             
-            if (!confirm(`Are you sure you want to mark ${checkboxes.length} payment(s) as ${newStatus}?`)) {
+            if (paymentIds.length === 0) {
+                alert('Please select payments to update');
+                return;
+            }
+            
+            if (!confirm(`Mark ${paymentIds.length} payment(s) as ${newStatus}?`)) {
                 return;
             }
             
             try {
-                updateSyncStatus('syncing', 'Updating status...');
+                updateSyncStatus('syncing', 'Updating payments...');
                 
-                const batch = db.batch();
-                checkboxes.forEach(checkbox => {
-                    const paymentId = checkbox.dataset.paymentId;
-                    const paymentRef = db.collection('paymentTransactions').doc(paymentId);
-                    batch.update(paymentRef, { 
+                for (const paymentId of paymentIds) {
+                    const updateData = {
                         paymentStatus: newStatus,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                });
-                
-                await batch.commit();
+                    };
+                    
+                    if (isOnline) {
+                        await db.collection('paymentTransactions').doc(paymentId).update(updateData);
+                    } else {
+                        addPendingOperation({
+                            type: 'update',
+                            collection: 'paymentTransactions',
+                            docId: paymentId,
+                            data: updateData
+                        });
+                    }
+                    
+                    // Also update corresponding tuition record
+                    const payment = allPayments.find(p => p.id === paymentId);
+                    if (payment) {
+                        const monthStr = String(payment.tuitionMonth).padStart(2, '0');
+                        const tuitionDocId = `tuition_${payment.studentId}_${payment.tuitionYear}-${monthStr}`;
+                        
+                        const tuitionUpdateData = {
+                            processed: newStatus === 'processed',
+                            status: newStatus,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        
+                        if (isOnline) {
+                            await db.collection('tuition').doc(tuitionDocId).update(tuitionUpdateData);
+                        } else {
+                            addPendingOperation({
+                                type: 'update',
+                                collection: 'tuition',
+                                docId: tuitionDocId,
+                                data: tuitionUpdateData
+                            });
+                        }
+                    }
+                }
                 
                 // Reload data
-                await loadAllPayments();
-                filterPayments();
+                await loadPaymentTracker();
                 
                 // Clear selections
                 document.getElementById('selectAllPayments').checked = false;
+                updateBulkActionButtons();
                 
-                updateSyncStatus('connected', 'Status updated');
+                updateSyncStatus(isOnline ? 'connected' : 'offline', 
+                    isOnline ? `${paymentIds.length} payments updated` : `${paymentIds.length} updates saved offline`);
+                
             } catch (error) {
-                console.error('Error updating payment status:', error);
+                console.error('Error updating payments:', error);
                 updateSyncStatus('error', 'Update failed');
-                alert('Error updating payment status: ' + error.message);
+                alert('Error updating payments: ' + error.message);
             }
         }
 
         async function bulkDeletePayments() {
-            const checkboxes = document.querySelectorAll('.payment-checkbox:checked');
-            if (checkboxes.length === 0) return;
+            const checkedBoxes = document.querySelectorAll('.payment-checkbox:checked');
+            const paymentIds = Array.from(checkedBoxes).map(cb => cb.dataset.paymentId);
             
-            if (!confirm(`Are you sure you want to delete ${checkboxes.length} payment record(s)? This action cannot be undone.`)) {
+            if (paymentIds.length === 0) {
+                alert('Please select payments to delete');
+                return;
+            }
+            
+            if (!confirm(`Delete ${paymentIds.length} payment record(s)? This action cannot be undone.`)) {
                 return;
             }
             
             try {
                 updateSyncStatus('syncing', 'Deleting payments...');
                 
-                const batch = db.batch();
-                checkboxes.forEach(checkbox => {
-                    const paymentId = checkbox.dataset.paymentId;
-                    const paymentRef = db.collection('paymentTransactions').doc(paymentId);
-                    batch.delete(paymentRef);
-                });
-                
-                await batch.commit();
+                for (const paymentId of paymentIds) {
+                    if (isOnline) {
+                        await db.collection('paymentTransactions').doc(paymentId).delete();
+                    } else {
+                        addPendingOperation({
+                            type: 'delete',
+                            collection: 'paymentTransactions',
+                            docId: paymentId
+                        });
+                    }
+                }
                 
                 // Reload data
-                await loadAllPayments();
-                filterPayments();
+                await loadPaymentTracker();
                 
                 // Clear selections
                 document.getElementById('selectAllPayments').checked = false;
+                updateBulkActionButtons();
                 
-                updateSyncStatus('connected', 'Payments deleted');
+                updateSyncStatus(isOnline ? 'connected' : 'offline', 
+                    isOnline ? `${paymentIds.length} payments deleted` : `${paymentIds.length} deletions queued`);
+                
             } catch (error) {
                 console.error('Error deleting payments:', error);
                 updateSyncStatus('error', 'Delete failed');
@@ -2599,25 +3148,74 @@
         }
 
         async function editPayment(paymentId) {
-            // For now, just show an alert. Could implement a modal for editing
-            alert('Edit payment functionality - to be implemented');
+            const payment = allPayments.find(p => p.id === paymentId);
+            if (!payment) return;
+            
+            const newAmount = prompt('Enter new payment amount (in thousands):', (payment.amountPaid / 1000).toString());
+            if (newAmount === null) return;
+            
+            const parsedAmount = parseVNDInput(newAmount);
+            if (parsedAmount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            try {
+                updateSyncStatus('syncing', 'Updating payment...');
+                
+                const updateData = {
+                    amountPaid: parsedAmount,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (isOnline) {
+                    await db.collection('paymentTransactions').doc(paymentId).update(updateData);
+                } else {
+                    addPendingOperation({
+                        type: 'update',
+                        collection: 'paymentTransactions',
+                        docId: paymentId,
+                        data: updateData
+                    });
+                }
+                
+                // Reload data
+                await loadPaymentTracker();
+                
+                updateSyncStatus(isOnline ? 'connected' : 'offline', 
+                    isOnline ? 'Payment updated' : 'Update saved offline');
+                
+            } catch (error) {
+                console.error('Error updating payment:', error);
+                updateSyncStatus('error', 'Update failed');
+                alert('Error updating payment: ' + error.message);
+            }
         }
 
         async function deletePayment(paymentId) {
-            if (!confirm('Are you sure you want to delete this payment record?')) {
+            if (!confirm('Delete this payment record? This action cannot be undone.')) {
                 return;
             }
             
             try {
                 updateSyncStatus('syncing', 'Deleting payment...');
                 
-                await db.collection('paymentTransactions').doc(paymentId).delete();
+                if (isOnline) {
+                    await db.collection('paymentTransactions').doc(paymentId).delete();
+                } else {
+                    addPendingOperation({
+                        type: 'delete',
+                        collection: 'paymentTransactions',
+                        docId: paymentId
+                    });
+                }
                 
                 // Reload data
-                await loadAllPayments();
-                filterPayments();
+                await loadPaymentTracker();
                 
-                updateSyncStatus('connected', 'Payment deleted');
+                updateSyncStatus(isOnline ? 'connected' : 'offline', 
+                    isOnline ? 'Payment deleted' : 'Deletion queued');
+                
             } catch (error) {
                 console.error('Error deleting payment:', error);
                 updateSyncStatus('error', 'Delete failed');
@@ -2625,38 +3223,489 @@
             }
         }
 
-        // Add event listeners for bulk actions
-        document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('payment-checkbox')) {
-                updateBulkActionButtons();
+
+
+        // Refresh all data function
+        async function refreshAllData() {
+            try {
+                updateSyncStatus('syncing', 'Refreshing all data...');
+                
+                // Clear all cache
+                clearCache();
+                
+                // Force reload all data
+                await loadCoursePlans(true);
+                await loadStudentTuitionData(true);
+                await loadPaymentTracker(true);
+                
+                updateSyncStatus('connected', 'Data refreshed');
+                
+                // Show success message briefly
+                setTimeout(() => {
+                    updateSyncStatus('connected', 'Connected');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+                updateSyncStatus('error', 'Refresh failed');
+            }
+        }
+
+        // Extra Fees Management Functions
+        async function loadExtraFeesData() {
+            try {
+                updateSyncStatus('syncing', 'Loading extra fees...');
+                
+                // Load fee types
+                await loadFeeTypes();
+                
+                // Load students for extra fees assignment
+                await loadStudentsForExtraFees();
+                
+                // Load extra fee classes for filter
+                await loadExtraFeeClasses();
+                
+                // Set current year as default
+                const currentYear = new Date().getFullYear();
+                document.getElementById('extraFeeYearFilter').value = currentYear;
+                
+                // Filter and render students
+                filterExtraFeeStudents();
+                
+                updateSyncStatus(isOnline ? 'connected' : 'offline');
+            } catch (error) {
+                console.error('Error loading extra fees data:', error);
+                updateSyncStatus('error', 'Load failed');
+            }
+        }
+
+        async function loadFeeTypes() {
+            try {
+                const snapshot = await db.collection('feeTypes').get();
+                feeTypes = [];
+                
+                snapshot.forEach(doc => {
+                    feeTypes.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderFeeTypes();
+            } catch (error) {
+                console.error('Error loading fee types:', error);
+                feeTypes = [];
+                renderFeeTypes();
+            }
+        }
+
+        function renderFeeTypes() {
+            const container = document.getElementById('feeTypesList');
+            container.innerHTML = '';
+            
+            if (feeTypes.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No fee types found</p>';
+                return;
+            }
+            
+            feeTypes.forEach(feeType => {
+                const feeTypeElement = document.createElement('div');
+                feeTypeElement.className = `border rounded-lg p-4 ${feeType.active ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`;
+                feeTypeElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-semibold ${feeType.active ? 'text-green-900' : 'text-gray-700'}">${feeType.name}</h4>
+                            <p class="text-sm ${feeType.active ? 'text-green-600' : 'text-gray-500'}">Default: ${formatVNDFull(feeType.defaultAmount || 0)}</p>
+                            ${feeType.description ? `<p class="text-sm ${feeType.active ? 'text-green-600' : 'text-gray-500'} mt-1">${feeType.description}</p>` : ''}
+                            <span class="inline-block mt-2 px-2 py-1 text-xs rounded ${feeType.active ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-600'}">
+                                ${feeType.active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editFeeType('${feeType.id}')" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                            <button onclick="deleteFeeType('${feeType.id}')" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(feeTypeElement);
+            });
+        }
+
+        // Fee Type Form Handler
+        document.getElementById('feeTypeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const feeTypeData = {
+                name: document.getElementById('feeTypeName').value,
+                defaultAmount: parseVNDInput(document.getElementById('feeTypeAmount').value),
+                description: document.getElementById('feeTypeDescription').value,
+                active: document.getElementById('feeTypeActive').checked,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                updateSyncStatus('syncing', 'Saving fee type...');
+                
+                if (currentEditingFeeType) {
+                    if (isOnline) {
+                        await db.collection('feeTypes').doc(currentEditingFeeType).update(feeTypeData);
+                    } else {
+                        addPendingOperation({
+                            type: 'update',
+                            collection: 'feeTypes',
+                            docId: currentEditingFeeType,
+                            data: feeTypeData
+                        });
+                    }
+                    currentEditingFeeType = null;
+                    document.getElementById('feeTypeSubmitText').textContent = 'Add Fee Type';
+                } else {
+                    // Generate sequential document ID
+                    const allFeeTypes = await db.collection('feeTypes').get();
+                    const feeTypeNumber = String(allFeeTypes.size + 1).padStart(3, '0');
+                    const docId = `feeType_${feeTypeNumber}`;
+                    
+                    if (isOnline) {
+                        await db.collection('feeTypes').doc(docId).set(feeTypeData);
+                    } else {
+                        addPendingOperation({
+                            type: 'create',
+                            collection: 'feeTypes',
+                            docId: docId,
+                            data: feeTypeData
+                        });
+                    }
+                }
+                
+                document.getElementById('feeTypeForm').reset();
+                document.getElementById('feeTypeActive').checked = true;
+                await loadFeeTypes();
+                updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Fee type saved' : 'Fee type saved offline');
+            } catch (error) {
+                console.error('Error saving fee type:', error);
+                updateSyncStatus('error', 'Save failed');
+                alert('Error saving fee type: ' + error.message);
             }
         });
 
+        async function editFeeType(feeTypeId) {
+            const feeType = feeTypes.find(ft => ft.id === feeTypeId);
+            if (feeType) {
+                document.getElementById('feeTypeName').value = feeType.name;
+                document.getElementById('feeTypeAmount').value = (feeType.defaultAmount || 0) / 1000;
+                document.getElementById('feeTypeDescription').value = feeType.description || '';
+                document.getElementById('feeTypeActive').checked = feeType.active;
+                currentEditingFeeType = feeTypeId;
+                document.getElementById('feeTypeSubmitText').textContent = 'Update Fee Type';
+            }
+        }
+
+        async function deleteFeeType(feeTypeId) {
+            if (confirm('Are you sure you want to delete this fee type?')) {
+                try {
+                    updateSyncStatus('syncing', 'Deleting...');
+                    
+                    if (isOnline) {
+                        await db.collection('feeTypes').doc(feeTypeId).delete();
+                    } else {
+                        addPendingOperation({
+                            type: 'delete',
+                            collection: 'feeTypes',
+                            docId: feeTypeId
+                        });
+                    }
+                    
+                    await loadFeeTypes();
+                    updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Fee type deleted' : 'Delete queued');
+                } catch (error) {
+                    console.error('Error deleting fee type:', error);
+                    updateSyncStatus('error', 'Delete failed');
+                }
+            }
+        }
+
+        async function loadStudentsForExtraFees() {
+            try {
+                const studentsSnapshot = await db.collection('students').get();
+                allStudentsForExtraFees = [];
+                
+                studentsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.studentId && data.fullName) {
+                        allStudentsForExtraFees.push({
+                            id: doc.id,
+                            studentId: data.studentId,
+                            fullName: data.fullName,
+                            classAssignment: data.classAssignment || 'N/A',
+                            status: data.status || 'Active'
+                        });
+                    }
+                });
+                
+                allStudentsForExtraFees.sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
+            } catch (error) {
+                console.error('Error loading students for extra fees:', error);
+                allStudentsForExtraFees = [];
+            }
+        }
+
+        async function loadExtraFeeClasses() {
+            try {
+                const snapshot = await db.collection('classes').get();
+                const classFilter = document.getElementById('extraFeeClassFilter');
+                
+                classFilter.innerHTML = '<option value="">All Classes</option>';
+                
+                snapshot.forEach(doc => {
+                    const classData = doc.data();
+                    const option = document.createElement('option');
+                    option.value = classData.classCode || doc.id;
+                    option.textContent = classData.className || classData.classCode || doc.id;
+                    classFilter.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading classes:', error);
+            }
+        }
+
+        function filterExtraFeeStudents() {
+            const searchTerm = normalizeVietnamese(document.getElementById('extraFeeStudentSearch').value);
+            const classFilter = document.getElementById('extraFeeClassFilter').value;
+            const yearFilter = parseInt(document.getElementById('extraFeeYearFilter').value);
+            
+            let filteredStudents = allStudentsForExtraFees.filter(student => {
+                const matchesSearch = !searchTerm || 
+                    normalizeVietnamese(student.fullName || '').includes(searchTerm) ||
+                    normalizeVietnamese(student.studentId || '').includes(searchTerm);
+                
+                const matchesClass = !classFilter || student.classAssignment === classFilter;
+                
+                return matchesSearch && matchesClass;
+            });
+            
+            renderExtraFeeStudentsTable(filteredStudents, yearFilter);
+        }
+
+        async function renderExtraFeeStudentsTable(students, year) {
+            const tbody = document.getElementById('extraFeeStudentsTable');
+            tbody.innerHTML = '';
+            
+            if (students.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                            No students found for the selected criteria
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            for (const student of students) {
+                // Load current extra fees for this student and year
+                const extraFees = await loadStudentExtraFees(student.studentId, year);
+                
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                // Render current extra fees
+                let currentFeesHtml = '';
+                if (extraFees.length === 0) {
+                    currentFeesHtml = '<span class="text-gray-500 text-sm">No extra fees</span>';
+                } else {
+                    currentFeesHtml = extraFees.map(fee => `
+                        <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded px-2 py-1 mb-1">
+                            <span class="text-sm">${fee.feeTypeName}: ${formatVNDFull(fee.amount)}</span>
+                            <button onclick="removeStudentExtraFee('${fee.id}')" class="text-red-600 hover:text-red-800 text-xs ml-2">×</button>
+                        </div>
+                    `).join('');
+                }
+                
+                // Create fee type dropdown
+                const activeFeeTypes = feeTypes.filter(ft => ft.active);
+                const feeTypeOptions = activeFeeTypes.map(ft => 
+                    `<option value="${ft.id}">${ft.name} (${formatVNDFull(ft.defaultAmount || 0)})</option>`
+                ).join('');
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">${student.fullName}</div>
+                            <div class="text-sm text-gray-500">ID: ${student.studentId}</div>
+                            <div class="text-sm text-gray-500">Class: ${student.classAssignment}</div>
+                            <div class="text-sm text-gray-500">Status: ${student.status}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="max-w-xs">
+                            ${currentFeesHtml}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="space-y-2">
+                            <select class="w-full px-2 py-1 border rounded text-sm" id="feeType_${student.id}">
+                                <option value="">Select Fee Type</option>
+                                ${feeTypeOptions}
+                            </select>
+                            <div class="relative">
+                                <input type="number" step="0.001" placeholder="Custom amount" class="w-full px-2 py-1 pr-8 border rounded text-sm" id="customAmount_${student.id}">
+                                <span class="absolute right-2 top-1 text-xs text-gray-500">.000</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <button onclick="assignExtraFee('${student.studentId}', '${student.id}', ${year})" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+                            Assign Fee
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            }
+        }
+
+        async function loadStudentExtraFees(studentId, year) {
+            try {
+                const snapshot = await db.collection('extraFees')
+                    .where('studentId', '==', studentId)
+                    .where('year', '==', year)
+                    .get();
+                
+                const extraFees = [];
+                snapshot.forEach(doc => {
+                    extraFees.push({ id: doc.id, ...doc.data() });
+                });
+                
+                return extraFees;
+            } catch (error) {
+                console.error('Error loading student extra fees:', error);
+                return [];
+            }
+        }
+
+        async function assignExtraFee(studentId, studentElementId, year) {
+            const feeTypeId = document.getElementById(`feeType_${studentElementId}`).value;
+            const customAmount = parseVNDInput(document.getElementById(`customAmount_${studentElementId}`).value);
+            
+            if (!feeTypeId) {
+                alert('Please select a fee type');
+                return;
+            }
+            
+            const selectedFeeType = feeTypes.find(ft => ft.id === feeTypeId);
+            if (!selectedFeeType) {
+                alert('Invalid fee type selected');
+                return;
+            }
+            
+            const student = allStudentsForExtraFees.find(s => s.id === studentElementId);
+            if (!student) {
+                alert('Student not found');
+                return;
+            }
+            
+            const amount = customAmount > 0 ? customAmount : selectedFeeType.defaultAmount;
+            
+            if (amount <= 0) {
+                alert('Please enter a valid amount or select a fee type with a default amount');
+                return;
+            }
+            
+            try {
+                updateSyncStatus('syncing', 'Assigning fee...');
+                
+                // Generate document ID
+                const timestamp = Date.now();
+                const docId = `extraFee_${studentId}_${year}_${feeTypeId}_${timestamp}`;
+                
+                const extraFeeData = {
+                    studentId: studentId,
+                    studentName: student.fullName,
+                    classAssignment: student.classAssignment,
+                    year: year,
+                    feeTypeId: feeTypeId,
+                    feeTypeName: selectedFeeType.name,
+                    amount: amount,
+                    paid: false,
+                    processed: false,
+                    assignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'assigned'
+                };
+                
+                if (isOnline) {
+                    await db.collection('extraFees').doc(docId).set(extraFeeData);
+                } else {
+                    addPendingOperation({
+                        type: 'create',
+                        collection: 'extraFees',
+                        docId: docId,
+                        data: extraFeeData
+                    });
+                }
+                
+                // Clear form
+                document.getElementById(`feeType_${studentElementId}`).value = '';
+                document.getElementById(`customAmount_${studentElementId}`).value = '';
+                
+                // Refresh the table
+                filterExtraFeeStudents();
+                
+                updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Fee assigned' : 'Fee assigned offline');
+            } catch (error) {
+                console.error('Error assigning extra fee:', error);
+                updateSyncStatus('error', 'Assignment failed');
+                alert('Error assigning fee: ' + error.message);
+            }
+        }
+
+        async function removeStudentExtraFee(extraFeeId) {
+            if (confirm('Remove this extra fee?')) {
+                try {
+                    updateSyncStatus('syncing', 'Removing fee...');
+                    
+                    if (isOnline) {
+                        await db.collection('extraFees').doc(extraFeeId).delete();
+                    } else {
+                        addPendingOperation({
+                            type: 'delete',
+                            collection: 'extraFees',
+                            docId: extraFeeId
+                        });
+                    }
+                    
+                    // Refresh the table
+                    filterExtraFeeStudents();
+                    
+                    updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Fee removed' : 'Removal queued');
+                } catch (error) {
+                    console.error('Error removing extra fee:', error);
+                    updateSyncStatus('error', 'Removal failed');
+                    alert('Error removing fee: ' + error.message);
+                }
+            }
+        }
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            // Load pending operations from localStorage
+            const savedOperations = localStorage.getItem('pendingOperations');
+            if (savedOperations) {
+                pendingOperations = JSON.parse(savedOperations);
+            }
+            
+            // Set current year as default
+            const currentYear = new Date().getFullYear();
+            document.getElementById('yearFilter').value = currentYear;
+            document.getElementById('tuitionYearFilter').value = currentYear;
+            document.getElementById('paymentYearFilter').value = currentYear;
+            document.getElementById('modalYearSelect').value = currentYear;
+            
+            // Load initial data
             loadCoursePlans();
             loadClasses();
             
-            // Set current month and year as defaults
-            const now = new Date();
-            document.getElementById('monthFilter').value = now.getMonth() + 1;
-            document.getElementById('yearFilter').value = now.getFullYear();
-            
-            // Set up real-time listeners for Firestore
-            setupRealtimeListeners();
+            // Process pending operations if online
+            if (isOnline && pendingOperations.length > 0) {
+                processPendingOperations();
+            }
         });
-
-        function setupRealtimeListeners() {
-            // Listen for course plans changes
-            db.collection('coursePlans')
-                .onSnapshot((snapshot) => {
-                    loadCoursePlans();
-                    updateSyncStatus('connected', 'Synced');
-                }, (error) => {
-                    console.error('Error in real-time listener:', error);
-                    updateSyncStatus('error', 'Sync failed');
-                });
-        }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97399ea0e2e2e2f2',t:'MTc1NTk0MTcyNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9747b23a27028502',t:'MTc1NjA4OTMyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
