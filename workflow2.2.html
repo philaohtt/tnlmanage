@@ -718,62 +718,49 @@
         }
         */
 
-        // Firebase Configuration - Replace with your actual Firebase config
+        // Firebase Configuration - Production mode
         const firebaseConfig = {
-            apiKey: "your-api-key-here",
-            authDomain: "your-project.firebaseapp.com",
-            projectId: "your-project-id",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "your-app-id"
+            apiKey: "AIzaSyDdx6QyXzCWz7BRZInLu16LGnYBKvFO1CM",
+            authDomain: "tnl-management-app.firebaseapp.com",
+            projectId: "tnl-management-app",
+            storageBucket: "tnl-management-app.firebasestorage.app",
+            messagingSenderId: "710843379828",
+            appId: "1:710843379828:web:76978490616ebe41bf2121",
+            measurementId: "G-8W29VX7WTP"
         };
 
-        // Initialize Firebase
+        // Initialize Firebase (Demo Mode)
         let app, db;
+        let firebaseEnabled = false;
         
-        // Check if Firebase is available
-        if (typeof firebase !== 'undefined') {
-            // Production Firebase
-            app = firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            
-            // Enable offline persistence
-            db.enablePersistence().catch((err) => {
-                if (err.code == 'failed-precondition') {
-                    console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-                } else if (err.code == 'unimplemented') {
-                    console.log('The current browser does not support all of the features required to enable persistence');
-                }
-            });
-        } else {
-            // Fallback for development/demo - Load Firebase SDK
-            console.log('Loading Firebase SDK...');
-            
-            // Create script elements to load Firebase
-            const firebaseApp = document.createElement('script');
-            firebaseApp.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
-            
-            const firebaseFirestore = document.createElement('script');
-            firebaseFirestore.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
-            
-            document.head.appendChild(firebaseApp);
-            document.head.appendChild(firebaseFirestore);
-            
-            // Wait for Firebase to load
-            firebaseApp.onload = () => {
-                firebaseFirestore.onload = () => {
-                    app = firebase.initializeApp(firebaseConfig);
-                    db = firebase.firestore();
-                    
-                    // Enable offline persistence
-                    db.enablePersistence().catch((err) => {
-                        console.log('Persistence error:', err.code);
-                    });
-                    
-                    // Initialize app after Firebase is loaded
-                    initializeApp();
-                };
-            };
+        // Production mode - Firebase enabled
+        try {
+            if (typeof firebase !== 'undefined') {
+                console.log('🔥 Initializing Firebase in PRODUCTION MODE');
+                app = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                firebaseEnabled = true;
+                
+                // Enable offline persistence for better performance
+                db.enablePersistence().catch((err) => {
+                    console.warn('Firebase persistence error:', err.code);
+                    if (err.code === 'failed-precondition') {
+                        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                    } else if (err.code === 'unimplemented') {
+                        console.warn('The current browser does not support persistence.');
+                    }
+                });
+                
+                console.log('✅ Firebase initialized successfully');
+                console.log('📊 Project ID:', firebaseConfig.projectId);
+            } else {
+                console.error('❌ Firebase SDK not loaded - check your internet connection');
+                firebaseEnabled = false;
+            }
+        } catch (error) {
+            console.error('❌ Firebase initialization error:', error);
+            console.log('🔄 Falling back to local-only mode');
+            firebaseEnabled = false;
         }
 
         // Collection names for organized Firestore structure
@@ -836,8 +823,14 @@
             }
         }
 
-        // Add operation to sync queue
+        // Add operation to sync queue (optimized)
         function addToSyncQueue(operation) {
+            // Skip adding to queue if Firebase is disabled
+            if (!firebaseEnabled) {
+                console.log('Firebase disabled: Operation stored locally only:', operation.type);
+                return;
+            }
+            
             syncQueue.push({
                 ...operation,
                 timestamp: Date.now(),
@@ -845,32 +838,70 @@
             });
             saveToLocalStorage(LOCAL_STORAGE_KEYS.SYNC_QUEUE, syncQueue);
             
-            // Trigger background sync
-            if (isOnline && !syncInProgress) {
-                setTimeout(processSyncQueue, 100);
+            // Update sync status to show queue size
+            updateSyncStatus('loading', `${syncQueue.length} items queued`);
+            
+            // Trigger background sync with debouncing
+            if (isOnline && !syncInProgress && firebaseEnabled) {
+                // Clear any existing timeout
+                if (window.syncTimeout) {
+                    clearTimeout(window.syncTimeout);
+                }
+                // Set new timeout for batched processing
+                window.syncTimeout = setTimeout(processSyncQueue, 500);
             }
         }
 
-        // Process sync queue in background
+        // Process sync queue in background (optimized)
         async function processSyncQueue() {
-            if (syncInProgress || syncQueue.length === 0 || !isOnline) return;
+            if (syncInProgress || syncQueue.length === 0) return;
+            
+            // Skip sync if Firebase is disabled
+            if (!firebaseEnabled) {
+                // If Firebase is disabled, just clear the queue and show success
+                const queueLength = syncQueue.length;
+                syncQueue = [];
+                saveToLocalStorage(LOCAL_STORAGE_KEYS.SYNC_QUEUE, syncQueue);
+                updateSyncStatus('error', `Firebase unavailable: ${queueLength} operations stored locally`);
+                return;
+            }
+            
+            if (!isOnline) {
+                updateSyncStatus('error', 'Offline - will sync when online');
+                return;
+            }
             
             syncInProgress = true;
-            updateSyncStatus('loading', 'Syncing...');
+            updateSyncStatus('loading', `Syncing ${syncQueue.length} items...`);
             
             const processedOperations = [];
+            const batchSize = 5; // Process in smaller batches
             
             try {
-                for (const operation of syncQueue) {
-                    try {
-                        await executeFirestoreOperation(operation);
-                        processedOperations.push(operation.id);
-                    } catch (error) {
-                        console.error('Sync operation failed:', error);
-                        // Keep failed operations in queue for retry
-                        if (error.code === 'permission-denied' || error.code === 'not-found') {
-                            processedOperations.push(operation.id); // Remove permanently failed operations
-                        }
+                // Process operations in batches to avoid overwhelming Firebase
+                for (let i = 0; i < syncQueue.length; i += batchSize) {
+                    const batch = syncQueue.slice(i, i + batchSize);
+                    
+                    await Promise.allSettled(
+                        batch.map(async (operation) => {
+                            try {
+                                await executeFirestoreOperation(operation);
+                                processedOperations.push(operation.id);
+                            } catch (error) {
+                                console.warn('Sync operation failed:', operation.type, error.message);
+                                // Remove operations that will never succeed
+                                if (error.code === 'permission-denied' || 
+                                    error.code === 'not-found' || 
+                                    error.code === 'invalid-argument') {
+                                    processedOperations.push(operation.id);
+                                }
+                            }
+                        })
+                    );
+                    
+                    // Small delay between batches
+                    if (i + batchSize < syncQueue.length) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
                 }
                 
@@ -881,16 +912,23 @@
                 lastSyncTime = Date.now();
                 saveToLocalStorage(LOCAL_STORAGE_KEYS.LAST_SYNC, lastSyncTime);
                 
-                updateSyncStatus('success', `Synced ${processedOperations.length} operations`);
+                if (processedOperations.length > 0) {
+                    updateSyncStatus('success', `Synced ${processedOperations.length} items`);
+                } else if (syncQueue.length > 0) {
+                    updateSyncStatus('error', `${syncQueue.length} items failed to sync`);
+                } else {
+                    updateSyncStatus('success', 'All synced');
+                }
+                
             } catch (error) {
                 console.error('Sync process error:', error);
                 updateSyncStatus('error', 'Sync failed');
             } finally {
                 syncInProgress = false;
                 
-                // Schedule next sync if queue not empty
-                if (syncQueue.length > 0 && isOnline) {
-                    setTimeout(processSyncQueue, 5000); // Retry in 5 seconds
+                // Schedule next sync if queue not empty (longer delay for failed items)
+                if (syncQueue.length > 0 && isOnline && firebaseEnabled) {
+                    setTimeout(processSyncQueue, 10000); // Retry in 10 seconds
                 }
             }
         }
@@ -1361,12 +1399,23 @@
             // Load from local storage first for instant display
             loadTeachersFromLocal();
             
+            // Skip Firestore sync in demo mode
+            if (!firebaseEnabled) {
+                console.log('Demo mode: Teachers loaded from local storage only');
+                return;
+            }
+            
             // Then sync with Firestore in background
             if (isOnline && db) {
                 try {
                     const snapshot = await db.collection(COLLECTIONS.TEACHERS).orderBy('createdAt', 'desc').get();
-                    const firestoreTeachers = [];
                     
+                    if (snapshot.empty) {
+                        console.log('No teachers found in Firestore');
+                        return;
+                    }
+                    
+                    const firestoreTeachers = [];
                     snapshot.forEach(doc => {
                         const teacher = { id: doc.id, ...doc.data() };
                         // Convert Firestore timestamps to JavaScript dates
@@ -1387,7 +1436,7 @@
                         loadTeachersFromLocal(); // Refresh display
                     }
                 } catch (error) {
-                    console.error('Error syncing teachers from Firestore:', error);
+                    console.warn('Error syncing teachers from Firestore:', error.message);
                 }
             }
         }
@@ -2937,34 +2986,36 @@
                 lastSyncTime = loadFromLocalStorage(LOCAL_STORAGE_KEYS.LAST_SYNC, null);
                 
                 // Load all data from local storage first (instant display)
-                updateSyncStatus('success', 'Loading from local storage...');
+                updateSyncStatus('success', 'Loading data...');
                 await loadAreas(); // Load areas first (creates defaults if needed)
                 await loadTeachers();
                 await loadTasks();
                 await loadNotifications();
                 
-                // Show sync queue status
-                if (syncQueue.length > 0) {
-                    updateSyncStatus('loading', `${syncQueue.length} items queued for sync`);
+                // Show appropriate status based on Firebase availability
+                if (!firebaseEnabled) {
+                    updateSyncStatus('error', '⚠️ Firebase unavailable - Local mode only');
+                    // Clear any existing sync queue if Firebase is unavailable
+                    if (syncQueue.length > 0) {
+                        console.log(`Clearing ${syncQueue.length} queued operations - Firebase unavailable`);
+                        syncQueue = [];
+                        saveToLocalStorage(LOCAL_STORAGE_KEYS.SYNC_QUEUE, syncQueue);
+                    }
+                } else if (syncQueue.length > 0) {
+                    updateSyncStatus('loading', `🔄 Syncing ${syncQueue.length} items to Firebase...`);
+                    // Start background sync
+                    setTimeout(processSyncQueue, 1000);
                 } else {
-                    updateSyncStatus('success', 'All data loaded');
+                    updateSyncStatus('success', '✅ Connected to Firebase - All data synced');
                 }
                 
-                // Start background sync if online and Firebase is ready
-                if (isOnline && db) {
-                    setTimeout(() => {
-                        processSyncQueue();
-                        // Set up periodic sync every 30 seconds
-                        setInterval(() => {
-                            if (isOnline && !syncInProgress && syncQueue.length > 0) {
-                                processSyncQueue();
-                            }
-                        }, 30000);
-                    }, 1000);
-                } else if (!isOnline) {
-                    updateSyncStatus('error', 'Offline - changes will sync when online');
-                } else {
-                    updateSyncStatus('error', 'Firebase not configured - running in local mode');
+                // Set up periodic sync only if Firebase is enabled
+                if (firebaseEnabled && isOnline) {
+                    setInterval(() => {
+                        if (isOnline && !syncInProgress && syncQueue.length > 0) {
+                            processSyncQueue();
+                        }
+                    }, 30000); // Check every 30 seconds
                 }
                 
             } catch (error) {
@@ -2985,12 +3036,45 @@
 
         // Initialize app on page load
         document.addEventListener('DOMContentLoaded', () => {
-            // If Firebase is already loaded, initialize immediately
-            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-                initializeApp();
-            }
-            // Otherwise, initializeApp() will be called after Firebase loads
+            // Always initialize immediately in demo mode
+            initializeApp();
         });
+
+        // Firebase Production Mode Information
+        console.log(`
+🔥 FIREBASE PRODUCTION MODE ENABLED
+
+✅ Project: tnl-management-app
+✅ Collections: teachers, tnl_tasks, tnl_notifications, tnl_areas, tnl_settings
+✅ Local-first architecture with background sync
+✅ Offline persistence enabled
+
+📋 FIRESTORE SECURITY RULES NEEDED:
+Copy these rules to your Firestore Database Rules:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /teachers/{document} {
+      allow read, write: if true;
+    }
+    match /tnl_tasks/{document} {
+      allow read, write: if true;
+    }
+    match /tnl_notifications/{document} {
+      allow read, write: if true;
+    }
+    match /tnl_areas/{document} {
+      allow read, write: if true;
+    }
+    match /tnl_settings/{document} {
+      allow read, write: if true;
+    }
+  }
+}
+
+🚀 System will work offline and sync when online!
+        `);
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9752276087c2099b',t:'MTc1NjE5ODk4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9752461136b507a6',t:'MTc1NjIwMDI0MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
