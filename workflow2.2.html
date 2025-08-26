@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TnL Edu Flow - Task Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
     <style>
         .line-clamp-2 {
             display: -webkit-box;
@@ -26,7 +31,15 @@
             .h-6 { height: 1.25rem; }
         }
     </style>
-    <!-- Demo system - no external dependencies required -->
+    <!-- 
+    FIREBASE SETUP INSTRUCTIONS:
+    1. Go to https://console.firebase.google.com/
+    2. Create a new project or select existing project
+    3. Enable Firestore Database
+    4. Get your Firebase config from Project Settings > General > Your apps
+    5. Replace the firebaseConfig object below with your actual config
+    6. Set up Firestore Security Rules (see comments in JavaScript section)
+    -->
 </head>
 <body class="bg-gray-50 min-h-screen">
 
@@ -677,331 +690,100 @@
     </div>
 
     <script>
-        // Firestore Configuration
+        /* 
+        FIRESTORE SECURITY RULES - Add these to your Firestore Database Rules:
+        
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            // Allow read/write access to teachers collection
+            match /teachers/{document} {
+              allow read, write: if true; // Adjust based on your authentication needs
+            }
+            
+            // Allow read/write access to TnL collections
+            match /tnl_tasks/{document} {
+              allow read, write: if true;
+            }
+            match /tnl_notifications/{document} {
+              allow read, write: if true;
+            }
+            match /tnl_areas/{document} {
+              allow read, write: if true;
+            }
+            match /tnl_settings/{document} {
+              allow read, write: if true;
+            }
+          }
+        }
+        */
+
+        // Firebase Configuration - Replace with your actual Firebase config
         const firebaseConfig = {
-            // This is a demo - replace with your actual Firebase config
-            apiKey: "demo-api-key",
-            authDomain: "tnledu-demo.firebaseapp.com",
-            projectId: "tnledu-demo",
-            storageBucket: "tnledu-demo.appspot.com",
+            apiKey: "your-api-key-here",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
             messagingSenderId: "123456789",
-            appId: "demo-app-id"
+            appId: "your-app-id"
         };
 
-        // Initialize Firebase (Demo mode - using localStorage for persistence)
-        class FirestoreDemo {
-            constructor() {
-                this.collections = {
-                    'teachers': 'teachers', // Existing collection
-                    'tnl_tasks': 'tnl_tasks', // Task management tasks
-                    'tnl_notifications': 'tnl_notifications', // System notifications
-                    'tnl_areas': 'tnl_areas', // Custom work areas
-                    'tnl_settings': 'tnl_settings' // System settings
-                };
-                this.cache = new Map();
-                this.initializeDemo();
-            }
-
-            initializeDemo() {
-                // Initialize with demo data if not exists
-                if (!localStorage.getItem('tnl_demo_initialized')) {
-                    this.seedDemoData();
-                    localStorage.setItem('tnl_demo_initialized', 'true');
+        // Initialize Firebase
+        let app, db;
+        
+        // Check if Firebase is available
+        if (typeof firebase !== 'undefined') {
+            // Production Firebase
+            app = firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            
+            // Enable offline persistence
+            db.enablePersistence().catch((err) => {
+                if (err.code == 'failed-precondition') {
+                    console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                } else if (err.code == 'unimplemented') {
+                    console.log('The current browser does not support all of the features required to enable persistence');
                 }
-                this.loadCache();
-            }
-
-            seedDemoData() {
-                // Seed demo teachers (simulating existing collection)
-                const demoTeachers = [
-                    {
-                        id: 'teacher-john-doe',
-                        name: 'John Doe',
-                        email: 'john.doe@tnledu.com',
-                        department: 'Teaching',
-                        role: 'teacher',
-                        status: 'Active',
-                        createdAt: new Date().toISOString(),
-                        lastUpdated: new Date().toISOString()
-                    },
-                    {
-                        id: 'teacher-jane-smith',
-                        name: 'Jane Smith',
-                        email: 'jane.smith@tnledu.com',
-                        department: 'Administration',
-                        role: 'teacher',
-                        status: 'Active',
-                        createdAt: new Date().toISOString(),
-                        lastUpdated: new Date().toISOString()
-                    },
-                    {
-                        id: 'teacher-mike-wilson',
-                        name: 'Mike Wilson',
-                        email: 'mike.wilson@tnledu.com',
-                        department: 'Finance',
-                        role: 'teacher',
-                        status: 'Active',
-                        createdAt: new Date().toISOString(),
-                        lastUpdated: new Date().toISOString()
-                    }
-                ];
-
-                demoTeachers.forEach(teacher => {
-                    localStorage.setItem(`teachers_${teacher.id}`, JSON.stringify(teacher));
-                });
-
-                // Seed demo areas
-                const demoAreas = [
-                    { id: 'area-admissions', name: 'Admissions', icon: '🎓', color: 'purple' },
-                    { id: 'area-teaching', name: 'Teaching', icon: '📚', color: 'blue' },
-                    { id: 'area-finance', name: 'Finance', icon: '💰', color: 'green' },
-                    { id: 'area-inventory', name: 'Inventory', icon: '📦', color: 'orange' },
-                    { id: 'area-administration', name: 'Administration', icon: '🏢', color: 'indigo' },
-                    { id: 'area-other', name: 'Other', icon: '📋', color: 'gray' }
-                ];
-
-                demoAreas.forEach(area => {
-                    localStorage.setItem(`tnl_areas_${area.id}`, JSON.stringify({
-                        ...area,
-                        createdAt: new Date().toISOString(),
-                        lastUpdated: new Date().toISOString()
-                    }));
-                });
-            }
-
-            loadCache() {
-                // Load all data into cache for fast access
-                Object.keys(localStorage).forEach(key => {
-                    if (key.startsWith('teachers_') || 
-                        key.startsWith('tnl_tasks_') || 
-                        key.startsWith('tnl_notifications_') ||
-                        key.startsWith('tnl_areas_')) {
-                        try {
-                            const data = JSON.parse(localStorage.getItem(key));
-                            this.cache.set(key, data);
-                        } catch (error) {
-                            console.error('Error loading cached data:', key, error);
-                        }
-                    }
-                });
-            }
-
-            collection(name) {
-                const collectionName = this.collections[name] || name;
-                
-                return {
-                    doc: (id) => ({
-                        set: async (data) => {
-                            const docData = {
-                                ...data,
-                                id,
-                                createdAt: data.createdAt || new Date().toISOString(),
-                                lastUpdated: new Date().toISOString()
-                            };
-                            
-                            const key = `${collectionName}_${id}`;
-                            localStorage.setItem(key, JSON.stringify(docData));
-                            this.cache.set(key, docData);
-                            
-                            return Promise.resolve();
-                        },
-                        update: async (data) => {
-                            const key = `${collectionName}_${id}`;
-                            const existing = this.cache.get(key) || JSON.parse(localStorage.getItem(key) || '{}');
-                            
-                            const updatedData = {
-                                ...existing,
-                                ...data,
-                                lastUpdated: new Date().toISOString()
-                            };
-                            
-                            localStorage.setItem(key, JSON.stringify(updatedData));
-                            this.cache.set(key, updatedData);
-                            
-                            return Promise.resolve();
-                        },
-                        delete: async () => {
-                            const key = `${collectionName}_${id}`;
-                            localStorage.removeItem(key);
-                            this.cache.delete(key);
-                            return Promise.resolve();
-                        },
-                        get: async () => {
-                            const key = `${collectionName}_${id}`;
-                            const data = this.cache.get(key) || JSON.parse(localStorage.getItem(key) || 'null');
-                            
-                            return {
-                                exists: data !== null,
-                                data: () => data,
-                                id: id
-                            };
-                        }
-                    }),
-                    get: async () => {
-                        const docs = [];
-                        this.cache.forEach((data, key) => {
-                            if (key.startsWith(`${collectionName}_`)) {
-                                docs.push({
-                                    data: () => data,
-                                    id: data.id
-                                });
-                            }
-                        });
-                        
-                        return {
-                            empty: docs.length === 0,
-                            docs: docs,
-                            forEach: (callback) => docs.forEach(callback)
-                        };
-                    },
-                    where: (field, operator, value) => ({
-                        get: async () => {
-                            const results = [];
-                            this.cache.forEach((data, key) => {
-                                if (key.startsWith(`${collectionName}_`)) {
-                                    let match = false;
-                                    switch (operator) {
-                                        case '==':
-                                            match = data[field] === value;
-                                            break;
-                                        case '!=':
-                                            match = data[field] !== value;
-                                            break;
-                                        case '>':
-                                            match = data[field] > value;
-                                            break;
-                                        case '<':
-                                            match = data[field] < value;
-                                            break;
-                                        case '>=':
-                                            match = data[field] >= value;
-                                            break;
-                                        case '<=':
-                                            match = data[field] <= value;
-                                            break;
-                                        case 'array-contains':
-                                            match = Array.isArray(data[field]) && data[field].includes(value);
-                                            break;
-                                    }
-                                    if (match) {
-                                        results.push({
-                                            data: () => data,
-                                            id: data.id
-                                        });
-                                    }
-                                }
-                            });
-                            
-                            return {
-                                empty: results.length === 0,
-                                docs: results,
-                                forEach: (callback) => results.forEach(callback)
-                            };
-                        }
-                    }),
-                    orderBy: (field, direction = 'asc') => ({
-                        get: async () => {
-                            const docs = [];
-                            this.cache.forEach((data, key) => {
-                                if (key.startsWith(`${collectionName}_`)) {
-                                    docs.push({
-                                        data: () => data,
-                                        id: data.id
-                                    });
-                                }
-                            });
-                            
-                            docs.sort((a, b) => {
-                                const aVal = a.data()[field];
-                                const bVal = b.data()[field];
-                                
-                                if (direction === 'desc') {
-                                    return new Date(bVal) - new Date(aVal);
-                                }
-                                return new Date(aVal) - new Date(bVal);
-                            });
-                            
-                            return {
-                                empty: docs.length === 0,
-                                docs: docs,
-                                forEach: (callback) => docs.forEach(callback),
-                                limit: (num) => ({
-                                    get: async () => ({
-                                        empty: docs.length === 0,
-                                        docs: docs.slice(0, num),
-                                        forEach: (callback) => docs.slice(0, num).forEach(callback)
-                                    })
-                                })
-                            };
-                        },
-                        limit: (num) => ({
-                            get: async () => {
-                                const docs = [];
-                                this.cache.forEach((data, key) => {
-                                    if (key.startsWith(`${collectionName}_`)) {
-                                        docs.push({
-                                            data: () => data,
-                                            id: data.id
-                                        });
-                                    }
-                                });
-                                
-                                docs.sort((a, b) => {
-                                    const aVal = a.data()[field];
-                                    const bVal = b.data()[field];
-                                    
-                                    if (direction === 'desc') {
-                                        return new Date(bVal) - new Date(aVal);
-                                    }
-                                    return new Date(aVal) - new Date(bVal);
-                                });
-                                
-                                return {
-                                    empty: docs.length === 0,
-                                    docs: docs.slice(0, num),
-                                    forEach: (callback) => docs.slice(0, num).forEach(callback)
-                                };
-                            }
-                        })
-                    })
+            });
+        } else {
+            // Fallback for development/demo - Load Firebase SDK
+            console.log('Loading Firebase SDK...');
+            
+            // Create script elements to load Firebase
+            const firebaseApp = document.createElement('script');
+            firebaseApp.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
+            
+            const firebaseFirestore = document.createElement('script');
+            firebaseFirestore.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
+            
+            document.head.appendChild(firebaseApp);
+            document.head.appendChild(firebaseFirestore);
+            
+            // Wait for Firebase to load
+            firebaseApp.onload = () => {
+                firebaseFirestore.onload = () => {
+                    app = firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    
+                    // Enable offline persistence
+                    db.enablePersistence().catch((err) => {
+                        console.log('Persistence error:', err.code);
+                    });
+                    
+                    // Initialize app after Firebase is loaded
+                    initializeApp();
                 };
-            }
-
-            batch() {
-                const operations = [];
-                return {
-                    update: (docRef, data) => {
-                        operations.push({ type: 'update', docRef, data });
-                    },
-                    set: (docRef, data) => {
-                        operations.push({ type: 'set', docRef, data });
-                    },
-                    delete: (docRef) => {
-                        operations.push({ type: 'delete', docRef });
-                    },
-                    commit: async () => {
-                        // Execute all operations
-                        for (const op of operations) {
-                            switch (op.type) {
-                                case 'update':
-                                    await op.docRef.update(op.data);
-                                    break;
-                                case 'set':
-                                    await op.docRef.set(op.data);
-                                    break;
-                                case 'delete':
-                                    await op.docRef.delete();
-                                    break;
-                            }
-                        }
-                        return Promise.resolve();
-                    }
-                };
-            }
+            };
         }
 
-        // Initialize Firestore
-        const db = new FirestoreDemo();
+        // Collection names for organized Firestore structure
+        const COLLECTIONS = {
+            TEACHERS: 'teachers',           // Existing teachers collection
+            TASKS: 'tnl_tasks',            // Task management
+            NOTIFICATIONS: 'tnl_notifications', // System notifications  
+            AREAS: 'tnl_areas',            // Custom work areas
+            SETTINGS: 'tnl_settings'       // System settings
+        };
 
         // Global variables
         let teachers = [];
@@ -1017,6 +799,134 @@
         };
         let areas = [];
         let currentEditingTeacher = null;
+
+        // Local-first optimization variables
+        let syncQueue = [];
+        let isOnline = navigator.onLine;
+        let syncInProgress = false;
+        let lastSyncTime = null;
+
+        // Local Storage Management
+        const LOCAL_STORAGE_KEYS = {
+            TEACHERS: 'tnl_teachers',
+            TASKS: 'tnl_tasks', 
+            NOTIFICATIONS: 'tnl_notifications',
+            AREAS: 'tnl_areas',
+            SYNC_QUEUE: 'tnl_sync_queue',
+            LAST_SYNC: 'tnl_last_sync'
+        };
+
+        // Save data to local storage
+        function saveToLocalStorage(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+            }
+        }
+
+        // Load data from local storage
+        function loadFromLocalStorage(key, defaultValue = []) {
+            try {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultValue;
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+                return defaultValue;
+            }
+        }
+
+        // Add operation to sync queue
+        function addToSyncQueue(operation) {
+            syncQueue.push({
+                ...operation,
+                timestamp: Date.now(),
+                id: `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            });
+            saveToLocalStorage(LOCAL_STORAGE_KEYS.SYNC_QUEUE, syncQueue);
+            
+            // Trigger background sync
+            if (isOnline && !syncInProgress) {
+                setTimeout(processSyncQueue, 100);
+            }
+        }
+
+        // Process sync queue in background
+        async function processSyncQueue() {
+            if (syncInProgress || syncQueue.length === 0 || !isOnline) return;
+            
+            syncInProgress = true;
+            updateSyncStatus('loading', 'Syncing...');
+            
+            const processedOperations = [];
+            
+            try {
+                for (const operation of syncQueue) {
+                    try {
+                        await executeFirestoreOperation(operation);
+                        processedOperations.push(operation.id);
+                    } catch (error) {
+                        console.error('Sync operation failed:', error);
+                        // Keep failed operations in queue for retry
+                        if (error.code === 'permission-denied' || error.code === 'not-found') {
+                            processedOperations.push(operation.id); // Remove permanently failed operations
+                        }
+                    }
+                }
+                
+                // Remove processed operations from queue
+                syncQueue = syncQueue.filter(op => !processedOperations.includes(op.id));
+                saveToLocalStorage(LOCAL_STORAGE_KEYS.SYNC_QUEUE, syncQueue);
+                
+                lastSyncTime = Date.now();
+                saveToLocalStorage(LOCAL_STORAGE_KEYS.LAST_SYNC, lastSyncTime);
+                
+                updateSyncStatus('success', `Synced ${processedOperations.length} operations`);
+            } catch (error) {
+                console.error('Sync process error:', error);
+                updateSyncStatus('error', 'Sync failed');
+            } finally {
+                syncInProgress = false;
+                
+                // Schedule next sync if queue not empty
+                if (syncQueue.length > 0 && isOnline) {
+                    setTimeout(processSyncQueue, 5000); // Retry in 5 seconds
+                }
+            }
+        }
+
+        // Execute Firestore operation
+        async function executeFirestoreOperation(operation) {
+            const { type, collection, docId, data, updateData } = operation;
+            
+            switch (type) {
+                case 'create':
+                    await db.collection(collection).doc(docId).set(data);
+                    break;
+                case 'update':
+                    await db.collection(collection).doc(docId).update(updateData);
+                    break;
+                case 'delete':
+                    await db.collection(collection).doc(docId).delete();
+                    break;
+                default:
+                    throw new Error(`Unknown operation type: ${type}`);
+            }
+        }
+
+        // Monitor online/offline status
+        window.addEventListener('online', () => {
+            isOnline = true;
+            updateSyncStatus('success', 'Back online');
+            if (syncQueue.length > 0) {
+                setTimeout(processSyncQueue, 1000);
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            updateSyncStatus('error', 'Offline mode');
+        });
 
         // Tab switching functionality
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1125,32 +1035,57 @@
             if (e.key === 'Enter') addTag();
         });
 
-        // Teacher form submission
+        // Teacher form submission - Optimized for local-first
         document.getElementById('teacherForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const name = document.getElementById('teacherName').value;
-            const email = document.getElementById('teacherEmail').value;
+            const name = document.getElementById('teacherName').value.trim();
+            const email = document.getElementById('teacherEmail').value.trim();
             const department = document.getElementById('teacherDepartment').value;
-            const phone = document.getElementById('teacherPhone').value;
+            const phone = document.getElementById('teacherPhone').value.trim();
             const dob = document.getElementById('teacherDOB').value;
+
+            if (!name || !department) {
+                alert('Please fill in all required fields (Name and Department)');
+                return;
+            }
 
             try {
                 if (currentEditingTeacher) {
-                    // Update existing teacher
-                    const teacherData = {
-                        name: name,
-                        email: email,
-                        department: department,
-                        phone: phone,
-                        dob: dob,
-                        lastUpdated: new Date()
-                    };
-                    
-                    await db.collection('teachers').doc(currentEditingTeacher.id).update(teacherData);
-                    updateSyncStatus('success', 'Teacher updated successfully');
+                    // Update existing teacher locally first
+                    const teacherIndex = teachers.findIndex(t => t.id === currentEditingTeacher.id);
+                    if (teacherIndex !== -1) {
+                        teachers[teacherIndex] = {
+                            ...teachers[teacherIndex],
+                            name: name,
+                            email: email,
+                            department: department,
+                            phone: phone,
+                            dob: dob,
+                            lastUpdated: new Date().toISOString()
+                        };
+                        
+                        // Save to local storage immediately
+                        saveToLocalStorage(LOCAL_STORAGE_KEYS.TEACHERS, teachers);
+                        
+                        // Add to sync queue for background sync
+                        addToSyncQueue({
+                            type: 'update',
+                            collection: COLLECTIONS.TEACHERS,
+                            docId: currentEditingTeacher.id,
+                            updateData: {
+                                name: name,
+                                email: email,
+                                department: department,
+                                phone: phone,
+                                dob: dob,
+                                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                            }
+                        });
+                    }
+                    updateSyncStatus('success', 'Teacher updated');
                 } else {
-                    // Create new teacher
+                    // Create new teacher locally first
                     const nameSlug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                     let teacherId = `teacher-${nameSlug}`;
                     
@@ -1170,37 +1105,36 @@
                         dob: dob,
                         role: 'teacher',
                         status: 'Active',
-                        createdAt: new Date(),
-                        lastUpdated: new Date(),
+                        createdAt: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString(),
                         createdBy: currentUserData.email
                     };
                     
-                    await db.collection('teachers').doc(teacherData.id).set(teacherData);
+                    // Add to local array immediately
+                    teachers.unshift(teacherData);
+                    saveToLocalStorage(LOCAL_STORAGE_KEYS.TEACHERS, teachers);
                     
-                    updateSyncStatus('success', 'Teacher created successfully');
+                    // Add to sync queue for background sync
+                    addToSyncQueue({
+                        type: 'create',
+                        collection: COLLECTIONS.TEACHERS,
+                        docId: teacherId,
+                        data: {
+                            ...teacherData,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                        }
+                    });
+                    
+                    updateSyncStatus('success', 'Teacher created');
                 }
                 
                 document.getElementById('teacherModal').classList.add('hidden');
                 resetTeacherForm();
-                loadTeachers();
+                loadTeachersFromLocal(); // Reload from local storage immediately
             } catch (error) {
                 console.error('Error saving teacher:', error);
-                let errorMessage = 'Failed to save teacher';
-                
-                switch (error.code) {
-                    case 'auth/email-already-in-use':
-                        errorMessage = 'An account with this email already exists';
-                        break;
-                    case 'auth/invalid-email':
-                        errorMessage = 'Invalid email address';
-                        break;
-                    case 'auth/weak-password':
-                        errorMessage = 'Password is too weak';
-                        break;
-                }
-                
-                alert(errorMessage);
-                updateSyncStatus('error', errorMessage);
+                updateSyncStatus('error', 'Failed to save teacher');
             }
         });
 
@@ -1281,7 +1215,7 @@
             }
         });
 
-        // Task form submission
+        // Task form submission - Optimized for local-first
         document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -1306,16 +1240,25 @@
 
             try {
                 if (editingTaskId) {
-                    // Update existing task
-                    await db.collection('tnl_tasks').doc(editingTaskId).update(taskData);
-                    
-                    // Update local task object
+                    // Update existing task locally first
                     const taskIndex = tasks.findIndex(t => t.id === editingTaskId);
                     if (taskIndex !== -1) {
                         tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
+                        saveToLocalStorage(LOCAL_STORAGE_KEYS.TASKS, tasks);
+                        
+                        // Add to sync queue
+                        addToSyncQueue({
+                            type: 'update',
+                            collection: COLLECTIONS.TASKS,
+                            docId: editingTaskId,
+                            updateData: {
+                                ...taskData,
+                                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                            }
+                        });
                     }
                     
-                    updateSyncStatus('success', 'Task updated successfully');
+                    updateSyncStatus('success', 'Task updated');
                     
                     // Reset form state
                     const submitBtn = form.querySelector('button[type="submit"]');
@@ -1323,7 +1266,7 @@
                     submitBtn.className = 'w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700';
                     delete form.dataset.editingTaskId;
                 } else {
-                    // Create new task with structured naming
+                    // Create new task locally first
                     const taskSlug = taskData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').substring(0, 30);
                     const areaSlug = taskData.area.toLowerCase().replace(/\s+/g, '-');
                     const dateStr = new Date().toISOString().split('T')[0];
@@ -1336,36 +1279,69 @@
                         counter++;
                     }
                     
-                    taskData.id = taskId;
-                    taskData.startedBy = currentUserData ? currentUserData.name : 'Unknown User';
-                    taskData.createdByEmail = currentUserData ? currentUserData.email : '';
-                    taskData.status = 'Not Started';
-                    taskData.progress = 0;
-                    taskData.subtasks = [];
-                    taskData.comments = [];
-                    taskData.attachments = [];
-                    taskData.timeSpent = 0;
-                    taskData.createdAt = new Date().toISOString();
-
-                    await db.collection('tnl_tasks').doc(taskData.id).set(taskData);
-                    updateSyncStatus('success', 'Task created successfully');
+                    const newTask = {
+                        ...taskData,
+                        id: taskId,
+                        startedBy: currentUserData ? currentUserData.name : 'Unknown User',
+                        createdByEmail: currentUserData ? currentUserData.email : '',
+                        status: 'Not Started',
+                        progress: 0,
+                        subtasks: [],
+                        comments: [],
+                        attachments: [],
+                        timeSpent: 0,
+                        createdAt: new Date().toISOString()
+                    };
                     
-                    // Create notification for assigned teacher
+                    // Add to local array immediately
+                    tasks.unshift(newTask);
+                    saveToLocalStorage(LOCAL_STORAGE_KEYS.TASKS, tasks);
+                    
+                    // Add to sync queue
+                    addToSyncQueue({
+                        type: 'create',
+                        collection: COLLECTIONS.TASKS,
+                        docId: taskId,
+                        data: {
+                            ...newTask,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                        }
+                    });
+                    
+                    updateSyncStatus('success', 'Task created');
+                    
+                    // Create notification locally and queue for sync
                     if (taskData.assignedTo) {
-                        await createNotification({
+                        const notificationId = `notification-task_assigned-${Date.now()}`;
+                        const notification = {
+                            id: notificationId,
                             type: 'task_assigned',
                             message: `New task assigned: ${taskData.name}`,
-                            taskId: taskData.id,
+                            taskId: taskId,
                             recipientId: taskData.assignedTo,
+                            read: false,
                             createdAt: new Date().toISOString()
+                        };
+                        
+                        notifications.unshift(notification);
+                        saveToLocalStorage(LOCAL_STORAGE_KEYS.NOTIFICATIONS, notifications);
+                        updateNotificationBadge();
+                        
+                        // Queue notification for sync
+                        addToSyncQueue({
+                            type: 'create',
+                            collection: COLLECTIONS.NOTIFICATIONS,
+                            docId: notificationId,
+                            data: {
+                                ...notification,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }
                         });
-                        // Reload notifications immediately
-                        await loadNotifications();
                     }
                 }
                 
                 document.getElementById('taskForm').reset();
-                loadTasks();
                 loadRecentTasks();
                 
                 // Refresh current tab if needed
@@ -1373,7 +1349,6 @@
                 if (activeTab === 'deadlines') loadTasksByDeadlines();
                 if (activeTab === 'personnel') loadTasksByPersonnel();
                 if (activeTab === 'areas') loadTasksByAreas();
-                if (activeTab === 'personal') loadPersonalTasks();
                 
             } catch (error) {
                 console.error('Error saving task:', error);
@@ -1381,119 +1356,249 @@
             }
         });
 
-        // Load teachers from existing Firestore collection
+        // Load teachers from local storage first, then sync with Firestore
         async function loadTeachers() {
-            try {
-                const snapshot = await db.collection('teachers').orderBy('createdAt', 'desc').get();
-                teachers = [];
-                const teachersList = document.getElementById('teachersList');
-                const assigneeSelect = document.getElementById('taskAssignee');
-                
-                teachersList.innerHTML = '';
-                assigneeSelect.innerHTML = '<option value="">Select Teacher</option>';
-                
-                snapshot.forEach(doc => {
-                    const teacher = doc.data();
-                    // Convert ISO strings back to Date objects for compatibility
-                    if (teacher.createdAt && typeof teacher.createdAt === 'string') {
-                        teacher.createdAt = new Date(teacher.createdAt);
-                    }
-                    if (teacher.lastUpdated && typeof teacher.lastUpdated === 'string') {
-                        teacher.lastUpdated = new Date(teacher.lastUpdated);
-                    }
-                    teachers.push(teacher);
+            // Load from local storage first for instant display
+            loadTeachersFromLocal();
+            
+            // Then sync with Firestore in background
+            if (isOnline && db) {
+                try {
+                    const snapshot = await db.collection(COLLECTIONS.TEACHERS).orderBy('createdAt', 'desc').get();
+                    const firestoreTeachers = [];
                     
-                    // Add to teachers list
-                    const teacherCard = document.createElement('div');
-                    teacherCard.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100';
-                    teacherCard.innerHTML = `
-                        <div class="flex-1">
-                            <div class="font-medium text-gray-900">${teacher.name}</div>
-                            <div class="text-sm text-gray-500">${teacher.department || 'No Department'}</div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-1 text-xs rounded-full ${teacher.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                ${teacher.status}
-                            </span>
-                            <button onclick="editTeacher('${teacher.id}')" class="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50" title="Edit Teacher">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                            </button>
-                            <button onclick="deleteTeacher('${teacher.id}')" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50" title="Delete Teacher">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    `;
-                    teachersList.appendChild(teacherCard);
+                    snapshot.forEach(doc => {
+                        const teacher = { id: doc.id, ...doc.data() };
+                        // Convert Firestore timestamps to JavaScript dates
+                        if (teacher.createdAt && teacher.createdAt.toDate) {
+                            teacher.createdAt = teacher.createdAt.toDate().toISOString();
+                        }
+                        if (teacher.lastUpdated && teacher.lastUpdated.toDate) {
+                            teacher.lastUpdated = teacher.lastUpdated.toDate().toISOString();
+                        }
+                        firestoreTeachers.push(teacher);
+                    });
                     
-                    // Add to assignee select
-                    if (teacher.status === 'Active') {
-                        const option = document.createElement('option');
-                        option.value = teacher.id;
-                        option.textContent = teacher.name;
-                        assigneeSelect.appendChild(option);
+                    // Merge with local data (Firestore takes precedence for existing items)
+                    const mergedTeachers = mergeDataArrays(teachers, firestoreTeachers);
+                    if (JSON.stringify(teachers) !== JSON.stringify(mergedTeachers)) {
+                        teachers = mergedTeachers;
+                        saveToLocalStorage(LOCAL_STORAGE_KEYS.TEACHERS, teachers);
+                        loadTeachersFromLocal(); // Refresh display
                     }
-                });
-                
-                updateSyncStatus('success', 'Teachers loaded');
-            } catch (error) {
-                console.error('Error loading teachers:', error);
-                updateSyncStatus('error', 'Failed to load teachers');
+                } catch (error) {
+                    console.error('Error syncing teachers from Firestore:', error);
+                }
             }
         }
 
-        // Load areas from Firestore
+        // Load teachers from local storage and display
+        function loadTeachersFromLocal() {
+            teachers = loadFromLocalStorage(LOCAL_STORAGE_KEYS.TEACHERS, []);
+            
+            const teachersList = document.getElementById('teachersList');
+            const assigneeSelect = document.getElementById('taskAssignee');
+            
+            teachersList.innerHTML = '';
+            assigneeSelect.innerHTML = '<option value="">Select Teacher</option>';
+            
+            if (teachers.length === 0) {
+                teachersList.innerHTML = '<div class="text-gray-500 text-sm p-4 text-center">No teachers found. Add your first teacher to get started!</div>';
+                return;
+            }
+            
+            teachers.forEach(teacher => {
+                // Add to teachers list
+                const teacherCard = document.createElement('div');
+                teacherCard.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100';
+                teacherCard.innerHTML = `
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-900">${teacher.name}</div>
+                        <div class="text-sm text-gray-500">${teacher.department || 'No Department'}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-1 text-xs rounded-full ${teacher.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${teacher.status}
+                        </span>
+                        <button onclick="editTeacher('${teacher.id}')" class="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50" title="Edit Teacher">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="deleteTeacher('${teacher.id}')" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50" title="Delete Teacher">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                teachersList.appendChild(teacherCard);
+                
+                // Add to assignee select
+                if (teacher.status === 'Active') {
+                    const option = document.createElement('option');
+                    option.value = teacher.id;
+                    option.textContent = teacher.name;
+                    assigneeSelect.appendChild(option);
+                }
+            });
+        }
+
+        // Merge data arrays, giving precedence to Firestore data
+        function mergeDataArrays(localArray, firestoreArray) {
+            const merged = [...firestoreArray];
+            
+            // Add local items that don't exist in Firestore
+            localArray.forEach(localItem => {
+                if (!firestoreArray.find(fsItem => fsItem.id === localItem.id)) {
+                    merged.push(localItem);
+                }
+            });
+            
+            // Sort by creation date (newest first)
+            return merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
+
+        // Load areas from local storage first, then sync with Firestore
         async function loadAreas() {
-            try {
-                const snapshot = await db.collection('tnl_areas').orderBy('createdAt', 'desc').get();
-                areas = [];
-                
-                snapshot.forEach(doc => {
-                    const areaData = doc.data();
-                    // Convert ISO strings back to Date objects for compatibility
-                    if (areaData.createdAt && typeof areaData.createdAt === 'string') {
-                        areaData.createdAt = new Date(areaData.createdAt);
+            // Load from local storage first
+            areas = loadFromLocalStorage(LOCAL_STORAGE_KEYS.AREAS, []);
+            
+            // Create default areas if none exist locally
+            if (areas.length === 0) {
+                await createDefaultAreas();
+                return;
+            }
+            
+            updateTaskAreaDropdown();
+            
+            // Then sync with Firestore in background
+            if (isOnline && db) {
+                try {
+                    const snapshot = await db.collection(COLLECTIONS.AREAS).orderBy('createdAt', 'desc').get();
+                    
+                    if (!snapshot.empty) {
+                        const firestoreAreas = [];
+                        snapshot.forEach(doc => {
+                            const areaData = { id: doc.id, ...doc.data() };
+                            // Convert Firestore timestamps to JavaScript dates
+                            if (areaData.createdAt && areaData.createdAt.toDate) {
+                                areaData.createdAt = areaData.createdAt.toDate().toISOString();
+                            }
+                            if (areaData.lastUpdated && areaData.lastUpdated.toDate) {
+                                areaData.lastUpdated = areaData.lastUpdated.toDate().toISOString();
+                            }
+                            firestoreAreas.push(areaData);
+                        });
+                        
+                        // Merge with local data
+                        const mergedAreas = mergeDataArrays(areas, firestoreAreas);
+                        if (JSON.stringify(areas) !== JSON.stringify(mergedAreas)) {
+                            areas = mergedAreas;
+                            saveToLocalStorage(LOCAL_STORAGE_KEYS.AREAS, areas);
+                            updateTaskAreaDropdown(); // Refresh dropdown
+                        }
                     }
-                    if (areaData.lastUpdated && typeof areaData.lastUpdated === 'string') {
-                        areaData.lastUpdated = new Date(areaData.lastUpdated);
-                    }
-                    areas.push(areaData);
-                });
-                
-                updateTaskAreaDropdown();
-                updateSyncStatus('success', 'Areas loaded');
-            } catch (error) {
-                console.error('Error loading areas:', error);
-                updateSyncStatus('error', 'Failed to load areas');
+                } catch (error) {
+                    console.error('Error syncing areas from Firestore:', error);
+                }
             }
         }
 
-        // Load tasks from Firestore
-        async function loadTasks() {
-            try {
-                const snapshot = await db.collection('tnl_tasks').orderBy('createdAt', 'desc').get();
-                tasks = [];
-                
-                snapshot.forEach(doc => {
-                    const taskData = doc.data();
-                    // Convert ISO strings back to Date objects for compatibility
-                    if (taskData.createdAt && typeof taskData.createdAt === 'string') {
-                        taskData.createdAt = new Date(taskData.createdAt);
+        // Create default areas locally first, then sync to Firestore
+        async function createDefaultAreas() {
+            const defaultAreas = [
+                { name: 'Admissions', icon: '🎓', color: 'purple' },
+                { name: 'Teaching', icon: '📚', color: 'blue' },
+                { name: 'Finance', icon: '💰', color: 'green' },
+                { name: 'Inventory', icon: '📦', color: 'orange' },
+                { name: 'Administration', icon: '🏢', color: 'indigo' },
+                { name: 'Other', icon: '📋', color: 'gray' }
+            ];
+
+            // Create areas locally first
+            areas = defaultAreas.map(area => {
+                const areaSlug = area.name.toLowerCase().replace(/\s+/g, '-');
+                return {
+                    ...area,
+                    id: `area-${areaSlug}`,
+                    createdAt: new Date().toISOString(),
+                    lastUpdated: new Date().toISOString()
+                };
+            });
+            
+            saveToLocalStorage(LOCAL_STORAGE_KEYS.AREAS, areas);
+            updateTaskAreaDropdown();
+            
+            // Queue for Firestore sync
+            areas.forEach(area => {
+                addToSyncQueue({
+                    type: 'create',
+                    collection: COLLECTIONS.AREAS,
+                    docId: area.id,
+                    data: {
+                        ...area,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                     }
-                    if (taskData.lastUpdated && typeof taskData.lastUpdated === 'string') {
-                        taskData.lastUpdated = new Date(taskData.lastUpdated);
-                    }
-                    tasks.push(taskData);
                 });
-                
-                loadRecentTasks();
-                updateSyncStatus('success', 'Tasks loaded');
-            } catch (error) {
-                console.error('Error loading tasks:', error);
-                updateSyncStatus('error', 'Failed to load tasks');
+            });
+            
+            updateSyncStatus('success', 'Default areas created');
+        }
+
+        // Load tasks from local storage first, then sync with Firestore
+        async function loadTasks() {
+            // Load from local storage first for instant display
+            tasks = loadFromLocalStorage(LOCAL_STORAGE_KEYS.TASKS, []);
+            loadRecentTasks();
+            
+            // Then sync with Firestore in background
+            if (isOnline && db) {
+                try {
+                    const snapshot = await db.collection(COLLECTIONS.TASKS).orderBy('createdAt', 'desc').get();
+                    const firestoreTasks = [];
+                    
+                    snapshot.forEach(doc => {
+                        const taskData = { id: doc.id, ...doc.data() };
+                        // Convert Firestore timestamps to JavaScript dates
+                        if (taskData.createdAt && taskData.createdAt.toDate) {
+                            taskData.createdAt = taskData.createdAt.toDate().toISOString();
+                        }
+                        if (taskData.lastUpdated && taskData.lastUpdated.toDate) {
+                            taskData.lastUpdated = taskData.lastUpdated.toDate().toISOString();
+                        }
+                        // Handle subtasks timestamps
+                        if (taskData.subtasks && Array.isArray(taskData.subtasks)) {
+                            taskData.subtasks = taskData.subtasks.map(subtask => {
+                                if (subtask.createdAt && subtask.createdAt.toDate) {
+                                    subtask.createdAt = subtask.createdAt.toDate().toISOString();
+                                }
+                                return subtask;
+                            });
+                        }
+                        // Handle comments timestamps
+                        if (taskData.comments && Array.isArray(taskData.comments)) {
+                            taskData.comments = taskData.comments.map(comment => {
+                                if (comment.createdAt && comment.createdAt.toDate) {
+                                    comment.createdAt = comment.createdAt.toDate().toISOString();
+                                }
+                                return comment;
+                            });
+                        }
+                        firestoreTasks.push(taskData);
+                    });
+                    
+                    // Merge with local data
+                    const mergedTasks = mergeDataArrays(tasks, firestoreTasks);
+                    if (JSON.stringify(tasks) !== JSON.stringify(mergedTasks)) {
+                        tasks = mergedTasks;
+                        saveToLocalStorage(LOCAL_STORAGE_KEYS.TASKS, tasks);
+                        loadRecentTasks(); // Refresh display
+                    }
+                } catch (error) {
+                    console.error('Error syncing tasks from Firestore:', error);
+                }
             }
         }
 
@@ -1575,6 +1680,8 @@
             }
             
             try {
+                updateSyncStatus('loading', 'Deleting teacher...');
+                
                 // Check if teacher has assigned tasks
                 const assignedTasks = tasks.filter(task => task.assignedTo === teacherId);
                 if (assignedTasks.length > 0) {
@@ -1582,18 +1689,21 @@
                         return;
                     }
                     
-                    // Unassign tasks
+                    // Unassign tasks using batch operation
+                    const batch = db.batch();
                     for (const task of assignedTasks) {
-                        await db.collection('tasks').doc(task.id).update({
+                        const taskRef = db.collection(COLLECTIONS.TASKS).doc(task.id);
+                        batch.update(taskRef, {
                             assignedTo: '',
-                            lastUpdated: new Date()
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                         });
                     }
+                    await batch.commit();
                 }
                 
-                await db.collection('teachers').doc(teacherId).delete();
-                loadTeachers();
-                loadTasks(); // Refresh to update task assignments
+                await db.collection(COLLECTIONS.TEACHERS).doc(teacherId).delete();
+                await loadTeachers();
+                await loadTasks(); // Refresh to update task assignments
                 updateSyncStatus('success', 'Teacher deleted successfully');
             } catch (error) {
                 console.error('Error deleting teacher:', error);
@@ -1608,7 +1718,9 @@
             }
             
             try {
-                await db.collection('tnl_tasks').doc(taskId).delete();
+                updateSyncStatus('loading', 'Deleting task...');
+                
+                await db.collection(COLLECTIONS.TASKS).doc(taskId).delete();
                 
                 // Remove from local array
                 tasks = tasks.filter(task => task.id !== taskId);
@@ -2541,11 +2653,10 @@
             try {
                 const dateTimeStr = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
                 const notificationId = `notification-${notificationData.type}-${dateTimeStr}`;
-                await db.collection('tnl_notifications').doc(notificationId).set({
+                await db.collection(COLLECTIONS.NOTIFICATIONS).doc(notificationId).set({
                     ...notificationData,
-                    id: notificationId,
                     read: false,
-                    createdAt: notificationData.createdAt || new Date().toISOString()
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
                 updateNotificationBadge();
@@ -2554,52 +2665,80 @@
             }
         }
 
+        // Load notifications from local storage first, then sync with Firestore
         async function loadNotifications() {
-            try {
-                const snapshot = await db.collection('tnl_notifications')
-                    .orderBy('createdAt', 'desc')
-                    .limit(20)
-                    .get();
-                
-                notifications = [];
-                const container = document.getElementById('notificationsList');
-                container.innerHTML = '';
-                
-                if (snapshot.empty) {
-                    container.innerHTML = '<div class="text-gray-500 text-sm">No notifications</div>';
-                    return;
-                }
-                
-                snapshot.forEach(doc => {
-                    const notification = doc.data();
-                    // Convert ISO strings back to Date objects for compatibility
-                    if (notification.createdAt && typeof notification.createdAt === 'string') {
-                        notification.createdAt = new Date(notification.createdAt);
-                    }
-                    notifications.push(notification);
+            // Load from local storage first
+            notifications = loadFromLocalStorage(LOCAL_STORAGE_KEYS.NOTIFICATIONS, []);
+            displayNotifications();
+            updateNotificationBadge();
+            
+            // Then sync with Firestore in background
+            if (isOnline && db) {
+                try {
+                    const snapshot = await db.collection(COLLECTIONS.NOTIFICATIONS)
+                        .orderBy('createdAt', 'desc')
+                        .limit(20)
+                        .get();
                     
-                    const notificationDiv = document.createElement('div');
-                    notificationDiv.className = `p-3 rounded-lg ${notification.read ? 'bg-gray-50' : 'bg-blue-50'} border-l-4 border-blue-500`;
-                    notificationDiv.innerHTML = `
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex-1">
-                                <div class="text-xs sm:text-sm font-medium text-gray-900">${notification.message}</div>
-                                <div class="text-xs text-gray-500 mt-1">${notification.createdAt.toLocaleString()}</div>
-                            </div>
-                            ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>' : ''}
-                        </div>
-                        <div class="flex gap-2 text-xs">
-                            ${!notification.read ? `<button onclick="markNotificationRead('${notification.id}')" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 px-2 py-1 rounded">Mark Read</button>` : ''}
-                            ${notification.taskId ? `<button onclick="goToTask('${notification.taskId}')" class="text-green-600 hover:text-green-800 hover:bg-green-100 px-2 py-1 rounded">Go to Task</button>` : ''}
-                        </div>
-                    `;
-                    container.appendChild(notificationDiv);
-                });
-                
-                updateNotificationBadge();
-            } catch (error) {
-                console.error('Error loading notifications:', error);
+                    if (!snapshot.empty) {
+                        const firestoreNotifications = [];
+                        snapshot.forEach(doc => {
+                            const notification = { id: doc.id, ...doc.data() };
+                            // Convert Firestore timestamps to JavaScript dates
+                            if (notification.createdAt && notification.createdAt.toDate) {
+                                notification.createdAt = notification.createdAt.toDate().toISOString();
+                            }
+                            firestoreNotifications.push(notification);
+                        });
+                        
+                        // Merge with local data
+                        const mergedNotifications = mergeDataArrays(notifications, firestoreNotifications);
+                        if (JSON.stringify(notifications) !== JSON.stringify(mergedNotifications)) {
+                            notifications = mergedNotifications.slice(0, 20); // Keep only latest 20
+                            saveToLocalStorage(LOCAL_STORAGE_KEYS.NOTIFICATIONS, notifications);
+                            displayNotifications();
+                            updateNotificationBadge();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error syncing notifications from Firestore:', error);
+                }
             }
+        }
+
+        // Display notifications in the UI
+        function displayNotifications() {
+            const container = document.getElementById('notificationsList');
+            container.innerHTML = '';
+            
+            if (notifications.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 text-sm">No notifications</div>';
+                return;
+            }
+            
+            notifications.forEach(notification => {
+                const notificationDiv = document.createElement('div');
+                notificationDiv.className = `p-3 rounded-lg ${notification.read ? 'bg-gray-50' : 'bg-blue-50'} border-l-4 border-blue-500`;
+                
+                const createdAt = typeof notification.createdAt === 'string' 
+                    ? new Date(notification.createdAt) 
+                    : notification.createdAt;
+                
+                notificationDiv.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                            <div class="text-xs sm:text-sm font-medium text-gray-900">${notification.message}</div>
+                            <div class="text-xs text-gray-500 mt-1">${createdAt.toLocaleString()}</div>
+                        </div>
+                        ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>' : ''}
+                    </div>
+                    <div class="flex gap-2 text-xs">
+                        ${!notification.read ? `<button onclick="markNotificationRead('${notification.id}')" class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 px-2 py-1 rounded">Mark Read</button>` : ''}
+                        ${notification.taskId ? `<button onclick="goToTask('${notification.taskId}')" class="text-green-600 hover:text-green-800 hover:bg-green-100 px-2 py-1 rounded">Go to Task</button>` : ''}
+                    </div>
+                `;
+                container.appendChild(notificationDiv);
+            });
         }
 
         function updateNotificationBadge() {
@@ -2790,16 +2929,68 @@
             updateSyncStatus('success', 'Area deleted successfully');
         }
 
+        // Initialize app function - Optimized for local-first
+        async function initializeApp() {
+            try {
+                // Load sync queue from local storage
+                syncQueue = loadFromLocalStorage(LOCAL_STORAGE_KEYS.SYNC_QUEUE, []);
+                lastSyncTime = loadFromLocalStorage(LOCAL_STORAGE_KEYS.LAST_SYNC, null);
+                
+                // Load all data from local storage first (instant display)
+                updateSyncStatus('success', 'Loading from local storage...');
+                await loadAreas(); // Load areas first (creates defaults if needed)
+                await loadTeachers();
+                await loadTasks();
+                await loadNotifications();
+                
+                // Show sync queue status
+                if (syncQueue.length > 0) {
+                    updateSyncStatus('loading', `${syncQueue.length} items queued for sync`);
+                } else {
+                    updateSyncStatus('success', 'All data loaded');
+                }
+                
+                // Start background sync if online and Firebase is ready
+                if (isOnline && db) {
+                    setTimeout(() => {
+                        processSyncQueue();
+                        // Set up periodic sync every 30 seconds
+                        setInterval(() => {
+                            if (isOnline && !syncInProgress && syncQueue.length > 0) {
+                                processSyncQueue();
+                            }
+                        }, 30000);
+                    }, 1000);
+                } else if (!isOnline) {
+                    updateSyncStatus('error', 'Offline - changes will sync when online');
+                } else {
+                    updateSyncStatus('error', 'Firebase not configured - running in local mode');
+                }
+                
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                updateSyncStatus('error', 'Initialization error - running in local mode');
+                
+                // Still try to load local data
+                try {
+                    await loadAreas();
+                    await loadTeachers();
+                    await loadTasks();
+                    await loadNotifications();
+                } catch (localError) {
+                    console.error('Error loading local data:', localError);
+                }
+            }
+        }
+
         // Initialize app on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            updateSyncStatus('loading', 'Connecting...');
-            await loadTeachers();
-            await loadAreas();
-            await loadTasks();
-            await loadNotifications();
-            updateTaskAreaDropdown();
-            updateSyncStatus('success', 'Ready');
+        document.addEventListener('DOMContentLoaded', () => {
+            // If Firebase is already loaded, initialize immediately
+            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                initializeApp();
+            }
+            // Otherwise, initializeApp() will be called after Firebase loads
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9751eb6740c9a67c',t:'MTc1NjE5NjUyNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9752276087c2099b',t:'MTc1NjE5ODk4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
