@@ -677,123 +677,331 @@
     </div>
 
     <script>
-        // Simple demo system without authentication
+        // Firestore Configuration
+        const firebaseConfig = {
+            // This is a demo - replace with your actual Firebase config
+            apiKey: "demo-api-key",
+            authDomain: "tnledu-demo.firebaseapp.com",
+            projectId: "tnledu-demo",
+            storageBucket: "tnledu-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "demo-app-id"
+        };
 
-        // Demo Database System
-        const demoDb = {
-            data: {
-                teachers: new Map(),
-                tasks: new Map(),
-                notifications: new Map(),
-                privateTasks: new Map()
-            },
-            collection: (name) => ({
-                doc: (id) => ({
-                    set: async (data) => {
-                        demoDb.data[name].set(id, { ...data, id });
-                        return Promise.resolve();
+        // Initialize Firebase (Demo mode - using localStorage for persistence)
+        class FirestoreDemo {
+            constructor() {
+                this.collections = {
+                    'teachers': 'teachers', // Existing collection
+                    'tnl_tasks': 'tnl_tasks', // Task management tasks
+                    'tnl_notifications': 'tnl_notifications', // System notifications
+                    'tnl_areas': 'tnl_areas', // Custom work areas
+                    'tnl_settings': 'tnl_settings' // System settings
+                };
+                this.cache = new Map();
+                this.initializeDemo();
+            }
+
+            initializeDemo() {
+                // Initialize with demo data if not exists
+                if (!localStorage.getItem('tnl_demo_initialized')) {
+                    this.seedDemoData();
+                    localStorage.setItem('tnl_demo_initialized', 'true');
+                }
+                this.loadCache();
+            }
+
+            seedDemoData() {
+                // Seed demo teachers (simulating existing collection)
+                const demoTeachers = [
+                    {
+                        id: 'teacher-john-doe',
+                        name: 'John Doe',
+                        email: 'john.doe@tnledu.com',
+                        department: 'Teaching',
+                        role: 'teacher',
+                        status: 'Active',
+                        createdAt: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
                     },
-                    update: async (data) => {
-                        const existing = demoDb.data[name].get(id) || {};
-                        demoDb.data[name].set(id, { ...existing, ...data });
-                        return Promise.resolve();
+                    {
+                        id: 'teacher-jane-smith',
+                        name: 'Jane Smith',
+                        email: 'jane.smith@tnledu.com',
+                        department: 'Administration',
+                        role: 'teacher',
+                        status: 'Active',
+                        createdAt: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
                     },
-                    delete: async () => {
-                        demoDb.data[name].delete(id);
-                        return Promise.resolve();
-                    },
-                    get: async () => ({
-                        exists: demoDb.data[name].has(id),
-                        data: () => demoDb.data[name].get(id)
-                    })
-                }),
-                get: async () => ({
-                    empty: demoDb.data[name].size === 0,
-                    forEach: (callback) => {
-                        demoDb.data[name].forEach((doc, id) => {
-                            callback({ data: () => doc });
-                        });
+                    {
+                        id: 'teacher-mike-wilson',
+                        name: 'Mike Wilson',
+                        email: 'mike.wilson@tnledu.com',
+                        department: 'Finance',
+                        role: 'teacher',
+                        status: 'Active',
+                        createdAt: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
                     }
-                }),
-                where: (field, operator, value) => ({
-                    get: async () => {
-                        const results = [];
-                        demoDb.data[name].forEach((doc, id) => {
-                            if (doc[field] === value) {
-                                results.push({ data: () => doc });
-                            }
-                        });
-                        return {
-                            empty: results.length === 0,
-                            docs: results,
-                            forEach: (callback) => results.forEach(callback)
-                        };
+                ];
+
+                demoTeachers.forEach(teacher => {
+                    localStorage.setItem(`teachers_${teacher.id}`, JSON.stringify(teacher));
+                });
+
+                // Seed demo areas
+                const demoAreas = [
+                    { id: 'area-admissions', name: 'Admissions', icon: '🎓', color: 'purple' },
+                    { id: 'area-teaching', name: 'Teaching', icon: '📚', color: 'blue' },
+                    { id: 'area-finance', name: 'Finance', icon: '💰', color: 'green' },
+                    { id: 'area-inventory', name: 'Inventory', icon: '📦', color: 'orange' },
+                    { id: 'area-administration', name: 'Administration', icon: '🏢', color: 'indigo' },
+                    { id: 'area-other', name: 'Other', icon: '📋', color: 'gray' }
+                ];
+
+                demoAreas.forEach(area => {
+                    localStorage.setItem(`tnl_areas_${area.id}`, JSON.stringify({
+                        ...area,
+                        createdAt: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    }));
+                });
+            }
+
+            loadCache() {
+                // Load all data into cache for fast access
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('teachers_') || 
+                        key.startsWith('tnl_tasks_') || 
+                        key.startsWith('tnl_notifications_') ||
+                        key.startsWith('tnl_areas_')) {
+                        try {
+                            const data = JSON.parse(localStorage.getItem(key));
+                            this.cache.set(key, data);
+                        } catch (error) {
+                            console.error('Error loading cached data:', key, error);
+                        }
                     }
-                }),
-                orderBy: (field, direction) => ({
-                    get: async () => ({
-                        empty: demoDb.data[name].size === 0,
-                        forEach: (callback) => {
-                            const items = Array.from(demoDb.data[name].values());
-                            items.sort((a, b) => {
-                                if (direction === 'desc') {
-                                    return new Date(b[field]) - new Date(a[field]);
-                                }
-                                return new Date(a[field]) - new Date(b[field]);
-                            });
-                            items.forEach(doc => callback({ data: () => doc }));
+                });
+            }
+
+            collection(name) {
+                const collectionName = this.collections[name] || name;
+                
+                return {
+                    doc: (id) => ({
+                        set: async (data) => {
+                            const docData = {
+                                ...data,
+                                id,
+                                createdAt: data.createdAt || new Date().toISOString(),
+                                lastUpdated: new Date().toISOString()
+                            };
+                            
+                            const key = `${collectionName}_${id}`;
+                            localStorage.setItem(key, JSON.stringify(docData));
+                            this.cache.set(key, docData);
+                            
+                            return Promise.resolve();
+                        },
+                        update: async (data) => {
+                            const key = `${collectionName}_${id}`;
+                            const existing = this.cache.get(key) || JSON.parse(localStorage.getItem(key) || '{}');
+                            
+                            const updatedData = {
+                                ...existing,
+                                ...data,
+                                lastUpdated: new Date().toISOString()
+                            };
+                            
+                            localStorage.setItem(key, JSON.stringify(updatedData));
+                            this.cache.set(key, updatedData);
+                            
+                            return Promise.resolve();
+                        },
+                        delete: async () => {
+                            const key = `${collectionName}_${id}`;
+                            localStorage.removeItem(key);
+                            this.cache.delete(key);
+                            return Promise.resolve();
+                        },
+                        get: async () => {
+                            const key = `${collectionName}_${id}`;
+                            const data = this.cache.get(key) || JSON.parse(localStorage.getItem(key) || 'null');
+                            
+                            return {
+                                exists: data !== null,
+                                data: () => data,
+                                id: id
+                            };
                         }
                     }),
-                    limit: (num) => ({
-                        get: async () => ({
-                            empty: demoDb.data[name].size === 0,
-                            forEach: (callback) => {
-                                const items = Array.from(demoDb.data[name].values()).slice(0, num);
-                                items.forEach(doc => callback({ data: () => doc }));
+                    get: async () => {
+                        const docs = [];
+                        this.cache.forEach((data, key) => {
+                            if (key.startsWith(`${collectionName}_`)) {
+                                docs.push({
+                                    data: () => data,
+                                    id: data.id
+                                });
                             }
-                        })
-                    }),
+                        });
+                        
+                        return {
+                            empty: docs.length === 0,
+                            docs: docs,
+                            forEach: (callback) => docs.forEach(callback)
+                        };
+                    },
                     where: (field, operator, value) => ({
                         get: async () => {
                             const results = [];
-                            demoDb.data[name].forEach((doc, id) => {
-                                if (doc[field] === value) {
-                                    results.push({ data: () => doc });
+                            this.cache.forEach((data, key) => {
+                                if (key.startsWith(`${collectionName}_`)) {
+                                    let match = false;
+                                    switch (operator) {
+                                        case '==':
+                                            match = data[field] === value;
+                                            break;
+                                        case '!=':
+                                            match = data[field] !== value;
+                                            break;
+                                        case '>':
+                                            match = data[field] > value;
+                                            break;
+                                        case '<':
+                                            match = data[field] < value;
+                                            break;
+                                        case '>=':
+                                            match = data[field] >= value;
+                                            break;
+                                        case '<=':
+                                            match = data[field] <= value;
+                                            break;
+                                        case 'array-contains':
+                                            match = Array.isArray(data[field]) && data[field].includes(value);
+                                            break;
+                                    }
+                                    if (match) {
+                                        results.push({
+                                            data: () => data,
+                                            id: data.id
+                                        });
+                                    }
                                 }
                             });
+                            
                             return {
                                 empty: results.length === 0,
                                 docs: results,
                                 forEach: (callback) => results.forEach(callback)
                             };
                         }
+                    }),
+                    orderBy: (field, direction = 'asc') => ({
+                        get: async () => {
+                            const docs = [];
+                            this.cache.forEach((data, key) => {
+                                if (key.startsWith(`${collectionName}_`)) {
+                                    docs.push({
+                                        data: () => data,
+                                        id: data.id
+                                    });
+                                }
+                            });
+                            
+                            docs.sort((a, b) => {
+                                const aVal = a.data()[field];
+                                const bVal = b.data()[field];
+                                
+                                if (direction === 'desc') {
+                                    return new Date(bVal) - new Date(aVal);
+                                }
+                                return new Date(aVal) - new Date(bVal);
+                            });
+                            
+                            return {
+                                empty: docs.length === 0,
+                                docs: docs,
+                                forEach: (callback) => docs.forEach(callback),
+                                limit: (num) => ({
+                                    get: async () => ({
+                                        empty: docs.length === 0,
+                                        docs: docs.slice(0, num),
+                                        forEach: (callback) => docs.slice(0, num).forEach(callback)
+                                    })
+                                })
+                            };
+                        },
+                        limit: (num) => ({
+                            get: async () => {
+                                const docs = [];
+                                this.cache.forEach((data, key) => {
+                                    if (key.startsWith(`${collectionName}_`)) {
+                                        docs.push({
+                                            data: () => data,
+                                            id: data.id
+                                        });
+                                    }
+                                });
+                                
+                                docs.sort((a, b) => {
+                                    const aVal = a.data()[field];
+                                    const bVal = b.data()[field];
+                                    
+                                    if (direction === 'desc') {
+                                        return new Date(bVal) - new Date(aVal);
+                                    }
+                                    return new Date(aVal) - new Date(bVal);
+                                });
+                                
+                                return {
+                                    empty: docs.length === 0,
+                                    docs: docs.slice(0, num),
+                                    forEach: (callback) => docs.slice(0, num).forEach(callback)
+                                };
+                            }
+                        })
                     })
-                })
-            }),
-            batch: () => ({
-                update: () => {},
-                commit: async () => Promise.resolve()
-            })
-        };
+                };
+            }
 
-        // Initialize demo system
-        const db = demoDb;
-        
-        // Add some demo data
-        setTimeout(() => {
-            // Add demo teacher
-            db.data.teachers.set('demo-teacher', {
-                id: 'demo-teacher',
-                name: 'Demo Teacher',
-                email: 'teacher@tnledu.com',
-                department: 'Teaching',
-                role: 'teacher',
-                status: 'Active',
-                createdAt: new Date(),
-                lastUpdated: new Date(),
-                createdBy: 'admin@tnledu.com'
-            });
-        }, 500);
+            batch() {
+                const operations = [];
+                return {
+                    update: (docRef, data) => {
+                        operations.push({ type: 'update', docRef, data });
+                    },
+                    set: (docRef, data) => {
+                        operations.push({ type: 'set', docRef, data });
+                    },
+                    delete: (docRef) => {
+                        operations.push({ type: 'delete', docRef });
+                    },
+                    commit: async () => {
+                        // Execute all operations
+                        for (const op of operations) {
+                            switch (op.type) {
+                                case 'update':
+                                    await op.docRef.update(op.data);
+                                    break;
+                                case 'set':
+                                    await op.docRef.set(op.data);
+                                    break;
+                                case 'delete':
+                                    await op.docRef.delete();
+                                    break;
+                            }
+                        }
+                        return Promise.resolve();
+                    }
+                };
+            }
+        }
+
+        // Initialize Firestore
+        const db = new FirestoreDemo();
 
         // Global variables
         let teachers = [];
@@ -807,14 +1015,7 @@
             email: 'admin@tnledu.com', 
             role: 'admin' 
         };
-        let areas = [
-            { name: 'Admissions', icon: '🎓', color: 'purple' },
-            { name: 'Teaching', icon: '📚', color: 'blue' },
-            { name: 'Finance', icon: '💰', color: 'green' },
-            { name: 'Inventory', icon: '📦', color: 'orange' },
-            { name: 'Administration', icon: '🏢', color: 'indigo' },
-            { name: 'Other', icon: '📋', color: 'gray' }
-        ];
+        let areas = [];
         let currentEditingTeacher = null;
 
         // Tab switching functionality
@@ -1016,46 +1217,68 @@
                 color: document.getElementById('areaColor').value
             };
 
-            if (editingAreaName) {
-                // Update existing area
-                const areaIndex = areas.findIndex(a => a.name === editingAreaName);
-                if (areaIndex !== -1) {
-                    // If name changed, update all tasks with this area
-                    if (editingAreaName !== areaData.name) {
-                        const areaTasks = tasks.filter(task => task.area === editingAreaName);
-                        areaTasks.forEach(async (task) => {
-                            try {
-                                await db.collection('tasks').doc(task.id).update({
+            try {
+                if (editingAreaName) {
+                    // Update existing area
+                    const existingArea = areas.find(a => a.name === editingAreaName);
+                    if (existingArea) {
+                        // If name changed, update all tasks with this area
+                        if (editingAreaName !== areaData.name) {
+                            const areaTasks = tasks.filter(task => task.area === editingAreaName);
+                            for (const task of areaTasks) {
+                                await db.collection('tnl_tasks').doc(task.id).update({
                                     area: areaData.name,
-                                    lastUpdated: new Date()
+                                    lastUpdated: new Date().toISOString()
                                 });
                                 task.area = areaData.name;
-                            } catch (error) {
-                                console.error('Error updating task area:', error);
                             }
+                        }
+                        
+                        // Update area in Firestore
+                        await db.collection('tnl_areas').doc(existingArea.id).update({
+                            ...areaData,
+                            lastUpdated: new Date().toISOString()
                         });
+                        
+                        // Update local array
+                        const areaIndex = areas.findIndex(a => a.name === editingAreaName);
+                        if (areaIndex !== -1) {
+                            areas[areaIndex] = { ...areas[areaIndex], ...areaData };
+                        }
                     }
+                    updateSyncStatus('success', 'Area updated successfully');
                     
-                    areas[areaIndex] = areaData;
+                    // Reset form state
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    submitBtn.textContent = 'Add Area';
+                    delete form.dataset.editingAreaName;
+                } else {
+                    // Add new area
+                    const areaSlug = areaData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                    const areaId = `area-${areaSlug}`;
+                    
+                    const newAreaData = {
+                        ...areaData,
+                        id: areaId,
+                        createdAt: new Date().toISOString(),
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    await db.collection('tnl_areas').doc(areaId).set(newAreaData);
+                    areas.push(newAreaData);
+                    updateSyncStatus('success', 'Area added successfully');
                 }
-                updateSyncStatus('success', 'Area updated successfully');
-                
-                // Reset form state
-                const submitBtn = form.querySelector('button[type="submit"]');
-                submitBtn.textContent = 'Add Area';
-                delete form.dataset.editingAreaName;
-            } else {
-                // Add new area
-                areas.push(areaData);
-                updateSyncStatus('success', 'Area added successfully');
-            }
 
-            document.getElementById('areaModal').classList.add('hidden');
-            document.getElementById('areaForm').reset();
-            
-            // Update task area dropdown
-            updateTaskAreaDropdown();
-            loadTasksByAreas();
+                document.getElementById('areaModal').classList.add('hidden');
+                document.getElementById('areaForm').reset();
+                
+                // Update task area dropdown
+                updateTaskAreaDropdown();
+                loadTasksByAreas();
+            } catch (error) {
+                console.error('Error saving area:', error);
+                updateSyncStatus('error', 'Failed to save area');
+            }
         });
 
         // Task form submission
@@ -1078,13 +1301,13 @@
                 deadline: document.getElementById('taskDeadline').value,
                 assignedTo: document.getElementById('taskAssignee').value,
                 tags: tags,
-                lastUpdated: new Date()
+                lastUpdated: new Date().toISOString()
             };
 
             try {
                 if (editingTaskId) {
                     // Update existing task
-                    await db.collection('tasks').doc(editingTaskId).update(taskData);
+                    await db.collection('tnl_tasks').doc(editingTaskId).update(taskData);
                     
                     // Update local task object
                     const taskIndex = tasks.findIndex(t => t.id === editingTaskId);
@@ -1122,9 +1345,9 @@
                     taskData.comments = [];
                     taskData.attachments = [];
                     taskData.timeSpent = 0;
-                    taskData.createdAt = new Date();
+                    taskData.createdAt = new Date().toISOString();
 
-                    await db.collection('tasks').doc(taskData.id).set(taskData);
+                    await db.collection('tnl_tasks').doc(taskData.id).set(taskData);
                     updateSyncStatus('success', 'Task created successfully');
                     
                     // Create notification for assigned teacher
@@ -1134,7 +1357,7 @@
                             message: `New task assigned: ${taskData.name}`,
                             taskId: taskData.id,
                             recipientId: taskData.assignedTo,
-                            createdAt: new Date()
+                            createdAt: new Date().toISOString()
                         });
                         // Reload notifications immediately
                         await loadNotifications();
@@ -1158,7 +1381,7 @@
             }
         });
 
-        // Load teachers from Firebase
+        // Load teachers from existing Firestore collection
         async function loadTeachers() {
             try {
                 const snapshot = await db.collection('teachers').orderBy('createdAt', 'desc').get();
@@ -1171,6 +1394,13 @@
                 
                 snapshot.forEach(doc => {
                     const teacher = doc.data();
+                    // Convert ISO strings back to Date objects for compatibility
+                    if (teacher.createdAt && typeof teacher.createdAt === 'string') {
+                        teacher.createdAt = new Date(teacher.createdAt);
+                    }
+                    if (teacher.lastUpdated && typeof teacher.lastUpdated === 'string') {
+                        teacher.lastUpdated = new Date(teacher.lastUpdated);
+                    }
                     teachers.push(teacher);
                     
                     // Add to teachers list
@@ -1215,14 +1445,48 @@
             }
         }
 
-        // Load tasks from Firebase
+        // Load areas from Firestore
+        async function loadAreas() {
+            try {
+                const snapshot = await db.collection('tnl_areas').orderBy('createdAt', 'desc').get();
+                areas = [];
+                
+                snapshot.forEach(doc => {
+                    const areaData = doc.data();
+                    // Convert ISO strings back to Date objects for compatibility
+                    if (areaData.createdAt && typeof areaData.createdAt === 'string') {
+                        areaData.createdAt = new Date(areaData.createdAt);
+                    }
+                    if (areaData.lastUpdated && typeof areaData.lastUpdated === 'string') {
+                        areaData.lastUpdated = new Date(areaData.lastUpdated);
+                    }
+                    areas.push(areaData);
+                });
+                
+                updateTaskAreaDropdown();
+                updateSyncStatus('success', 'Areas loaded');
+            } catch (error) {
+                console.error('Error loading areas:', error);
+                updateSyncStatus('error', 'Failed to load areas');
+            }
+        }
+
+        // Load tasks from Firestore
         async function loadTasks() {
             try {
-                const snapshot = await db.collection('tasks').orderBy('createdAt', 'desc').get();
+                const snapshot = await db.collection('tnl_tasks').orderBy('createdAt', 'desc').get();
                 tasks = [];
                 
                 snapshot.forEach(doc => {
-                    tasks.push(doc.data());
+                    const taskData = doc.data();
+                    // Convert ISO strings back to Date objects for compatibility
+                    if (taskData.createdAt && typeof taskData.createdAt === 'string') {
+                        taskData.createdAt = new Date(taskData.createdAt);
+                    }
+                    if (taskData.lastUpdated && typeof taskData.lastUpdated === 'string') {
+                        taskData.lastUpdated = new Date(taskData.lastUpdated);
+                    }
+                    tasks.push(taskData);
                 });
                 
                 loadRecentTasks();
@@ -1344,7 +1608,7 @@
             }
             
             try {
-                await db.collection('tasks').doc(taskId).delete();
+                await db.collection('tnl_tasks').doc(taskId).delete();
                 
                 // Remove from local array
                 tasks = tasks.filter(task => task.id !== taskId);
@@ -1854,31 +2118,27 @@
             const newProgress = parseInt(document.getElementById('updateProgress').value);
             
             try {
-                await db.collection('tasks').doc(currentTask.id).update({
+                const updateData = {
                     status: newStatus,
                     progress: newProgress,
-                    lastUpdated: new Date()
-                });
+                    lastUpdated: new Date().toISOString()
+                };
+
+                // Add completion/cancellation dates
+                if (newStatus === 'Completed' && currentTask.status !== 'Completed') {
+                    updateData.completedDate = new Date().toISOString().split('T')[0];
+                } else if (newStatus === 'Cancelled' && currentTask.status !== 'Cancelled') {
+                    updateData.cancelledDate = new Date().toISOString().split('T')[0];
+                }
+
+                await db.collection('tnl_tasks').doc(currentTask.id).update(updateData);
                 
-                currentTask.status = newStatus;
-                currentTask.progress = newProgress;
+                // Update current task object
+                Object.assign(currentTask, updateData);
                 
                 // Update display
                 document.getElementById('taskDetailStatus').textContent = newStatus;
                 document.getElementById('taskDetailProgress').textContent = `${newProgress}%`;
-                
-                // Add completion/cancellation dates
-                if (newStatus === 'Completed' && currentTask.status !== 'Completed') {
-                    currentTask.completedDate = new Date().toISOString().split('T')[0];
-                    await db.collection('tasks').doc(currentTask.id).update({
-                        completedDate: currentTask.completedDate
-                    });
-                } else if (newStatus === 'Cancelled' && currentTask.status !== 'Cancelled') {
-                    currentTask.cancelledDate = new Date().toISOString().split('T')[0];
-                    await db.collection('tasks').doc(currentTask.id).update({
-                        cancelledDate: currentTask.cancelledDate
-                    });
-                }
                 
                 // Add to activity log
                 await addActivity(`Status updated to ${newStatus}, Progress: ${newProgress}%`);
@@ -1917,14 +2177,14 @@
                 deadline: document.getElementById('subtaskDeadline').value,
                 assignedTo: document.getElementById('subtaskAssignee').value,
                 completed: false,
-                createdAt: new Date()
+                createdAt: new Date().toISOString()
             };
             
             try {
                 const updatedSubtasks = [...(currentTask.subtasks || []), subtask];
-                await db.collection('tasks').doc(currentTask.id).update({
+                await db.collection('tnl_tasks').doc(currentTask.id).update({
                     subtasks: updatedSubtasks,
-                    lastUpdated: new Date()
+                    lastUpdated: new Date().toISOString()
                 });
                 
                 currentTask.subtasks = updatedSubtasks;
@@ -2281,10 +2541,11 @@
             try {
                 const dateTimeStr = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
                 const notificationId = `notification-${notificationData.type}-${dateTimeStr}`;
-                await db.collection('notifications').doc(notificationId).set({
+                await db.collection('tnl_notifications').doc(notificationId).set({
                     ...notificationData,
                     id: notificationId,
-                    read: false
+                    read: false,
+                    createdAt: notificationData.createdAt || new Date().toISOString()
                 });
                 
                 updateNotificationBadge();
@@ -2295,7 +2556,7 @@
 
         async function loadNotifications() {
             try {
-                const snapshot = await db.collection('notifications')
+                const snapshot = await db.collection('tnl_notifications')
                     .orderBy('createdAt', 'desc')
                     .limit(20)
                     .get();
@@ -2311,6 +2572,10 @@
                 
                 snapshot.forEach(doc => {
                     const notification = doc.data();
+                    // Convert ISO strings back to Date objects for compatibility
+                    if (notification.createdAt && typeof notification.createdAt === 'string') {
+                        notification.createdAt = new Date(notification.createdAt);
+                    }
                     notifications.push(notification);
                     
                     const notificationDiv = document.createElement('div');
@@ -2319,7 +2584,7 @@
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex-1">
                                 <div class="text-xs sm:text-sm font-medium text-gray-900">${notification.message}</div>
-                                <div class="text-xs text-gray-500 mt-1">${new Date(notification.createdAt.seconds * 1000).toLocaleString()}</div>
+                                <div class="text-xs text-gray-500 mt-1">${notification.createdAt.toLocaleString()}</div>
                             </div>
                             ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>' : ''}
                         </div>
@@ -2393,8 +2658,9 @@
         // Mark notification as read
         async function markNotificationRead(notificationId) {
             try {
-                await db.collection('notifications').doc(notificationId).update({
-                    read: true
+                await db.collection('tnl_notifications').doc(notificationId).update({
+                    read: true,
+                    lastUpdated: new Date().toISOString()
                 });
                 loadNotifications();
             } catch (error) {
@@ -2409,8 +2675,11 @@
                 const batch = db.batch();
                 
                 unreadNotifications.forEach(notification => {
-                    const notificationRef = db.collection('notifications').doc(notification.id);
-                    batch.update(notificationRef, { read: true });
+                    const notificationRef = db.collection('tnl_notifications').doc(notification.id);
+                    batch.update(notificationRef, { 
+                        read: true,
+                        lastUpdated: new Date().toISOString()
+                    });
                 });
                 
                 await batch.commit();
@@ -2525,11 +2794,12 @@
         document.addEventListener('DOMContentLoaded', async () => {
             updateSyncStatus('loading', 'Connecting...');
             await loadTeachers();
+            await loadAreas();
             await loadTasks();
             await loadNotifications();
             updateTaskAreaDropdown();
             updateSyncStatus('success', 'Ready');
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974b601e1045dd62',t:'MTc1NjEyNzkwOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9751eb6740c9a67c',t:'MTc1NjE5NjUyNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
