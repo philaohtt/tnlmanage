@@ -785,25 +785,26 @@
         }
 
         async function saveCourse(courseData) {
-            try {
-                // Generate sequential course ID
-                const coursesSnapshot = await db.collection('courses').get();
-                const courseCount = coursesSnapshot.size + 1;
-                const courseId = `course_${courseCount.toString().padStart(3, '0')}`;
-                
-                await db.collection('courses').doc(courseId).set({
-                    ...courseData,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    students: [],
-                    attendance: [],
-                    assessments: []
-                });
-                return courseId;
-            } catch (error) {
-                console.error('Error saving course:', error);
-                throw error;
-            }
-        }
+    try {
+        // Use the course code as the document ID
+        const courseId = courseData.code.toUpperCase().replace(/\s+/g, ''); // Remove spaces, make uppercase
+        
+        await db.collection('courses').doc(courseId).set({
+            ...courseData,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            students: [],
+            attendance: [],
+            assessments: [],
+            attendanceDates: [],
+            assessmentDates: []
+        });
+        
+        return courseId;
+    } catch (error) {
+        console.error('Error saving course:', error);
+        throw error;
+    }
+}
 
         async function updateCourse(courseId, updates) {
             try {
@@ -1079,29 +1080,37 @@
         }
 
         async function addCourse(event) {
-            event.preventDefault();
-            
-            const teacherSelect = document.getElementById('teacherSelect');
-            const customTeacher = document.getElementById('customTeacher');
-            const teacher = teacherSelect.value === 'other' ? customTeacher.value : teacherSelect.value;
-            
-            const courseData = {
-                code: document.getElementById('courseCode').value,
-                name: document.getElementById('courseName').value,
-                teacher: teacher,
-                schedule: document.getElementById('schedule').value,
-                status: document.getElementById('courseStatus').value,
-                startDate: document.getElementById('startDate').value
-            };
-            
-            try {
-                await saveCourse(courseData);
-                closeAddCourseModal();
-                loadCourses();
-            } catch (error) {
-                alert('Error adding course: ' + error.message);
-            }
+    event.preventDefault();
+
+    const teacherSelect = document.getElementById('teacherSelect');
+    const customTeacher = document.getElementById('customTeacher');
+    const teacher = teacherSelect.value === 'other' ? customTeacher.value : teacherSelect.value;
+
+    const courseData = {
+        code: document.getElementById('courseCode').value,
+        name: document.getElementById('courseName').value,
+        teacher: teacher,
+        schedule: document.getElementById('schedule').value,
+        status: document.getElementById('courseStatus').value,
+        startDate: document.getElementById('startDate').value
+    };
+
+    try {
+        // ADD THIS CHECK - prevent duplicate course codes
+        const courseId = courseData.code.toUpperCase().replace(/\s+/g, '');
+        const existingCourse = await db.collection('courses').doc(courseId).get();
+        if (existingCourse.exists) {
+            alert('A course with this code already exists! Please use a different course code.');
+            return;
         }
+
+        await saveCourse(courseData);
+        closeAddCourseModal();
+        loadCourses();
+    } catch (error) {
+        alert('Error adding course: ' + error.message);
+    }
+}
 
         async function moveCourse(courseId, newStatus) {
             if (!newStatus) return;
