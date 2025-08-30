@@ -373,11 +373,12 @@
         });
 
         // Login form handler
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
+            // First check local admin account
             const accounts = JSON.parse(localStorage.getItem('schoolAccounts'));
             
             if (accounts[username] && accounts[username].password === password) {
@@ -392,8 +393,39 @@
                 updateActivity();
                 startActivityTimer();
                 showDashboard();
-            } else {
-                showError('Invalid username or password');
+                return;
+            }
+            
+            // If not found in local accounts, check Firestore accounts
+            try {
+                const snapshot = await db.collection('userAccounts').get();
+                let foundUser = null;
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.username === username && data.password === password && data.fullAccess === true) {
+                        foundUser = {
+                            username: username,
+                            role: data.role,
+                            fullName: data.fullName,
+                            uid: doc.id
+                        };
+                    }
+                });
+                
+                if (foundUser) {
+                    currentUser = foundUser;
+                    userRole = currentUser.role;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateActivity();
+                    startActivityTimer();
+                    showDashboard();
+                } else {
+                    showError('Invalid username or password, or account is locked');
+                }
+            } catch (error) {
+                console.error('Error checking Firestore accounts:', error);
+                showError('Login error. Please try again.');
             }
         });
 
@@ -463,6 +495,9 @@
                 document.getElementById('tuitionNav').classList.remove('show');
                 document.getElementById('accountsNav').classList.remove('show');
             }
+            
+            // Automatically open Workflow module
+            openModule('workflow2.2.html');
         }
 
         function showError(message) {
@@ -662,5 +697,5 @@
             showLogin();
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97734848116a1c68',t:'MTc1NjU0NjM2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9773634d41e50959',t:'MTc1NjU0NzQ2OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
