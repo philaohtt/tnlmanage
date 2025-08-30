@@ -1345,6 +1345,21 @@
                     // Get attendance data for the specific month/year
                     const attendanceData = await getMonthlyAttendance(studentData.studentId, year, month, false);
                     
+                    // Load existing tuition calculation data from Firestore
+                    const monthStr = String(month).padStart(2, '0');
+                    const tuitionDocId = `tuition_${studentData.studentId}_${year}-${monthStr}`;
+                    let existingTuitionData = null;
+                    
+                    try {
+                        const tuitionDoc = await db.collection('tuition').doc(tuitionDocId).get();
+                        if (tuitionDoc.exists) {
+                            existingTuitionData = tuitionDoc.data();
+                            console.log(`Found existing tuition data for ${studentData.studentId}:`, existingTuitionData);
+                        }
+                    } catch (error) {
+                        console.warn(`Error loading tuition data for ${studentData.studentId}:`, error);
+                    }
+                    
                     // Include student even if no attendance (show 0 lessons/courses)
                     // This ensures all students appear in the list
                     const studentEntry = {
@@ -1355,8 +1370,16 @@
                         displayYear: year,
                         attendedLessons: attendanceData.attendedLessons || 0,
                         coursesCount: attendanceData.coursesCount || 0,
-                        lessonLength: 1.5,
-                        studyHours: (attendanceData.attendedLessons || 0) * 1.5
+                        lessonLength: existingTuitionData?.lessonLength || 1.5,
+                        studyHours: existingTuitionData?.studyHours || ((attendanceData.attendedLessons || 0) * (existingTuitionData?.lessonLength || 1.5)),
+                        // Restore saved tuition calculation data
+                        coursePlan: existingTuitionData?.coursePlan || null,
+                        calculatedFee: existingTuitionData?.calculatedFee || 0,
+                        adjustedFee: existingTuitionData?.adjustedFee || 0,
+                        finalFee: existingTuitionData?.finalFee || 0,
+                        status: existingTuitionData?.status || null,
+                        savedAt: existingTuitionData?.savedAt || null,
+                        informedAt: existingTuitionData?.informedAt || null
                     };
                     studentsData.push(studentEntry);
                 }
@@ -2035,13 +2058,45 @@
             students.forEach(student => {
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 const row = document.createElement('tr');
+                
+                // Determine button states based on saved data
+                let saveButtonClass = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
+                let saveButtonText = 'Save';
+                let saveButtonDisabled = true;
+                let informButtonClass = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                let informButtonText = 'Inform';
+                let informButtonDisabled = true;
+                
+                if (student.status === 'informed') {
+                    // Already informed - both buttons disabled
+                    saveButtonClass = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
+                    saveButtonText = 'Saved';
+                    saveButtonDisabled = true;
+                    informButtonClass = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                    informButtonText = 'Informed';
+                    informButtonDisabled = true;
+                } else if (student.status === 'saved' && student.finalFee > 0) {
+                    // Saved but not informed - enable inform button
+                    saveButtonClass = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
+                    saveButtonText = 'Saved';
+                    saveButtonDisabled = true;
+                    informButtonClass = 'bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700';
+                    informButtonText = 'Inform';
+                    informButtonDisabled = false;
+                } else if (student.adjustedFee > 0 || student.calculatedFee > 0) {
+                    // Has fee data but not saved - enable save button
+                    saveButtonClass = 'bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2';
+                    saveButtonText = 'Save';
+                    saveButtonDisabled = false;
+                }
+                
                 row.innerHTML = `
-
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div>
                             <div class="text-sm font-medium text-gray-900">${student.fullName || 'N/A'}</div>
                             <div class="text-sm text-gray-500">ID: ${student.studentId || 'N/A'}</div>
                             <div class="text-sm text-gray-500">Class: ${student.classAssignment || 'N/A'}</div>
+                            ${student.status ? `<div class="text-xs text-blue-600">Status: ${student.status}</div>` : ''}
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -2059,29 +2114,36 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <select class="w-full px-2 py-1 border rounded text-sm" onchange="updateStudentCoursePlan('${student.id}', this.value)">
+                        <select class="w-full px-2 py-1 border rounded text-sm" onchange="updateStudentCoursePlan('${student.id}', this.value)" id="coursePlan-${student.id}">
                             <option value="">Select Plan</option>
-                            ${coursePlans.map(plan => `<option value="${plan.id}">${plan.planName}</option>`).join('')}
+                            ${coursePlans.map(plan => `<option value="${plan.id}" ${student.coursePlan === plan.id ? 'selected' : ''}>${plan.planName}</option>`).join('')}
                         </select>
-                        <div id="planDetails-${student.id}" class="mt-2 text-xs text-gray-600 hidden">
+                        <div id="planDetails-${student.id}" class="mt-2 text-xs text-gray-600 ${student.coursePlan ? '' : 'hidden'}">
                             <!-- Plan details will appear here -->
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900" id="calculated-${student.id}">0</div>
+                        <div class="text-sm font-medium text-gray-900" id="calculated-${student.id}">${student.calculatedFee ? formatVNDFull(student.calculatedFee) : '0'}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="relative">
-                            <input type="number" step="0.01" placeholder="0" class="w-24 px-2 py-1 pr-10 border rounded text-sm" id="adjusted-${student.id}" onchange="updateAdjustedFee('${student.id}')">
+                            <input type="number" step="0.01" placeholder="0" value="${student.adjustedFee ? (student.adjustedFee / 1000) : ''}" class="w-24 px-2 py-1 pr-10 border rounded text-sm" id="adjusted-${student.id}" onchange="updateAdjustedFee('${student.id}')">
                             <span class="absolute right-2 top-1 text-xs text-gray-500">.000</span>
                         </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <button onclick="saveStudentTuition('${student.id}')" class="bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2" disabled id="save-${student.id}">Save</button>
-                        <button onclick="informStudent('${student.id}')" class="bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50" disabled id="inform-${student.id}">Inform</button>
+                        <button onclick="saveStudentTuition('${student.id}')" class="${saveButtonClass}" ${saveButtonDisabled ? 'disabled' : ''} id="save-${student.id}">${saveButtonText}</button>
+                        <button onclick="informStudent('${student.id}')" class="${informButtonClass}" ${informButtonDisabled ? 'disabled' : ''} id="inform-${student.id}">${informButtonText}</button>
                     </td>
                 `;
                 tbody.appendChild(row);
+                
+                // Restore course plan details if saved
+                if (student.coursePlan) {
+                    setTimeout(() => {
+                        updateStudentCoursePlan(student.id, student.coursePlan, true);
+                    }, 100);
+                }
             });
         }
 
@@ -2098,24 +2160,52 @@
         }
 
         function updateAdjustedFee(studentId) {
+            const student = students.find(s => s.id === studentId);
             const adjustedInput = document.getElementById(`adjusted-${studentId}`);
             const saveBtn = document.getElementById(`save-${studentId}`);
             const informBtn = document.getElementById(`inform-${studentId}`);
             
-            const adjustedValue = parseFloat(adjustedInput.value) || 0;
+            if (!student) return;
             
-            if (adjustedValue > 0) {
+            const adjustedValue = parseVNDInput(adjustedInput.value);
+            student.adjustedFee = adjustedValue;
+            
+            // Don't update button states if already informed
+            if (student.status === 'informed') {
+                return;
+            }
+            
+            // Don't update button states if already saved (unless changing the adjusted fee)
+            if (student.status === 'saved' && student.finalFee > 0) {
+                // If changing adjusted fee after saving, enable save button again
+                if (adjustedValue !== student.finalFee) {
+                    saveBtn.disabled = false;
+                    saveBtn.className = 'bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2';
+                    saveBtn.textContent = 'Save';
+                    
+                    informBtn.disabled = true;
+                    informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                    informBtn.textContent = 'Inform';
+                }
+                return;
+            }
+            
+            const hasCalculatedFee = student.calculatedFee > 0;
+            const hasAdjustedFee = adjustedValue > 0;
+            const hasFee = hasCalculatedFee || hasAdjustedFee;
+            
+            if (hasFee) {
                 // Enable Save button
                 saveBtn.disabled = false;
                 saveBtn.className = 'bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2';
                 saveBtn.textContent = 'Save';
                 
-                // Disable Inform button
+                // Disable Inform button until saved
                 informBtn.disabled = true;
                 informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
                 informBtn.textContent = 'Inform';
             } else {
-                // Disable both buttons when no adjusted fee
+                // Disable both buttons when no fee
                 saveBtn.disabled = true;
                 saveBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
                 saveBtn.textContent = 'Save';
@@ -2126,7 +2216,7 @@
             }
         }
 
-        function updateStudentCoursePlan(studentId, planId) {
+        function updateStudentCoursePlan(studentId, planId, isRestoring = false) {
             const student = students.find(s => s.id === studentId);
             const planDetailsDiv = document.getElementById(`planDetails-${studentId}`);
             const calculatedFeeDiv = document.getElementById(`calculated-${studentId}`);
@@ -2145,28 +2235,88 @@
                         `;
                         planDetailsDiv.classList.remove('hidden');
                         
-                        // Calculate fee based on plan
+                        // Calculate fee based on plan (only if not restoring saved data)
                         let calculatedFee = 0;
-                        if (selectedPlan.numHours > 0) {
-                            // Calculate based on hours ratio
-                            const hourlyRate = selectedPlan.standardFee / selectedPlan.numHours;
-                            calculatedFee = hourlyRate * student.studyHours;
-                        } else if (selectedPlan.numLessons > 0) {
-                            // Calculate based on lessons ratio
-                            const lessonRate = selectedPlan.standardFee / selectedPlan.numLessons;
-                            calculatedFee = lessonRate * student.attendedLessons;
+                        if (isRestoring && student.calculatedFee > 0) {
+                            // Use saved calculated fee when restoring
+                            calculatedFee = student.calculatedFee;
                         } else {
-                            // Use standard fee
-                            calculatedFee = selectedPlan.standardFee;
+                            // Calculate fresh fee
+                            if (selectedPlan.numHours > 0) {
+                                // Calculate based on hours ratio
+                                const hourlyRate = selectedPlan.standardFee / selectedPlan.numHours;
+                                calculatedFee = hourlyRate * student.studyHours;
+                            } else if (selectedPlan.numLessons > 0) {
+                                // Calculate based on lessons ratio
+                                const lessonRate = selectedPlan.standardFee / selectedPlan.numLessons;
+                                calculatedFee = lessonRate * student.attendedLessons;
+                            } else {
+                                // Use standard fee
+                                calculatedFee = selectedPlan.standardFee;
+                            }
+                            
+                            // Update student object with new calculated fee
+                            student.calculatedFee = calculatedFee;
                         }
                         
                         calculatedFeeDiv.textContent = formatVNDFull(calculatedFee);
+                        
+                        // Update button states if there's a calculated fee and not restoring
+                        if (!isRestoring && calculatedFee > 0) {
+                            updateButtonStatesAfterCalculation(studentId);
+                        }
                     }
                 } else {
                     // Hide plan details and reset calculated fee
                     planDetailsDiv.classList.add('hidden');
                     calculatedFeeDiv.textContent = '0';
+                    student.calculatedFee = 0;
+                    
+                    // Reset button states if not restoring
+                    if (!isRestoring) {
+                        updateButtonStatesAfterCalculation(studentId);
+                    }
                 }
+            }
+        }
+        
+        function updateButtonStatesAfterCalculation(studentId) {
+            const student = students.find(s => s.id === studentId);
+            const saveBtn = document.getElementById(`save-${studentId}`);
+            const informBtn = document.getElementById(`inform-${studentId}`);
+            const adjustedInput = document.getElementById(`adjusted-${studentId}`);
+            
+            if (!student || !saveBtn || !informBtn) return;
+            
+            const hasCalculatedFee = student.calculatedFee > 0;
+            const hasAdjustedFee = parseVNDInput(adjustedInput.value) > 0;
+            const hasFee = hasCalculatedFee || hasAdjustedFee;
+            
+            if (student.status === 'informed') {
+                // Already informed - keep both disabled
+                return;
+            } else if (student.status === 'saved' && student.finalFee > 0) {
+                // Already saved - keep save disabled, enable inform
+                return;
+            } else if (hasFee) {
+                // Has fee data - enable save button
+                saveBtn.disabled = false;
+                saveBtn.className = 'bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2';
+                saveBtn.textContent = 'Save';
+                
+                // Keep inform disabled until saved
+                informBtn.disabled = true;
+                informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                informBtn.textContent = 'Inform';
+            } else {
+                // No fee data - disable both buttons
+                saveBtn.disabled = true;
+                saveBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
+                saveBtn.textContent = 'Save';
+                
+                informBtn.disabled = true;
+                informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                informBtn.textContent = 'Inform';
             }
         }
 
@@ -2186,8 +2336,8 @@
                 const docId = `tuition_${student.studentId}_${currentYear}-${monthStr}`;
                 
                 const adjustedFee = parseVNDInput(document.getElementById(`adjusted-${studentId}`).value);
-                const calculatedFeeText = document.getElementById(`calculated-${studentId}`).textContent.replace('.000', '').replace(/[^\d]/g, '');
-                const calculatedFee = parseFloat(calculatedFeeText) * 1000 || 0;
+                const calculatedFee = student.calculatedFee || 0;
+                const finalFee = adjustedFee > 0 ? adjustedFee : calculatedFee;
                 
                 const tuitionData = {
                     studentId: student.studentId,
@@ -2196,14 +2346,17 @@
                     month: currentMonth,
                     year: currentYear,
                     attendedLessons: student.attendedLessons,
+                    coursesCount: student.coursesCount,
                     lessonLength: student.lessonLength,
                     studyHours: student.studyHours,
                     calculatedFee: calculatedFee,
                     adjustedFee: adjustedFee,
-                    finalFee: adjustedFee > 0 ? adjustedFee : calculatedFee,
+                    finalFee: finalFee,
                     coursePlan: student.coursePlan || null,
                     savedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'saved'
+                    status: 'saved',
+                    paid: false,
+                    processed: false
                 };
                 
                 if (isOnline) {
@@ -2217,6 +2370,13 @@
                     });
                 }
                 
+                // Update student object with saved data
+                student.calculatedFee = calculatedFee;
+                student.adjustedFee = adjustedFee;
+                student.finalFee = finalFee;
+                student.status = 'saved';
+                student.savedAt = new Date();
+                
                 // Update button states after saving
                 const saveBtn = document.getElementById(`save-${studentId}`);
                 const informBtn = document.getElementById(`inform-${studentId}`);
@@ -2226,10 +2386,28 @@
                 saveBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
                 saveBtn.textContent = 'Saved';
                 
-                // Inform button becomes active
-                informBtn.disabled = false;
-                informBtn.className = 'bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700';
-                informBtn.textContent = 'Inform';
+                // Inform button becomes active if there's a final fee
+                if (finalFee > 0) {
+                    informBtn.disabled = false;
+                    informBtn.className = 'bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700';
+                    informBtn.textContent = 'Inform';
+                } else {
+                    informBtn.disabled = true;
+                    informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
+                    informBtn.textContent = 'Inform';
+                }
+                
+                // Update status display in the student info
+                const studentInfoDiv = document.querySelector(`#save-${studentId}`).closest('tr').querySelector('.text-sm.font-medium.text-gray-900').parentElement;
+                const existingStatus = studentInfoDiv.querySelector('.text-xs.text-blue-600');
+                if (existingStatus) {
+                    existingStatus.textContent = 'Status: saved';
+                } else {
+                    const statusDiv = document.createElement('div');
+                    statusDiv.className = 'text-xs text-blue-600';
+                    statusDiv.textContent = 'Status: saved';
+                    studentInfoDiv.appendChild(statusDiv);
+                }
                 
                 updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Tuition saved' : 'Tuition saved offline');
             } catch (error) {
@@ -2244,6 +2422,8 @@
             if (!student) return;
             
             try {
+                updateSyncStatus('syncing', 'Informing student...');
+                
                 // Update tuition record to mark as informed
                 const currentMonth = student.displayMonth;
                 const currentYear = student.displayYear;
@@ -2266,19 +2446,43 @@
                     });
                 }
                 
+                // Update student object
+                student.status = 'informed';
+                student.informedAt = new Date();
+                
                 // Update button states after informing
+                const saveBtn = document.getElementById(`save-${studentId}`);
                 const informBtn = document.getElementById(`inform-${studentId}`);
                 
-                // Inform button becomes "Informed", grayed out and inactive
+                // Both buttons become inactive
+                saveBtn.disabled = true;
+                saveBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50 mr-2';
+                saveBtn.textContent = 'Saved';
+                
                 informBtn.disabled = true;
                 informBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-xs opacity-50';
                 informBtn.textContent = 'Informed';
                 
-                // Push adjusted fee to Student Tuition tab (this will be handled by the tuition record update)
+                // Update status display in the student info
+                const studentInfoDiv = document.querySelector(`#save-${studentId}`).closest('tr').querySelector('.text-sm.font-medium.text-gray-900').parentElement;
+                const existingStatus = studentInfoDiv.querySelector('.text-xs.text-blue-600');
+                if (existingStatus) {
+                    existingStatus.textContent = 'Status: informed';
+                } else {
+                    const statusDiv = document.createElement('div');
+                    statusDiv.className = 'text-xs text-blue-600';
+                    statusDiv.textContent = 'Status: informed';
+                    studentInfoDiv.appendChild(statusDiv);
+                }
+                
+                updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Student informed' : 'Inform status saved offline');
+                
+                // Show success message
                 alert(`Tuition information sent to ${student.fullName}`);
                 
             } catch (error) {
                 console.error('Error informing student:', error);
+                updateSyncStatus('error', 'Inform failed');
                 alert('Error informing student: ' + error.message);
             }
         }
@@ -4553,5 +4757,5 @@
             });
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'974a76a9335604d3',t:'MTc1NjExODM0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97734966f6551c68',t:'MTc1NjU0NjQwNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
