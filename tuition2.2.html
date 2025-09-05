@@ -600,6 +600,14 @@
                             </select>
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
+                            <select id="paymentTypeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterPayments()">
+                                <option value="">All Types</option>
+                                <option value="tuition_payment">Tuition Payment</option>
+                                <option value="extra_fee_payment">Extra Fee Payment</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                             <select id="paymentSortBy" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterPayments()">
                                 <option value="date_newest">Date (Newest)</option>
@@ -860,8 +868,19 @@
             studentsForSearch: { data: null, timestamp: null, loaded: false },
             studentsForExtraFees: { data: null, timestamp: null, loaded: false }
         };
-        const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
+        const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
         const CACHE_STORAGE_KEY = 'tuitionSystemCache';
+        
+        // View state preservation
+        let viewState = {
+            currentTab: 'calculator',
+            currentSubTab: 'planner',
+            searchTerms: {},
+            filterValues: {},
+            sortOptions: {},
+            scrollPositions: {},
+            modalData: null
+        };
 
         // Load cache from localStorage on startup
         function loadCacheFromStorage() {
@@ -888,6 +907,102 @@
                 localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(dataCache));
             } catch (error) {
                 console.warn('Failed to save cache to localStorage:', error);
+            }
+        }
+
+        // View state preservation functions
+        function saveViewState() {
+            try {
+                // Save current search terms
+                const searchInputs = ['studentSearch', 'paymentSearch', 'extraFeeStudentSearch'];
+                searchInputs.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) viewState.searchTerms[id] = element.value;
+                });
+
+                // Save current filter values
+                const filterSelects = [
+                    'monthFilter', 'yearFilter', 'classFilter', 'classStatusFilter', 'studentStatusFilter',
+                    'tuitionYearFilter', 'tuitionClassFilter', 'tuitionStatusFilter', 'tuitionSortBy',
+                    'paymentYearFilter', 'paymentMonthFilter', 'paymentStatusFilter', 'paymentTypeFilter', 'paymentSortBy',
+                    'extraFeeClassFilter', 'extraFeeYearFilter'
+                ];
+                filterSelects.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) viewState.filterValues[id] = element.value;
+                });
+
+                // Save scroll positions
+                const scrollableElements = ['studentsTableBody', 'studentTuitionTableBody', 'paymentTransactionsTable'];
+                scrollableElements.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element && element.parentElement) {
+                        viewState.scrollPositions[id] = element.parentElement.scrollTop;
+                    }
+                });
+
+                localStorage.setItem('tuitionSystemViewState', JSON.stringify(viewState));
+            } catch (error) {
+                console.warn('Failed to save view state:', error);
+            }
+        }
+
+        function restoreViewState() {
+            try {
+                const savedState = localStorage.getItem('tuitionSystemViewState');
+                if (savedState) {
+                    const parsedState = JSON.parse(savedState);
+                    
+                    // Restore search terms
+                    Object.entries(parsedState.searchTerms || {}).forEach(([id, value]) => {
+                        const element = document.getElementById(id);
+                        if (element && value) element.value = value;
+                    });
+
+                    // Restore filter values
+                    Object.entries(parsedState.filterValues || {}).forEach(([id, value]) => {
+                        const element = document.getElementById(id);
+                        if (element && value) element.value = value;
+                    });
+
+                    // Restore tab states
+                    if (parsedState.currentTab) {
+                        viewState.currentTab = parsedState.currentTab;
+                    }
+                    if (parsedState.currentSubTab) {
+                        viewState.currentSubTab = parsedState.currentSubTab;
+                    }
+
+                    // Restore modal data
+                    if (parsedState.modalData) {
+                        viewState.modalData = parsedState.modalData;
+                    }
+
+                    console.log('View state restored');
+                }
+            } catch (error) {
+                console.warn('Failed to restore view state:', error);
+            }
+        }
+
+        function restoreScrollPositions() {
+            try {
+                const savedState = localStorage.getItem('tuitionSystemViewState');
+                if (savedState) {
+                    const parsedState = JSON.parse(savedState);
+                    
+                    // Restore scroll positions with a delay to ensure DOM is ready
+                    setTimeout(() => {
+                        Object.entries(parsedState.scrollPositions || {}).forEach(([id, position]) => {
+                            const element = document.getElementById(id);
+                            if (element && element.parentElement && position > 0) {
+                                element.parentElement.scrollTop = position;
+                            }
+                        });
+                    }, 100);
+                }
+            } catch (error) {
+                console.warn('Failed to restore scroll positions:', error);
             }
         }
 
@@ -963,6 +1078,125 @@
                     return staleData;
                 }
                 throw error;
+            }
+        }
+
+        // Smart data update functions that preserve view state
+        async function updateDataAndPreserveView(updateFunction, affectedCacheKeys = []) {
+            try {
+                // Save current view state
+                saveViewState();
+                
+                // Perform the update
+                await updateFunction();
+                
+                // Clear affected cache keys
+                affectedCacheKeys.forEach(key => clearCache(key));
+                
+                // Refresh only the current visible data without changing view
+                await refreshCurrentView();
+                
+                // Restore view state
+                setTimeout(() => {
+                    restoreViewState();
+                    restoreScrollPositions();
+                }, 100);
+                
+            } catch (error) {
+                console.error('Error updating data:', error);
+                throw error;
+            }
+        }
+
+        async function refreshCurrentView() {
+            const currentTab = viewState.currentTab;
+            const currentSubTab = viewState.currentSubTab;
+            
+            if (currentTab === 'student' && tabDataLoaded.student) {
+                await loadStudentTuitionDataCached();
+            } else if (currentTab === 'payment' && tabDataLoaded.payment) {
+                await loadPaymentTrackerCached();
+            } else if (currentTab === 'calculator') {
+                if (currentSubTab === 'planner') {
+                    await loadCoursePlans(true);
+                } else if (currentSubTab === 'monthly' && tabDataLoaded.monthly) {
+                    await loadStudentsWithFilters();
+                } else if (currentSubTab === 'extraFees' && tabDataLoaded.extraFees) {
+                    await loadExtraFeesDataCached();
+                }
+            }
+        }
+
+        // Optimized individual update functions
+        async function updateSingleRecord(collection, docId, data, affectedViews = []) {
+            try {
+                if (isOnline) {
+                    await db.collection(collection).doc(docId).update(data);
+                } else {
+                    addPendingOperation({
+                        type: 'update',
+                        collection: collection,
+                        docId: docId,
+                        data: data
+                    });
+                }
+
+                // Update local cache without full reload
+                await updateLocalCache(collection, docId, data, 'update');
+                
+                // Refresh only affected views
+                await refreshAffectedViews(affectedViews);
+                
+            } catch (error) {
+                console.error('Error updating record:', error);
+                throw error;
+            }
+        }
+
+        async function updateLocalCache(collection, docId, data, operation) {
+            // Update relevant cache entries based on collection
+            if (collection === 'tuition') {
+                // Update student tuition cache
+                if (dataCache.studentTuition.data) {
+                    // Find and update the specific student's tuition data
+                    const studentId = data.studentId || docId.split('_')[1];
+                    const student = dataCache.studentTuition.data.find(s => s.studentId === studentId);
+                    if (student && student.tuitionData) {
+                        const month = data.month;
+                        if (month && student.tuitionData.monthlyData[month]) {
+                            Object.assign(student.tuitionData.monthlyData[month], data);
+                        }
+                    }
+                }
+            } else if (collection === 'paymentTransactions') {
+                // Update payments cache
+                if (dataCache.payments.data) {
+                    if (operation === 'update') {
+                        const paymentIndex = dataCache.payments.data.findIndex(p => p.id === docId);
+                        if (paymentIndex !== -1) {
+                            Object.assign(dataCache.payments.data[paymentIndex], data);
+                        }
+                    } else if (operation === 'create') {
+                        dataCache.payments.data.push({ id: docId, ...data });
+                    } else if (operation === 'delete') {
+                        dataCache.payments.data = dataCache.payments.data.filter(p => p.id !== docId);
+                    }
+                }
+            }
+            
+            // Save updated cache
+            saveCacheToStorage();
+        }
+
+        async function refreshAffectedViews(affectedViews) {
+            for (const view of affectedViews) {
+                if (view === 'studentTuition' && viewState.currentTab === 'student') {
+                    filterStudentTuition();
+                } else if (view === 'payments' && viewState.currentTab === 'payment') {
+                    filterPayments();
+                } else if (view === 'monthlyCalculation' && viewState.currentSubTab === 'monthly') {
+                    renderStudentsTable();
+                }
             }
         }
 
@@ -1045,6 +1279,9 @@
 
         // Tab switching functions with data preservation
         function switchTab(tabName) {
+            // Save current view state before switching
+            saveViewState();
+            
             // Hide all content
             document.getElementById('calculatorContent').classList.add('hidden');
             document.getElementById('studentContent').classList.add('hidden');
@@ -1057,6 +1294,9 @@
             document.getElementById('studentTab').classList.add('border-transparent', 'text-gray-500');
             document.getElementById('paymentTab').classList.remove('border-blue-500', 'text-blue-600');
             document.getElementById('paymentTab').classList.add('border-transparent', 'text-gray-500');
+
+            // Update view state
+            viewState.currentTab = tabName;
 
             // Show selected content and activate tab
             if (tabName === 'calculator') {
@@ -1072,6 +1312,9 @@
                 if (!tabDataLoaded.student) {
                     loadStudentTuitionDataCached();
                     tabDataLoaded.student = true;
+                } else {
+                    // Restore scroll position for already loaded data
+                    restoreScrollPositions();
                 }
             } else if (tabName === 'payment') {
                 document.getElementById('paymentContent').classList.remove('hidden');
@@ -1081,11 +1324,17 @@
                 if (!tabDataLoaded.payment) {
                     loadPaymentTrackerCached();
                     tabDataLoaded.payment = true;
+                } else {
+                    // Restore scroll position for already loaded data
+                    restoreScrollPositions();
                 }
             }
         }
 
         function switchCalculatorTab(tabName) {
+            // Save current view state before switching
+            saveViewState();
+            
             // Hide all calculator content
             document.getElementById('plannerContent').classList.add('hidden');
             document.getElementById('monthlyContent').classList.add('hidden');
@@ -1098,6 +1347,9 @@
             document.getElementById('monthlySubTab').classList.add('border-transparent', 'text-gray-500');
             document.getElementById('extraFeesSubTab').classList.remove('border-blue-500', 'text-blue-600');
             document.getElementById('extraFeesSubTab').classList.add('border-transparent', 'text-gray-500');
+
+            // Update view state
+            viewState.currentSubTab = tabName;
 
             // Show selected content and activate tab
             if (tabName === 'planner') {
@@ -1112,6 +1364,9 @@
                 // Preserve the current state - don't reset to getting started if data is already loaded
                 if (!tabDataLoaded.monthly) {
                     showGettingStartedMessage();
+                } else {
+                    // Restore scroll position for already loaded data
+                    restoreScrollPositions();
                 }
                 // If data was previously loaded, keep showing it
             } else if (tabName === 'extraFees') {
@@ -1122,6 +1377,9 @@
                 if (!tabDataLoaded.extraFees) {
                     loadExtraFeesDataCached();
                     tabDataLoaded.extraFees = true;
+                } else {
+                    // Restore scroll position for already loaded data
+                    restoreScrollPositions();
                 }
             }
         }
@@ -2359,16 +2617,8 @@
                     processed: false
                 };
                 
-                if (isOnline) {
-                    await db.collection('tuition').doc(docId).set(tuitionData);
-                } else {
-                    addPendingOperation({
-                        type: 'create',
-                        collection: 'tuition',
-                        docId: docId,
-                        data: tuitionData
-                    });
-                }
+                // Use optimized update function
+                await updateSingleRecord('tuition', docId, tuitionData, ['studentTuition', 'monthlyCalculation']);
                 
                 // Update student object with saved data
                 student.calculatedFee = calculatedFee;
@@ -3110,7 +3360,8 @@
                     }
                 }
                 
-                // Save monthly changes
+                // Save monthly changes and create payment transactions
+                const newTransactions = [];
                 if (currentModalStudent.tempChanges) {
                     for (const [month, changes] of Object.entries(currentModalStudent.tempChanges)) {
                         const monthStr = String(month).padStart(2, '0');
@@ -3150,16 +3401,8 @@
                             updateData.paymentDate = changes.paymentDate;
                         }
                         
-                        if (isOnline) {
-                            await db.collection('tuition').doc(docId).set(updateData, { merge: true });
-                        } else {
-                            addPendingOperation({
-                                type: 'update',
-                                collection: 'tuition',
-                                docId: docId,
-                                data: updateData
-                            });
-                        }
+                        // Use optimized update function
+                        await updateSingleRecord('tuition', docId, updateData, ['studentTuition']);
                         
                         // Create/update transaction record when marking as paid or processed
                         if (changes.paid && !currentModalStudent.tuitionData?.monthlyData[month]?.paid) {
@@ -3187,16 +3430,9 @@
                                     transactionType: 'tuition_payment'
                                 };
                                 
-                                if (isOnline) {
-                                    await db.collection('paymentTransactions').doc(txnDocId).set(transactionData);
-                                } else {
-                                    addPendingOperation({
-                                        type: 'create',
-                                        collection: 'paymentTransactions',
-                                        docId: txnDocId,
-                                        data: transactionData
-                                    });
-                                }
+                                // Use optimized update function for payment transactions
+                                await updateSingleRecord('paymentTransactions', txnDocId, transactionData, ['payments']);
+                                newTransactions.push(transactionData);
                             }
                         } else if (changes.processed !== undefined && currentModalStudent.tuitionData?.monthlyData[month]?.paid) {
                             // Update existing transaction status when processed status changes
@@ -3208,32 +3444,30 @@
                             
                             existingTransactions.forEach(async (doc) => {
                                 const newStatus = changes.processed ? 'processed' : 'received';
-                                if (isOnline) {
-                                    await db.collection('paymentTransactions').doc(doc.id).update({
-                                        paymentStatus: newStatus,
-                                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                    });
-                                } else {
-                                    addPendingOperation({
-                                        type: 'update',
-                                        collection: 'paymentTransactions',
-                                        docId: doc.id,
-                                        data: {
-                                            paymentStatus: newStatus,
-                                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                        }
-                                    });
-                                }
+                                await updateSingleRecord('paymentTransactions', doc.id, {
+                                    paymentStatus: newStatus,
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }, ['payments']);
                             });
                         }
                     }
                 }
                 
+                // Update local cache for new transactions
+                if (newTransactions.length > 0 && dataCache.payments.data) {
+                    newTransactions.forEach(transaction => {
+                        dataCache.payments.data.unshift(transaction); // Add to beginning for newest first
+                    });
+                    saveCacheToStorage();
+                }
+                
                 // Clear temp changes
                 currentModalStudent.tempChanges = {};
                 
-                // Reload data and close modal
-                await loadStudentTuitionData();
+                // Refresh affected views
+                await refreshAffectedViews(['studentTuition', 'payments']);
+                
+                // Close modal after successful save
                 closeStudentTuitionModal();
                 
                 updateSyncStatus(isOnline ? 'connected' : 'offline', isOnline ? 'Changes saved' : 'Changes saved offline');
@@ -3407,12 +3641,19 @@
                     <input type="date" class="w-full px-2 py-1 border rounded text-sm" value="${new Date().toISOString().split('T')[0]}" id="paymentDate_${paymentRowCounter}">
                 </td>
                 <td class="px-4 py-2">
-                    <select class="w-full px-2 py-1 border rounded text-sm" id="student_${paymentRowCounter}" onchange="updateOutstanding(${paymentRowCounter})">
-                        <option value="">Select Student</option>
-                        ${allStudentsForSearch.map(student => 
-                            `<option value="${student.studentId}">${student.fullName} (${student.studentId})</option>`
-                        ).join('')}
-                    </select>
+                    <div class="relative">
+                        <input type="text" 
+                               class="w-full px-2 py-1 border rounded text-sm" 
+                               id="studentSearch_${paymentRowCounter}" 
+                               placeholder="Search by name or ID..."
+                               onkeyup="searchStudents(${paymentRowCounter})"
+                               onfocus="showStudentDropdown(${paymentRowCounter})"
+                               onblur="hideStudentDropdown(${paymentRowCounter})">
+                        <input type="hidden" id="student_${paymentRowCounter}" onchange="updateOutstanding(${paymentRowCounter})">
+                        <div id="studentDropdown_${paymentRowCounter}" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto hidden">
+                            <!-- Student options will be populated here -->
+                        </div>
+                    </div>
                 </td>
                 <td class="px-4 py-2">
                     <select class="w-full px-2 py-1 border rounded text-sm" id="tuitionYear_${paymentRowCounter}" onchange="updateOutstanding(${paymentRowCounter})">
@@ -3469,6 +3710,86 @@
 
         function removePaymentRow(button) {
             button.closest('tr').remove();
+        }
+
+        function searchStudents(rowId) {
+            const searchInput = document.getElementById(`studentSearch_${rowId}`);
+            const dropdown = document.getElementById(`studentDropdown_${rowId}`);
+            const searchTerm = normalizeVietnamese(searchInput.value.toLowerCase());
+            
+            if (searchTerm.length < 1) {
+                dropdown.innerHTML = '';
+                dropdown.classList.add('hidden');
+                return;
+            }
+            
+            const filteredStudents = allStudentsForSearch.filter(student => {
+                const nameMatch = normalizeVietnamese(student.fullName.toLowerCase()).includes(searchTerm);
+                const idMatch = student.studentId.toLowerCase().includes(searchTerm);
+                return nameMatch || idMatch;
+            });
+            
+            dropdown.innerHTML = '';
+            
+            if (filteredStudents.length === 0) {
+                dropdown.innerHTML = '<div class="px-3 py-2 text-gray-500 text-sm">No students found</div>';
+            } else {
+                filteredStudents.slice(0, 10).forEach(student => { // Limit to 10 results
+                    const option = document.createElement('div');
+                    option.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+                    option.innerHTML = `
+                        <div class="font-medium">${student.fullName}</div>
+                        <div class="text-xs text-gray-500">ID: ${student.studentId} | Class: ${student.classAssignment}</div>
+                    `;
+                    option.onmousedown = () => selectStudent(rowId, student);
+                    dropdown.appendChild(option);
+                });
+            }
+            
+            dropdown.classList.remove('hidden');
+        }
+        
+        function showStudentDropdown(rowId) {
+            const dropdown = document.getElementById(`studentDropdown_${rowId}`);
+            const searchInput = document.getElementById(`studentSearch_${rowId}`);
+            
+            if (searchInput.value.length > 0) {
+                searchStudents(rowId);
+            } else {
+                // Show all students when focused with no search term
+                dropdown.innerHTML = '';
+                allStudentsForSearch.slice(0, 10).forEach(student => {
+                    const option = document.createElement('div');
+                    option.className = 'px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm';
+                    option.innerHTML = `
+                        <div class="font-medium">${student.fullName}</div>
+                        <div class="text-xs text-gray-500">ID: ${student.studentId} | Class: ${student.classAssignment}</div>
+                    `;
+                    option.onmousedown = () => selectStudent(rowId, student);
+                    dropdown.appendChild(option);
+                });
+                dropdown.classList.remove('hidden');
+            }
+        }
+        
+        function hideStudentDropdown(rowId) {
+            setTimeout(() => {
+                const dropdown = document.getElementById(`studentDropdown_${rowId}`);
+                dropdown.classList.add('hidden');
+            }, 200); // Delay to allow click events to fire
+        }
+        
+        function selectStudent(rowId, student) {
+            const searchInput = document.getElementById(`studentSearch_${rowId}`);
+            const hiddenInput = document.getElementById(`student_${rowId}`);
+            const dropdown = document.getElementById(`studentDropdown_${rowId}`);
+            
+            searchInput.value = `${student.fullName} (${student.studentId})`;
+            hiddenInput.value = student.studentId;
+            dropdown.classList.add('hidden');
+            
+            // Trigger outstanding update
+            updateOutstanding(rowId);
         }
 
         async function updateOutstanding(rowId) {
@@ -3639,6 +3960,7 @@
             const yearFilter = document.getElementById('paymentYearFilter').value;
             const monthFilter = document.getElementById('paymentMonthFilter').value;
             const statusFilter = document.getElementById('paymentStatusFilter').value;
+            const typeFilter = document.getElementById('paymentTypeFilter').value;
             const sortBy = document.getElementById('paymentSortBy').value;
             
             filteredPayments = allPayments.filter(payment => {
@@ -3650,13 +3972,18 @@
                 // Year filter
                 const matchesYear = !yearFilter || payment.tuitionYear === parseInt(yearFilter);
                 
-                // Month filter
-                const matchesMonth = !monthFilter || payment.tuitionMonth === parseInt(monthFilter);
+                // Month filter (only apply to tuition payments, extra fees don't have months)
+                const matchesMonth = !monthFilter || 
+                    (payment.transactionType === 'extra_fee_payment') ||
+                    payment.tuitionMonth === parseInt(monthFilter);
                 
                 // Status filter
                 const matchesStatus = !statusFilter || payment.paymentStatus === statusFilter;
                 
-                return matchesSearch && matchesYear && matchesMonth && matchesStatus;
+                // Type filter
+                const matchesType = !typeFilter || payment.transactionType === typeFilter;
+                
+                return matchesSearch && matchesYear && matchesMonth && matchesStatus && matchesType;
             });
             
             // Sort payments
@@ -3710,13 +4037,26 @@
                     new Date(payment.paymentDate).toLocaleDateString('en-CA');
                 
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const tuitionPeriod = `${monthNames[payment.tuitionMonth - 1]} ${payment.tuitionYear}`;
+                let tuitionPeriod = '';
+                
+                if (payment.transactionType === 'extra_fee_payment') {
+                    tuitionPeriod = `${payment.extraFeeType || 'Extra Fee'} (${payment.tuitionYear})`;
+                } else {
+                    tuitionPeriod = `${monthNames[payment.tuitionMonth - 1]} ${payment.tuitionYear}`;
+                }
                 
                 let statusBadge = '';
                 if (payment.paymentStatus === 'processed') {
                     statusBadge = '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Processed</span>';
                 } else {
                     statusBadge = '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Received</span>';
+                }
+                
+                let typeBadge = '';
+                if (payment.transactionType === 'extra_fee_payment') {
+                    typeBadge = '<span class="inline-flex px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800 ml-2">Extra Fee</span>';
+                } else {
+                    typeBadge = '<span class="inline-flex px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-800 ml-2">Tuition</span>';
                 }
                 
                 row.innerHTML = `
@@ -3729,7 +4069,10 @@
                         <div class="text-sm text-gray-500">ID: ${payment.studentId || 'N/A'}</div>
                         <div class="text-sm text-gray-500">${payment.classAssignment || 'N/A'}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${tuitionPeriod}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div>${tuitionPeriod}</div>
+                        <div>${typeBadge}</div>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${formatVNDFull(payment.amountPaid || 0)}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
@@ -3991,6 +4334,9 @@
             try {
                 updateSyncStatus('syncing', 'Refreshing all data...');
                 
+                // Save current view state before refresh
+                saveViewState();
+                
                 // Clear all cache
                 clearCache();
                 
@@ -4030,6 +4376,7 @@
                         const selectedYear = document.getElementById('yearFilter').value;
                         if (selectedMonth && selectedYear) {
                             await loadStudentsWithFilters();
+                            tabDataLoaded.monthly = true;
                         } else {
                             showGettingStartedMessage();
                         }
@@ -4038,6 +4385,12 @@
                         tabDataLoaded.extraFees = true;
                     }
                 }
+                
+                // Restore view state after refresh
+                setTimeout(() => {
+                    restoreViewState();
+                    restoreScrollPositions();
+                }, 200);
                 
                 updateSyncStatus('connected', 'Data refreshed');
                 
@@ -4577,6 +4930,14 @@
 
         async function updateExtraFeePaid(extraFeeId, paid) {
             try {
+                // Get the extra fee data first
+                const extraFeeDoc = await db.collection('extraFees').doc(extraFeeId).get();
+                if (!extraFeeDoc.exists) {
+                    throw new Error('Extra fee not found');
+                }
+                
+                const extraFeeData = extraFeeDoc.data();
+                
                 const updateData = {
                     paid: paid,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -4586,11 +4947,54 @@
                     // Set payment date to today if not already set
                     updateData.paymentDate = new Date().toISOString().split('T')[0];
                     updateData.status = 'paid';
+                    
+                    // Create transaction record for extra fee payment
+                    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                    const timestamp = Date.now();
+                    const txnDocId = `txn_${dateStr}_${extraFeeData.studentId}_extrafee_${timestamp}`;
+                    
+                    const transactionData = {
+                        paymentDate: new Date(updateData.paymentDate),
+                        studentId: extraFeeData.studentId,
+                        studentName: extraFeeData.studentName,
+                        classAssignment: extraFeeData.classAssignment,
+                        tuitionYear: extraFeeData.year,
+                        tuitionMonth: null, // Extra fees don't have specific months
+                        amountPaid: extraFeeData.amount,
+                        paymentStatus: 'received',
+                        recordedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        recordedBy: 'extra_fees_system',
+                        source: 'extra_fees',
+                        transactionType: 'extra_fee_payment',
+                        extraFeeId: extraFeeId,
+                        extraFeeType: extraFeeData.feeTypeName
+                    };
+                    
+                    // Save transaction
+                    await updateSingleRecord('paymentTransactions', txnDocId, transactionData, ['payments']);
+                    
                 } else {
                     // Clear payment date and processed status when unmarking as paid
                     updateData.paymentDate = null;
                     updateData.processed = false;
                     updateData.status = 'assigned';
+                    
+                    // Remove corresponding transaction record
+                    const existingTransactions = await db.collection('paymentTransactions')
+                        .where('extraFeeId', '==', extraFeeId)
+                        .get();
+                    
+                    existingTransactions.forEach(async (doc) => {
+                        if (isOnline) {
+                            await db.collection('paymentTransactions').doc(doc.id).delete();
+                        } else {
+                            addPendingOperation({
+                                type: 'delete',
+                                collection: 'paymentTransactions',
+                                docId: doc.id
+                            });
+                        }
+                    });
                 }
                 
                 if (isOnline) {
@@ -4644,6 +5048,19 @@
                     status: processed ? 'processed' : 'paid',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
+                
+                // Update corresponding transaction record status
+                const existingTransactions = await db.collection('paymentTransactions')
+                    .where('extraFeeId', '==', extraFeeId)
+                    .get();
+                
+                existingTransactions.forEach(async (doc) => {
+                    const newStatus = processed ? 'processed' : 'received';
+                    await updateSingleRecord('paymentTransactions', doc.id, {
+                        paymentStatus: newStatus,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, ['payments']);
+                });
                 
                 if (isOnline) {
                     await db.collection('extraFees').doc(extraFeeId).update(updateData);
@@ -4705,6 +5122,9 @@
                 pendingOperations = JSON.parse(savedOperations);
             }
             
+            // Restore view state early
+            restoreViewState();
+            
             // Set default year values
             const currentYear = new Date().getFullYear();
             document.getElementById('tuitionYearFilter').value = currentYear;
@@ -4714,6 +5134,14 @@
             // Set initial collapsed state for fee type sections
             document.getElementById('feeTypeManagementContent').classList.add('hidden');
             document.getElementById('feeTypesListContent').classList.add('hidden');
+            
+            // Restore tab states if saved
+            if (viewState.currentTab && viewState.currentTab !== 'calculator') {
+                switchTab(viewState.currentTab);
+            }
+            if (viewState.currentSubTab && viewState.currentSubTab !== 'planner') {
+                switchCalculatorTab(viewState.currentSubTab);
+            }
             
             // Load critical data immediately and in parallel
             console.log('📊 Loading initial data...');
@@ -4732,6 +5160,11 @@
                     })
                 ]);
                 
+                // Restore scroll positions after data is loaded
+                setTimeout(() => {
+                    restoreScrollPositions();
+                }, 300);
+                
                 console.log('✅ Initial data loaded successfully');
                 updateSyncStatus(isOnline ? 'connected' : 'offline', 'Ready');
                 
@@ -4746,6 +5179,9 @@
                 processPendingOperations();
             }
             
+            // Set up auto-save for view state
+            setInterval(saveViewState, 5000); // Save view state every 5 seconds
+            
             console.log('🎉 Tuition Management System initialized successfully');
             console.log('📊 Cache status:', {
                 coursePlans: isCacheLoaded('coursePlans') ? '✅ Cached' : '❌ Not cached',
@@ -4756,6 +5192,11 @@
                 feeTypes: isCacheLoaded('feeTypes') ? '✅ Cached' : '❌ Not cached'
             });
         });
+        // Initialize DOM event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up authentication...');
+            // Authentication will handle the rest via onAuthStateChanged
+        });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97734966f6551c68',t:'MTc1NjU0NjQwNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97a6df6db0ac9b44',t:'MTc1NzA4NzMyNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
