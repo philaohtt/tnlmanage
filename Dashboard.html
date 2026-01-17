@@ -1320,7 +1320,7 @@
       
       const container = document.getElementById('payroll-iframe-container');
       const activeTab = tabs.find(t => t.id === savedTab) || tabs[0];
-      showIframe(container, activeTab.src, `payroll-iframe-${activeTab.id}`);
+      showIframe(container, resolveModuleUrl(activeTab.src), `payroll-iframe-${activeTab.id}`);
       
       const tabButtons = document.querySelectorAll('[data-module-tab]');
       
@@ -1335,7 +1335,7 @@
           button.classList.add('active');
           
           saveTabState('payroll', tabId);
-          showIframe(container, tab.src, `payroll-iframe-${tabId}`);
+          showIframe(container, resolveModuleUrl(tab.src), `payroll-iframe-${tabId}`);
         });
       });
     }
@@ -1374,7 +1374,7 @@
       
       const container = document.getElementById('tuition-iframe-container');
       const activeTab = tabs.find(t => t.id === savedTab) || tabs[0];
-      showIframe(container, activeTab.src, `tuition-iframe-${activeTab.id}`);
+      showIframe(container, resolveModuleUrl(activeTab.src), `tuition-iframe-${activeTab.id}`);
       
       const tabButtons = document.querySelectorAll('[data-module-tab]');
       
@@ -1389,7 +1389,7 @@
           button.classList.add('active');
           
           saveTabState('tuition', tabId);
-          showIframe(container, tab.src, `tuition-iframe-${tabId}`);
+          showIframe(container, resolveModuleUrl(tab.src), `tuition-iframe-${tabId}`);
         });
       });
     }
@@ -1603,8 +1603,8 @@
     document.getElementById('logout-btn').addEventListener('click', async () => {
       try {
         await auth.signOut();
-        // Redirect to authentication module
-        window.location.href = 'Authen.html';
+        // Redirect to authentication module (relative path)
+        window.location.href = './Authen.html';
       } catch (error) {
         console.error('Error signing out:', error);
       }
@@ -1707,5 +1707,5 @@
 
     initApp();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bf5fbfe225c10a6',t:'MTc2ODY1NDI4OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bf60cdd121adda0',t:'MTc2ODY1NDk4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
