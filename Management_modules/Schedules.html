@@ -1,0 +1,1349 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schedule View</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    body { box-sizing: border-box; }
+    * { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
+    
+    /* Compact display - always on */
+    .schedule-block {
+      padding: 8px;
+      margin-bottom: 8px;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .schedule-block:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .schedule-block.selected {
+      ring: 2px;
+      ring-color: #6366f1;
+    }
+    
+    .grid-cell {
+      padding: 6px;
+      min-height: 100px;
+      border-right: 1px solid #e5e7eb;
+    }
+    .grid-cell:last-child {
+      border-right: none;
+    }
+    
+    #scheduleContainer {
+      padding: 12px;
+    }
+    
+    .time-slot {
+      font-size: 10px;
+      color: #9ca3af;
+      font-weight: 500;
+    }
+    
+    .badge {
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .badge-recorded {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .badge-planned {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .badge-extra {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    /* Status badges */
+    .status-badge {
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .status-active {
+      background: #10b981;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+    }
+    .status-completed {
+      background: #6b7280;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(107, 114, 128, 0.3);
+    }
+    .status-upcoming {
+      background: #f59e0b;
+      color: #ffffff;
+      box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+    }
+    
+    .teacher-name {
+      font-size: 10px;
+      color: #6b7280;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    
+    .course-period {
+      font-size: 9px;
+      color: #9ca3af;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    
+    /* Day view table */
+    .day-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .day-table th {
+      background: #f9fafb;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+      border-bottom: 2px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .day-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+    }
+    .day-table tr:hover {
+      background: #f9fafb;
+      cursor: pointer;
+    }
+    .day-table tr.selected {
+      background: #eef2ff;
+    }
+    
+    .skeleton {
+      background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    .view-btn {
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .view-btn.active {
+      background: #4f46e5;
+      color: white;
+    }
+    .view-btn:not(.active) {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+    .view-btn:not(.active):hover {
+      background: #e5e7eb;
+    }
+    
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 13px;
+      background: white;
+      min-width: 140px;
+      font-weight: 500;
+    }
+    .filter-select:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background: #f3f4f6;
+      border-radius: 3px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gray-50 text-gray-800">
+  <div id="app" class="h-full flex flex-col"><!-- Auth Gate -->
+   <div id="authGate" class="h-full flex items-center justify-center">
+    <div class="text-center">
+     <div class="w-12 h-12 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+     <p class="text-gray-500 text-sm font-medium">Authenticating...</p>
+    </div>
+   </div><!-- Main Content -->
+   <div id="mainContent" class="h-full flex flex-col" style="display: none;"><!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
+     <div class="flex items-center justify-between mb-3">
+      <h1 id="pageTitle" class="text-2xl font-bold text-gray-900">Schedule View</h1>
+      <div class="flex items-center gap-3"><span id="userBadge" class="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full font-bold"></span>
+      </div>
+     </div><!-- Controls Row -->
+     <div class="flex items-center justify-between flex-wrap gap-4"><!-- Left: Navigation -->
+      <div class="flex items-center gap-3"><button id="todayBtn" class="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-bold hover:bg-indigo-600 transition-colors shadow-sm"> Today </button>
+       <div class="flex items-center gap-1"><button id="prevWeekBtn" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+         <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+         </svg></button> <span id="weekLabel" class="text-sm font-bold text-gray-700 min-w-[200px] text-center"></span> <button id="nextWeekBtn" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+         <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+         </svg></button>
+       </div>
+      </div><!-- Center: View Toggle -->
+      <div class="flex items-center gap-4">
+       <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-lg"><button class="view-btn active" data-view="week">Week</button> <button class="view-btn" data-view="day">Day</button>
+       </div><label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer font-medium"> <input type="checkbox" id="showCourseName" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"> <span>Show names</span> </label>
+      </div><!-- Right: Search & Filters -->
+      <div class="flex items-center gap-3">
+       <div class="relative">
+        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg><input type="text" id="searchInput" placeholder="Search courses..." class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-52 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 font-medium">
+       </div>
+      </div>
+     </div><!-- Admin Filters -->
+     <div id="adminFilters" class="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100" style="display: none;"><label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Filters:</label> <select id="filterTeacher" class="filter-select"> <option value="">All Teachers</option> </select> <select id="filterCourse" class="filter-select"> <option value="">All Courses</option> </select> <select id="filterDay" class="filter-select"> <option value="">All Days</option> <option value="1">Monday</option> <option value="2">Tuesday</option> <option value="3">Wednesday</option> <option value="4">Thursday</option> <option value="5">Friday</option> <option value="6">Saturday</option> <option value="0">Sunday</option> </select> <button id="clearFilters" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold">Clear all</button>
+     </div>
+    </header><!-- Main Grid Area -->
+    <div class="flex-1 flex overflow-hidden"><!-- Schedule Grid -->
+     <div id="scheduleContainer" class="flex-1 overflow-auto scrollbar-thin"><!-- Week View -->
+      <div id="weekView" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+       <div id="dayHeaders" class="grid grid-cols-7 bg-gradient-to-b from-gray-50 to-gray-100 border-b border-gray-200"></div>
+       <div id="weekGrid" class="grid grid-cols-7 min-h-[600px]"></div>
+      </div><!-- Day View -->
+      <div id="dayView" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden" style="display: none;">
+       <div id="dayViewHeader" class="px-6 py-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900"></h2>
+       </div>
+       <div id="dayViewContent" class="overflow-auto scrollbar-thin" style="max-height: calc(100vh - 280px);"></div>
+      </div><!-- Loading State -->
+      <div id="loadingState" class="bg-white rounded-xl border border-gray-200 p-8" style="display: none;">
+       <div class="space-y-4">
+        <div class="skeleton h-12 rounded-lg"></div>
+        <div class="grid grid-cols-7 gap-4">
+         <div class="skeleton h-32 rounded-lg"></div>
+         <div class="skeleton h-24 rounded-lg"></div>
+         <div class="skeleton h-28 rounded-lg"></div>
+         <div class="skeleton h-20 rounded-lg"></div>
+         <div class="skeleton h-36 rounded-lg"></div>
+         <div class="skeleton h-24 rounded-lg"></div>
+         <div class="skeleton h-16 rounded-lg"></div>
+        </div>
+       </div>
+      </div><!-- Empty State -->
+      <div id="emptyState" class="bg-white rounded-xl border border-gray-200 p-12 text-center" style="display: none;">
+       <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+       </svg>
+       <h3 class="text-lg font-bold text-gray-900 mb-2">No scheduled classes</h3>
+       <p class="text-gray-500 text-sm">There are no classes scheduled for this period.</p>
+      </div>
+     </div><!-- Details Panel -->
+     <div id="detailsPanel" class="w-80 bg-white border-l border-gray-200 flex-shrink-0 overflow-auto scrollbar-thin" style="display: none;">
+      <div class="p-6">
+       <div class="flex items-center justify-between mb-6">
+        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Details</h3><button id="closePanelBtn" class="p-1 hover:bg-gray-100 rounded transition-colors">
+         <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+         </svg></button>
+       </div>
+       <div id="detailCourseInfo" class="mb-6">
+        <div id="detailCourseCode" class="text-2xl font-bold text-gray-900 mb-1"></div>
+        <div id="detailCourseName" class="text-sm text-gray-600 mb-3 font-medium"></div>
+        <div class="flex items-center gap-2 mb-2">
+         <div id="detailStatus" class="inline-block"></div>
+         <div id="detailCourseStatus" class="inline-block"></div>
+        </div>
+       </div>
+       <div class="space-y-4 mb-6">
+        <div class="flex items-start gap-3">
+         <div class="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+         </div>
+         <div>
+          <div class="text-xs text-gray-500 font-bold uppercase tracking-wide">
+           Date
+          </div>
+          <div id="detailDate" class="text-sm text-gray-900 font-semibold"></div>
+         </div>
+        </div>
+        <div class="flex items-start gap-3">
+         <div class="w-9 h-9 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+         </div>
+         <div>
+          <div class="text-xs text-gray-500 font-bold uppercase tracking-wide">
+           Time
+          </div>
+          <div id="detailTime" class="text-sm text-gray-900 font-semibold"></div>
+         </div>
+        </div>
+        <div class="flex items-start gap-3">
+         <div class="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+         </div>
+         <div>
+          <div class="text-xs text-gray-500 font-bold uppercase tracking-wide">
+           Schedule Pattern
+          </div>
+          <div id="detailPattern" class="text-sm text-gray-900 font-semibold"></div>
+         </div>
+        </div>
+        <div class="flex items-start gap-3">
+         <div class="w-9 h-9 bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+         </div>
+         <div class="flex-1">
+          <div class="text-xs text-gray-500 font-bold uppercase tracking-wide">
+           Course Period
+          </div>
+          <div id="detailPeriod" class="text-sm text-gray-900 font-semibold"></div>
+          <div id="detailExpectedEnd" class="text-xs text-gray-600 font-medium mt-1"></div>
+         </div>
+        </div>
+       </div>
+       <div class="border-t border-gray-100 pt-6">
+        <h4 class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-3">Assigned Teachers</h4>
+        <div id="detailTeachers" class="space-y-2"></div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const elements = {
+      authGate: document.getElementById('authGate'),
+      mainContent: document.getElementById('mainContent'),
+      pageTitle: document.getElementById('pageTitle'),
+      userBadge: document.getElementById('userBadge'),
+      weekLabel: document.getElementById('weekLabel'),
+      dayHeaders: document.getElementById('dayHeaders'),
+      weekGrid: document.getElementById('weekGrid'),
+      weekView: document.getElementById('weekView'),
+      dayView: document.getElementById('dayView'),
+      dayViewHeader: document.getElementById('dayViewHeader'),
+      dayViewContent: document.getElementById('dayViewContent'),
+      loadingState: document.getElementById('loadingState'),
+      emptyState: document.getElementById('emptyState'),
+      detailsPanel: document.getElementById('detailsPanel'),
+      adminFilters: document.getElementById('adminFilters'),
+      searchInput: document.getElementById('searchInput'),
+      filterTeacher: document.getElementById('filterTeacher'),
+      filterCourse: document.getElementById('filterCourse'),
+      filterDay: document.getElementById('filterDay'),
+    };
+
+    let state = {
+      user: null,
+      role: null,
+      staffId: null,
+      currentWeekStart: getWeekStart(new Date()),
+      currentView: 'week',
+      selectedDayIndex: 0,
+      selectedBlock: null,
+      showCourseName: false,
+      courses: [],
+      courseMeetings: [],
+      courseStaff: [],
+      staff: [],
+      courseSessions: [],
+      scheduleBlocks: [],
+      filters: {
+        search: '',
+        teacher: '',
+        course: '',
+        day: ''
+      }
+    };
+
+    const defaultConfig = {
+      page_title: 'Schedule View',
+      background_color: '#f9fafb',
+      primary_color: '#4f46e5',
+      text_color: '#111827'
+    };
+
+    let config = { ...defaultConfig };
+
+    // Utility Functions
+    function getWeekStart(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      d.setDate(diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    function getWeekDates(weekStart) {
+      const dates = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + i);
+        dates.push(date);
+      }
+      return dates;
+    }
+
+    function formatDate(date, format = 'short') {
+      if (format === 'short') {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } else if (format === 'full') {
+        return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      } else if (format === 'day') {
+        return date.toLocaleDateString('en-US', { weekday: 'short' });
+      }
+      return date.toLocaleDateString();
+    }
+
+    function formatTime(timeStr) {
+      if (!timeStr) return '';
+      const [hours, minutes] = timeStr.split(':');
+      const h = parseInt(hours);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return `${h12}:${minutes}${ampm}`;
+    }
+
+    function formatTimeRange(start, end) {
+      return `${formatTime(start)} - ${formatTime(end)}`;
+    }
+
+    function getDayName(dayIndex) {
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return days[dayIndex];
+    }
+
+    function getCourseStatus(course) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      
+      let startDate = null;
+      let endDate = null;
+      
+      if (course.startDate) {
+        startDate = course.startDate.toDate ? course.startDate.toDate() : new Date(course.startDate);
+        startDate.setHours(0, 0, 0, 0);
+      }
+      if (course.endDate) {
+        endDate = course.endDate.toDate ? course.endDate.toDate() : new Date(course.endDate);
+        endDate.setHours(0, 0, 0, 0);
+      }
+      
+      if (endDate && now > endDate) {
+        return 'completed';
+      } else if (startDate && now < startDate) {
+        return 'upcoming';
+      } else {
+        return 'active';
+      }
+    }
+
+    function renderCourseStatusBadge(course) {
+      const status = getCourseStatus(course);
+      const statusLabels = {
+        active: 'Active',
+        completed: 'Completed',
+        upcoming: 'Upcoming'
+      };
+      return `<span class="status-badge status-${status}">${statusLabels[status]}</span>`;
+    }
+
+    function isDateInRange(date, startDate, endDate) {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      
+      let start = null;
+      let end = null;
+      
+      if (startDate) {
+        start = startDate.toDate ? startDate.toDate() : new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+      }
+      if (endDate) {
+        end = endDate.toDate ? endDate.toDate() : new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+      }
+      
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    }
+
+    function parseSessionDate(sessionDateField) {
+      if (!sessionDateField) return null;
+      
+      if (sessionDateField.toDate) {
+        return sessionDateField.toDate();
+      }
+      
+      if (typeof sessionDateField === 'string' && sessionDateField.length === 8) {
+        const year = parseInt(sessionDateField.substring(0, 4));
+        const month = parseInt(sessionDateField.substring(4, 6)) - 1;
+        const day = parseInt(sessionDateField.substring(6, 8));
+        return new Date(year, month, day);
+      }
+      
+      return new Date(sessionDateField);
+    }
+
+    function timeToMinutes(timeStr) {
+      if (!timeStr) return 0;
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    }
+
+    function areTimesWithin30Minutes(time1, time2) {
+      const minutes1 = timeToMinutes(time1);
+      const minutes2 = timeToMinutes(time2);
+      return Math.abs(minutes1 - minutes2) <= 30;
+    }
+
+    function getTeacherNames(courseStaffList) {
+      const names = courseStaffList.map(cs => {
+        const staffMember = state.staff.find(s => s.id === cs.staffId);
+        return staffMember?.preferredName || staffMember?.fullName || cs.staffId;
+      });
+      
+      if (names.length === 0) return 'No teacher';
+      return names.join(', ');
+    }
+
+    function getAllTeacherNames(courseStaffList) {
+      return courseStaffList.map(cs => {
+        const staffMember = state.staff.find(s => s.id === cs.staffId);
+        return staffMember?.preferredName || staffMember?.fullName || cs.staffId;
+      }).join(', ');
+    }
+
+    function generateScheduleBlocks(weekDates) {
+      const blocks = [];
+      
+      state.courses.forEach(course => {
+        const courseMeetings = state.courseMeetings.filter(m => m.courseId === course.id && m.isActive !== false);
+        const courseStaffList = state.courseStaff.filter(cs => cs.courseId === course.id);
+        const courseStatus = getCourseStatus(course);
+        
+        courseMeetings.forEach(meeting => {
+          const jsDayOfWeek = meeting.dayOfWeek;
+          
+          weekDates.forEach((date, dateIndex) => {
+            if (date.getDay() === jsDayOfWeek) {
+              if (isDateInRange(date, course.startDate, course.endDate)) {
+                const matchingSession = state.courseSessions.find(session => {
+                  const sessionDate = session.normalizedDate;
+                  return session.courseId === course.id &&
+                         sessionDate.toDateString() === date.toDateString() &&
+                         areTimesWithin30Minutes(session.startTime, meeting.startTime);
+                });
+                
+                blocks.push({
+                  id: `${course.id}-${meeting.id}-${date.toISOString()}`,
+                  courseId: course.id,
+                  courseCode: course.publicCode || course.courseCode,
+                  courseName: course.name || course.courseName,
+                  courseStatus: courseStatus,
+                  date: new Date(date),
+                  dayIndex: dateIndex,
+                  dayOfWeek: jsDayOfWeek,
+                  startTime: meeting.startTime,
+                  endTime: meeting.endTime,
+                  courseStartDate: course.startDate,
+                  courseEndDate: course.endDate,
+                  meetingPattern: meeting,
+                  staff: courseStaffList,
+                  teacherDisplay: getTeacherNames(courseStaffList),
+                  isRecorded: !!matchingSession,
+                  session: matchingSession,
+                  type: 'planned',
+                  course: course
+                });
+              }
+            }
+          });
+        });
+      });
+      
+      state.courseSessions.forEach(session => {
+        const sessionDate = session.normalizedDate;
+        const course = state.courses.find(c => c.id === session.courseId);
+        
+        if (!course) return;
+        
+        const hasPlannedBlock = blocks.some(b => 
+          b.courseId === session.courseId &&
+          b.date.toDateString() === sessionDate.toDateString() &&
+          areTimesWithin30Minutes(b.startTime, session.startTime)
+        );
+        
+        if (!hasPlannedBlock) {
+          const dateIndex = weekDates.findIndex(d => d.toDateString() === sessionDate.toDateString());
+          if (dateIndex >= 0) {
+            const courseStaffList = state.courseStaff.filter(cs => cs.courseId === course.id);
+            const courseStatus = getCourseStatus(course);
+            
+            blocks.push({
+              id: `extra-${session.id}`,
+              courseId: course.id,
+              courseCode: course.publicCode || course.courseCode,
+              courseName: course.name || course.courseName,
+              courseStatus: courseStatus,
+              date: sessionDate,
+              dayIndex: dateIndex,
+              dayOfWeek: sessionDate.getDay(),
+              startTime: session.startTime,
+              endTime: session.endTime,
+              courseStartDate: course.startDate,
+              courseEndDate: course.endDate,
+              staff: courseStaffList,
+              teacherDisplay: getTeacherNames(courseStaffList),
+              isRecorded: true,
+              session: session,
+              type: 'extra',
+              course: course
+            });
+          }
+        }
+      });
+      
+      blocks.sort((a, b) => {
+        if (a.dayIndex !== b.dayIndex) return a.dayIndex - b.dayIndex;
+        if (a.startTime !== b.startTime) return a.startTime.localeCompare(b.startTime);
+        return (a.courseCode || '').localeCompare(b.courseCode || '');
+      });
+      
+      return blocks;
+    }
+
+    function filterBlocks(blocks) {
+      return blocks.filter(block => {
+        if (state.filters.search) {
+          const search = state.filters.search.toLowerCase();
+          const matchCode = (block.courseCode || '').toLowerCase().includes(search);
+          const matchName = (block.courseName || '').toLowerCase().includes(search);
+          if (!matchCode && !matchName) return false;
+        }
+        
+        if (state.filters.teacher && state.role !== 'Teacher') {
+          const hasTeacher = block.staff.some(s => s.staffId === state.filters.teacher);
+          if (!hasTeacher) return false;
+        }
+        
+        if (state.filters.course) {
+          if (block.courseId !== state.filters.course) return false;
+        }
+        
+        if (state.filters.day !== '') {
+          if (block.dayOfWeek !== parseInt(state.filters.day)) return false;
+        }
+        
+        if (state.role === 'Teacher' && state.staffId) {
+          const isAssigned = block.staff.some(s => s.staffId === state.staffId);
+          if (!isAssigned) return false;
+        }
+        
+        return true;
+      });
+    }
+
+    // Auth Functions
+    async function initAuth() {
+      return new Promise((resolve, reject) => {
+        firebase.auth().onAuthStateChanged(async (user) => {
+          if (user) {
+            state.user = user;
+            try {
+              const userDoc = await db.collection('users').doc(user.uid).get();
+              if (userDoc.exists) {
+                const userData = userDoc.data();
+                state.role = userData.role;
+                
+                if (state.role === 'Teacher' && userData.links?.staffId) {
+                  state.staffId = userData.links.staffId;
+                }
+                
+                elements.userBadge.textContent = state.role;
+                
+                if (state.role === 'Admin' || state.role === 'Manager') {
+                  elements.adminFilters.style.display = 'flex';
+                }
+                
+                resolve(user);
+              } else {
+                reject(new Error('User document not found'));
+              }
+            } catch (error) {
+              reject(error);
+            }
+          } else {
+            reject(new Error('Not authenticated'));
+          }
+        });
+      });
+    }
+
+    // Data Loading Functions
+    async function loadCourseStaff() {
+      const snapshot = await db.collection('course_staff').get();
+      state.courseStaff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadCourses(courseIds = null) {
+      let query = db.collection('courses');
+      
+      if (courseIds && courseIds.length > 0) {
+        if (courseIds.length <= 10) {
+          query = query.where(firebase.firestore.FieldPath.documentId(), 'in', courseIds);
+        } else {
+          const snapshot = await query.get();
+          state.courses = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(c => courseIds.includes(c.id));
+          return;
+        }
+      }
+      
+      const snapshot = await query.get();
+      state.courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadCourseMeetings(courseIds = null) {
+      let query = db.collection('course_meetings').where('isActive', '==', true);
+      
+      if (courseIds && courseIds.length > 0) {
+        if (courseIds.length <= 10) {
+          query = query.where('courseId', 'in', courseIds);
+        } else {
+          const snapshot = await query.get();
+          state.courseMeetings = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(m => courseIds.includes(m.courseId));
+          return;
+        }
+      }
+      
+      const snapshot = await query.get();
+      state.courseMeetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadStaff() {
+      const snapshot = await db.collection('staff').get();
+      state.staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadCourseSessions(weekStart, courseIds = null) {
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      
+      let sessions = [];
+      
+      try {
+        let query = db.collection('course_sessions')
+          .where('sessionDate', '>=', weekStart)
+          .where('sessionDate', '<', weekEnd);
+        
+        const snapshot = await query.get();
+        sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (error) {
+        console.warn('Timestamp query failed, trying date field', error);
+      }
+      
+      if (sessions.length === 0) {
+        try {
+          let query = db.collection('course_sessions')
+            .where('date', '>=', weekStart)
+            .where('date', '<', weekEnd);
+          
+          const snapshot = await query.get();
+          sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+          console.warn('Date field query failed', error);
+        }
+      }
+      
+      if (sessions.length === 0) {
+        try {
+          const startStr = formatDateToYYYYMMDD(weekStart);
+          const endStr = formatDateToYYYYMMDD(weekEnd);
+          
+          let query = db.collection('course_sessions')
+            .where('sessionDate', '>=', startStr)
+            .where('sessionDate', '<', endStr);
+          
+          const snapshot = await query.get();
+          sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+          console.warn('YYYYMMDD string query failed', error);
+        }
+      }
+      
+      sessions = sessions.map(session => {
+        const sessionDateField = session.sessionDate || session.date;
+        const normalizedDate = parseSessionDate(sessionDateField);
+        return {
+          ...session,
+          normalizedDate: normalizedDate
+        };
+      });
+      
+      if (courseIds && courseIds.length > 0) {
+        sessions = sessions.filter(s => courseIds.includes(s.courseId));
+      }
+      
+      state.courseSessions = sessions;
+    }
+
+    function formatDateToYYYYMMDD(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}${month}${day}`;
+    }
+
+    async function loadAllData() {
+      showLoading(true);
+      try {
+        await loadCourseStaff();
+        
+        let teacherCourseIds = null;
+        if (state.role === 'Teacher' && state.staffId) {
+          teacherCourseIds = state.courseStaff
+            .filter(cs => cs.staffId === state.staffId)
+            .map(cs => cs.courseId);
+        }
+        
+        await Promise.all([
+          loadCourses(teacherCourseIds),
+          loadCourseMeetings(teacherCourseIds),
+          loadStaff(),
+          loadCourseSessions(state.currentWeekStart, teacherCourseIds)
+        ]);
+        
+        populateFilters();
+        updateSchedule();
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function populateFilters() {
+      elements.filterTeacher.innerHTML = '<option value="">All Teachers</option>';
+      state.staff
+        .filter(s => s.status === 'active' && s.roles && s.roles.includes('Teacher'))
+        .forEach(s => {
+          const option = document.createElement('option');
+          option.value = s.id;
+          option.textContent = s.preferredName || s.fullName || s.id;
+          elements.filterTeacher.appendChild(option);
+        });
+      
+      elements.filterCourse.innerHTML = '<option value="">All Courses</option>';
+      state.courses.forEach(c => {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.textContent = c.publicCode || c.courseCode || c.name;
+        elements.filterCourse.appendChild(option);
+      });
+    }
+
+    // Render Functions
+    function showLoading(show) {
+      elements.loadingState.style.display = show ? 'block' : 'none';
+      elements.weekView.style.display = show ? 'none' : (state.currentView === 'week' ? 'block' : 'none');
+      elements.dayView.style.display = show ? 'none' : (state.currentView === 'day' ? 'block' : 'none');
+    }
+
+    function updateWeekLabel() {
+      const weekEnd = new Date(state.currentWeekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      elements.weekLabel.textContent = `${formatDate(state.currentWeekStart)} – ${formatDate(weekEnd)}`;
+    }
+
+    function updateSchedule() {
+      updateWeekLabel();
+      const weekDates = getWeekDates(state.currentWeekStart);
+      state.scheduleBlocks = generateScheduleBlocks(weekDates);
+      const filteredBlocks = filterBlocks(state.scheduleBlocks);
+      
+      if (state.currentView === 'week') {
+        renderWeekView(weekDates, filteredBlocks);
+      } else if (state.currentView === 'day') {
+        renderDayView(weekDates, filteredBlocks);
+      }
+      
+      elements.emptyState.style.display = filteredBlocks.length === 0 ? 'block' : 'none';
+    }
+
+    function renderWeekView(weekDates, blocks) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      elements.dayHeaders.innerHTML = weekDates.map((date, i) => {
+        const isToday = date.toDateString() === today.toDateString();
+        return `
+          <div class="p-3 text-center ${isToday ? 'bg-indigo-100' : ''}">
+            <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">${formatDate(date, 'day')}</div>
+            <div class="text-xl font-bold ${isToday ? 'text-indigo-600' : 'text-gray-900'} mt-1">${date.getDate()}</div>
+          </div>
+        `;
+      }).join('');
+      
+      elements.weekGrid.innerHTML = weekDates.map((date, dayIndex) => {
+        const dayBlocks = blocks.filter(b => b.dayIndex === dayIndex);
+        const isToday = date.toDateString() === today.toDateString();
+        
+        return `
+          <div class="grid-cell ${isToday ? 'bg-indigo-50/20' : ''}" data-day="${dayIndex}">
+            ${dayBlocks.length === 0 ? '<div class="text-xs text-gray-300 text-center mt-12 font-medium">No classes</div>' : ''}
+            ${dayBlocks.map(block => renderScheduleBlock(block)).join('')}
+          </div>
+        `;
+      }).join('');
+      
+      document.querySelectorAll('.schedule-block').forEach(el => {
+        el.addEventListener('click', () => selectBlock(el.dataset.blockId));
+      });
+    }
+
+    function renderDayView(weekDates, blocks) {
+      const selectedDate = weekDates[state.selectedDayIndex];
+      const dayBlocks = blocks.filter(b => b.dayIndex === state.selectedDayIndex);
+      
+      elements.dayViewHeader.querySelector('h2').textContent = formatDate(selectedDate, 'full');
+      
+      if (dayBlocks.length === 0) {
+        elements.dayViewContent.innerHTML = `
+          <div class="text-center py-16">
+            <svg class="w-14 h-14 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-gray-500 font-medium">No classes scheduled for this day</p>
+          </div>
+        `;
+      } else {
+        elements.dayViewContent.innerHTML = `
+          <div class="mb-4 flex items-center justify-center gap-2 px-6 pt-4">
+            ${weekDates.map((date, i) => `
+              <button class="px-3 py-2 rounded-lg text-sm font-bold transition-colors ${i === state.selectedDayIndex ? 'bg-indigo-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+                      data-day="${i}">
+                ${formatDate(date, 'day')}
+              </button>
+            `).join('')}
+          </div>
+          <div class="px-6 pb-6">
+            <table class="day-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">Time</th>
+                  <th>Course</th>
+                  <th>Teacher</th>
+                  <th style="width: 140px;">Status</th>
+                  <th style="width: 120px;">Period</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${dayBlocks.map(block => `
+                  <tr class="schedule-row ${state.selectedBlock?.id === block.id ? 'selected' : ''}" 
+                      data-block-id="${block.id}">
+                    <td class="font-bold text-gray-700">${formatTime(block.startTime)}</td>
+                    <td>
+                      <div class="font-bold text-gray-900">${block.courseCode || 'N/A'}</div>
+                      <div class="text-xs text-gray-600">${block.courseName || ''}</div>
+                    </td>
+                    <td class="text-sm text-gray-700">${block.teacherDisplay}</td>
+                    <td>
+                      <div class="flex flex-col gap-1">
+                        ${renderStatusBadge(block)}
+                        ${renderCourseStatusBadge(block.course)}
+                      </div>
+                    </td>
+                    <td class="text-xs text-gray-600">
+                      ${formatCoursePeriod(block.course)}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+      
+      document.querySelectorAll('[data-day]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.selectedDayIndex = parseInt(btn.dataset.day);
+          updateSchedule();
+        });
+      });
+      
+      document.querySelectorAll('.schedule-row').forEach(el => {
+        el.addEventListener('click', () => selectBlock(el.dataset.blockId));
+      });
+    }
+
+    function formatCoursePeriod(course) {
+      if (!course) return 'N/A';
+      
+      const start = course.startDate?.toDate ? course.startDate.toDate() : (course.startDate ? new Date(course.startDate) : null);
+      const end = course.endDate?.toDate ? course.endDate.toDate() : (course.endDate ? new Date(course.endDate) : null);
+      
+      if (start && end) {
+        return `${formatDate(start)} – ${formatDate(end)}`;
+      } else if (start) {
+        return `From ${formatDate(start)}`;
+      } else if (end) {
+        return `Until ${formatDate(end)}`;
+      }
+      return 'Not specified';
+    }
+
+    function renderScheduleBlock(block) {
+      const colors = {
+        planned: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
+        recorded: 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100',
+        extra: 'bg-amber-50 border-amber-200 hover:bg-amber-100'
+      };
+      
+      let colorClass = colors.planned;
+      if (block.type === 'extra') {
+        colorClass = colors.extra;
+      } else if (block.isRecorded) {
+        colorClass = colors.recorded;
+      }
+      
+      const showName = state.showCourseName;
+      
+      return `
+        <div class="schedule-block rounded-lg border ${colorClass} ${state.selectedBlock?.id === block.id ? 'ring-2 ring-indigo-400' : ''}"
+             data-block-id="${block.id}">
+          <div class="font-bold text-xs text-gray-900 truncate">${block.courseCode || 'N/A'}</div>
+          ${showName ? `<div class="text-xs text-gray-600 truncate leading-tight font-medium">${block.courseName || ''}</div>` : ''}
+          <div class="teacher-name truncate">${block.teacherDisplay}</div>
+          <div class="course-period truncate">${formatDate(block.date, 'short')}</div>
+          <div class="flex items-center justify-between mt-1">
+            <div class="time-slot">${formatTime(block.startTime)}</div>
+            ${renderStatusBadge(block)}
+          </div>
+          <div class="mt-1">
+            ${renderCourseStatusBadge(block.course)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStatusBadge(block) {
+      if (block.type === 'extra') {
+        return '<span class="badge badge-extra">Extra</span>';
+      } else if (block.isRecorded) {
+        return '<span class="badge badge-recorded">Recorded</span>';
+      } else {
+        return ''; // No badge for planned courses
+      }
+    }
+
+    function selectBlock(blockId) {
+      state.selectedBlock = state.scheduleBlocks.find(b => b.id === blockId);
+      
+      if (state.selectedBlock) {
+        showDetailsPanel(state.selectedBlock);
+        
+        document.querySelectorAll('.schedule-block, .schedule-row').forEach(el => {
+          const isSelected = el.dataset.blockId === blockId;
+          el.classList.toggle('ring-2', isSelected);
+          el.classList.toggle('ring-indigo-400', isSelected);
+          el.classList.toggle('selected', isSelected);
+        });
+      }
+    }
+
+    function showDetailsPanel(block) {
+      elements.detailsPanel.style.display = 'block';
+      
+      document.getElementById('detailCourseCode').textContent = block.courseCode || 'N/A';
+      document.getElementById('detailCourseName').textContent = block.courseName || '';
+      document.getElementById('detailStatus').innerHTML = renderStatusBadge(block);
+      document.getElementById('detailCourseStatus').innerHTML = renderCourseStatusBadge(block.course);
+      document.getElementById('detailDate').textContent = formatDate(block.date, 'full');
+      document.getElementById('detailTime').textContent = formatTimeRange(block.startTime, block.endTime);
+      
+      const pattern = block.meetingPattern;
+      if (pattern) {
+        const dayName = getDayName(pattern.dayOfWeek);
+        document.getElementById('detailPattern').textContent = `Every ${dayName} at ${formatTime(pattern.startTime)}`;
+      } else {
+        document.getElementById('detailPattern').textContent = 'Extra session (no recurring pattern)';
+      }
+      
+      document.getElementById('detailPeriod').textContent = formatCoursePeriod(block.course);
+      
+      // Expected end date
+      const expectedEndEl = document.getElementById('detailExpectedEnd');
+      if (block.courseEndDate) {
+        const endDate = block.courseEndDate.toDate ? block.courseEndDate.toDate() : new Date(block.courseEndDate);
+        expectedEndEl.textContent = `Expected end: ${formatDate(endDate, 'full')}`;
+        expectedEndEl.style.display = 'block';
+      } else {
+        expectedEndEl.style.display = 'none';
+      }
+      
+      const teachersContainer = document.getElementById('detailTeachers');
+      if (block.staff.length === 0) {
+        teachersContainer.innerHTML = '<div class="text-sm text-gray-400 italic font-medium">No teachers assigned</div>';
+      } else {
+        teachersContainer.innerHTML = block.staff.map(cs => {
+          const staffMember = state.staff.find(s => s.id === cs.staffId);
+          const name = staffMember?.preferredName || staffMember?.fullName || cs.staffId;
+          const role = cs.role || 'Teacher';
+          
+          return `
+            <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <div class="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center">
+                <span class="text-xs font-bold text-indigo-600">${name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div>
+                <div class="text-sm font-bold text-gray-900">${name}</div>
+                <div class="text-xs text-gray-500 font-medium">${role}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function hideDetailsPanel() {
+      elements.detailsPanel.style.display = 'none';
+      state.selectedBlock = null;
+      
+      document.querySelectorAll('.schedule-block, .schedule-row').forEach(el => {
+        el.classList.remove('ring-2', 'ring-indigo-400', 'selected');
+      });
+    }
+
+    // Event Handlers
+    function setupEventListeners() {
+      document.getElementById('todayBtn').addEventListener('click', async () => {
+        state.currentWeekStart = getWeekStart(new Date());
+        state.selectedDayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+        
+        const teacherCourseIds = (state.role === 'Teacher' && state.staffId) 
+          ? state.courseStaff.filter(cs => cs.staffId === state.staffId).map(cs => cs.courseId)
+          : null;
+        
+        await loadCourseSessions(state.currentWeekStart, teacherCourseIds);
+        updateSchedule();
+      });
+      
+      document.getElementById('prevWeekBtn').addEventListener('click', async () => {
+        state.currentWeekStart.setDate(state.currentWeekStart.getDate() - 7);
+        
+        const teacherCourseIds = (state.role === 'Teacher' && state.staffId) 
+          ? state.courseStaff.filter(cs => cs.staffId === state.staffId).map(cs => cs.courseId)
+          : null;
+        
+        await loadCourseSessions(state.currentWeekStart, teacherCourseIds);
+        updateSchedule();
+      });
+      
+      document.getElementById('nextWeekBtn').addEventListener('click', async () => {
+        state.currentWeekStart.setDate(state.currentWeekStart.getDate() + 7);
+        
+        const teacherCourseIds = (state.role === 'Teacher' && state.staffId) 
+          ? state.courseStaff.filter(cs => cs.staffId === state.staffId).map(cs => cs.courseId)
+          : null;
+        
+        await loadCourseSessions(state.currentWeekStart, teacherCourseIds);
+        updateSchedule();
+      });
+      
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.currentView = btn.dataset.view;
+          
+          elements.weekView.style.display = state.currentView === 'week' ? 'block' : 'none';
+          elements.dayView.style.display = state.currentView === 'day' ? 'block' : 'none';
+          
+          updateSchedule();
+        });
+      });
+      
+      let searchTimeout;
+      elements.searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          state.filters.search = e.target.value;
+          updateSchedule();
+        }, 300);
+      });
+      
+      elements.filterTeacher.addEventListener('change', (e) => {
+        state.filters.teacher = e.target.value;
+        updateSchedule();
+      });
+      
+      elements.filterCourse.addEventListener('change', (e) => {
+        state.filters.course = e.target.value;
+        updateSchedule();
+      });
+      
+      elements.filterDay.addEventListener('change', (e) => {
+        state.filters.day = e.target.value;
+        updateSchedule();
+      });
+      
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        state.filters = { search: '', teacher: '', course: '', day: '' };
+        elements.searchInput.value = '';
+        elements.filterTeacher.value = '';
+        elements.filterCourse.value = '';
+        elements.filterDay.value = '';
+        updateSchedule();
+      });
+      
+      document.getElementById('closePanelBtn').addEventListener('click', hideDetailsPanel);
+      
+      document.getElementById('showCourseName').addEventListener('change', (e) => {
+        state.showCourseName = e.target.checked;
+        updateSchedule();
+      });
+    }
+
+    // Element SDK
+    async function onConfigChange(newConfig) {
+      config = { ...defaultConfig, ...newConfig };
+      
+      elements.pageTitle.textContent = config.page_title || defaultConfig.page_title;
+      document.body.style.backgroundColor = config.background_color || defaultConfig.background_color;
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => {
+              config.background_color = value;
+              window.elementSdk.setConfig({ background_color: value });
+            }
+          },
+          {
+            get: () => config.primary_color || defaultConfig.primary_color,
+            set: (value) => {
+              config.primary_color = value;
+              window.elementSdk.setConfig({ primary_color: value });
+            }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => {
+              config.text_color = value;
+              window.elementSdk.setConfig({ text_color: value });
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ['page_title', config.page_title || defaultConfig.page_title]
+      ]);
+    }
+
+    // Initialize
+    async function init() {
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities,
+          mapToEditPanelValues
+        });
+      }
+      
+      setupEventListeners();
+      
+      try {
+        await initAuth();
+        elements.authGate.style.display = 'none';
+        elements.mainContent.style.display = 'flex';
+        await loadAllData();
+      } catch (error) {
+        console.error('Auth error:', error);
+        elements.authGate.innerHTML = `
+          <div class="text-center">
+            <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <h2 class="text-lg font-bold text-gray-900 mb-2">Authentication Required</h2>
+            <p class="text-gray-500 text-sm">Please sign in to view your schedule.</p>
+          </div>
+        `;
+      }
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bf22372045ddd39',t:'MTc2ODYxMzk2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

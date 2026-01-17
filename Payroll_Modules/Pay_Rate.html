@@ -1,0 +1,1819 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pay Rate Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script><!-- Firebase Compat v9 -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    * {
+      font-family: 'DM Sans', sans-serif;
+    }
+    .tab-active {
+      border-bottom: 2px solid #2563eb;
+      color: #2563eb;
+    }
+    .modal-overlay {
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .table-container::-webkit-scrollbar {
+      height: 6px;
+    }
+    .table-container::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes toastSlide {
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .animate-slide-in {
+      animation: slideIn 0.2s ease-out;
+    }
+    .toast-animate {
+      animation: toastSlide 0.3s ease-out;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-slate-50 text-slate-800">
+  <div id="app" class="h-full overflow-auto"><!-- DB Status (compact) -->
+   <div class="bg-white border-b border-slate-200 px-6 py-2">
+    <div id="db-status" class="text-xs text-slate-400 flex items-center justify-end gap-3">
+     <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-slate-300 rounded-full" id="db-indicator"></span> <span id="db-status-text">Connecting...</span>
+     </div>
+     <div id="db-counts" class="text-slate-400"></div>
+    </div>
+   </div><!-- Tabs -->
+   <nav class="bg-white border-b border-slate-200 px-6 overflow-x-auto">
+    <div class="flex space-x-1 min-w-max"><button class="tab-btn tab-active px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors" data-tab="class-types">Class Types</button> <button class="tab-btn px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap transition-colors" data-tab="group-classes">Group Classes (Teaching)</button> <button class="tab-btn px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap transition-colors" data-tab="assistant">Assistant Teaching</button> <button class="tab-btn px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap transition-colors" data-tab="tutoring">1–1 Tutoring</button> <button class="tab-btn px-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 whitespace-nowrap transition-colors" data-tab="admin">Admin / Academic Tasks</button>
+    </div>
+   </nav><!-- Toolbar -->
+   <div class="bg-white border-b border-slate-200 px-6 py-3">
+    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+     <div class="relative flex-1 max-w-xs">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg><input type="text" id="search-input" placeholder="Search..." class="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+     </div>
+     <div class="flex flex-wrap gap-2 items-center"><select id="status-filter" class="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"> <option value="all">All Status</option> <option value="active">Active</option> <option value="inactive">Inactive</option> </select> <select id="date-filter" class="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"> <option value="all">All Dates</option> <option value="current">Current</option> <option value="future">Future</option> <option value="expired">Expired</option> </select> <button id="add-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+       </svg><span id="add-btn-text">Add Pay Rate</span> </button>
+     </div>
+    </div>
+   </div><!-- Main Content Area -->
+   <main class="px-6 py-4">
+    <div id="table-container" class="table-container overflow-x-auto bg-white border border-slate-200 rounded-lg"><!-- Tables rendered here -->
+    </div>
+   </main>
+  </div><!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div><!-- Modals Container -->
+  <div id="modals-container"></div>
+  <script>
+    // ============================================
+    // SECTION: Firebase Configuration
+    // ============================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    // Initialize Firebase
+    let db = null;
+    let isFirebaseInitialized = false;
+
+    function initializeFirebase() {
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+        isFirebaseInitialized = true;
+        updateDBStatus('connected', 'Connected');
+        console.log('✅ Firebase initialized successfully');
+        return true;
+      } catch (error) {
+        console.error('❌ Firebase initialization failed:', error);
+        updateDBStatus('error', 'Connection Failed');
+        showToast('Firebase connection failed', 'error');
+        return false;
+      }
+    }
+
+    function updateDBStatus(status, text) {
+      const indicator = document.getElementById('db-indicator');
+      const statusText = document.getElementById('db-status-text');
+      
+      if (indicator && statusText) {
+        const colors = {
+          connecting: 'bg-slate-300',
+          connected: 'bg-emerald-500',
+          error: 'bg-red-500'
+        };
+        indicator.className = `w-2 h-2 rounded-full ${colors[status] || 'bg-slate-300'}`;
+        statusText.textContent = text;
+      }
+    }
+
+    function updateDBCounts() {
+      const countsEl = document.getElementById('db-counts');
+      if (countsEl) {
+        const classTypesCount = mockData.classTypes.length;
+        const payRatesCount = mockData.groupClasses.length + mockData.assistantTeaching.length + 
+                              mockData.tutoring.length + mockData.adminTasks.length;
+        countsEl.textContent = `${classTypesCount} class types, ${payRatesCount} pay rates`;
+      }
+    }
+
+    // ============================================
+    // SECTION: Configuration & State
+    // ============================================
+    const defaultConfig = {
+      primary_color: '#2563eb',
+      background_color: '#f8fafc',
+      text_color: '#1e293b',
+      surface_color: '#ffffff',
+      accent_color: '#10b981'
+    };
+
+    let config = { ...defaultConfig };
+
+    const state = {
+      activeTab: 'class-types',
+      searchQuery: '',
+      statusFilter: 'all',
+      dateFilter: 'all',
+      editingItem: null,
+      modalStep: 1,
+      selectedTemplate: null,
+      isLoading: false
+    };
+
+    // ============================================
+    // SECTION: Data Storage (replaces mock data)
+    // ============================================
+    const mockData = {
+      classTypes: [],
+      groupClasses: [],
+      assistantTeaching: [],
+      tutoring: [],
+      adminTasks: []
+    };
+
+    // ============================================
+    // SECTION: ID Generation Helpers
+    // ============================================
+    
+    /**
+     * Generate slug from name: uppercase, ASCII-only, underscores
+     * Example: "IELTS Prep" -> "IELTS_PREP"
+     */
+    function generateSlug(name) {
+      return name
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, ''); // trim leading/trailing underscores
+    }
+
+    /**
+     * Generate Class Type ID
+     * Format: CT_<SLUG>
+     */
+    function generateClassTypeId(name) {
+      const slug = generateSlug(name);
+      return `CT_${slug}`;
+    }
+
+    /**
+     * Generate Pay Rate ID
+     * Format: PR_<CAT>_<YYYYMMDD>_<SEQ>
+     * @param {string} category - GROUP, ASSIST, TUTOR, ADMIN
+     * @param {string} effectiveFrom - ISO date string or empty
+     */
+    async function generatePayRateId(category, effectiveFrom) {
+      // Get date part (YYYYMMDD)
+      const date = effectiveFrom ? new Date(effectiveFrom) : new Date();
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}${mm}${dd}`;
+      
+      // Find max SEQ for this category and date
+      const prefix = `PR_${category}_${dateStr}_`;
+      let maxSeq = 0;
+      
+      // Check existing records
+      try {
+        const snapshot = await db.collection('payRates')
+          .where('cat', '==', category)
+          .get();
+        
+        snapshot.docs.forEach(doc => {
+          if (doc.id.startsWith(prefix)) {
+            const seqPart = doc.id.substring(prefix.length);
+            const seq = parseInt(seqPart);
+            if (!isNaN(seq) && seq > maxSeq) {
+              maxSeq = seq;
+            }
+          }
+        });
+      } catch (error) {
+        console.warn('Could not query for max SEQ, starting from 1:', error);
+      }
+      
+      const nextSeq = maxSeq + 1;
+      const seqStr = String(nextSeq).padStart(4, '0');
+      
+      return `${prefix}${seqStr}`;
+    }
+
+    /**
+     * Get category code from template
+     */
+    function getCategoryFromTemplate(template) {
+      const map = {
+        'group': 'GROUP',
+        'assistant': 'ASSIST',
+        'tutoring': 'TUTOR',
+        'admin': 'ADMIN'
+      };
+      return map[template] || 'UNKNOWN';
+    }
+
+    // ============================================
+    // SECTION: Firestore Helper Functions
+    // ============================================
+    function cleanDataForFirestore(data) {
+      const cleaned = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined && value !== null && value !== '') {
+          // ALWAYS keep id and classTypeId as strings - they are now CT_XXX / PR_XXX format
+          if (key === 'id' || key === 'classTypeId') {
+            cleaned[key] = String(value);
+          } 
+          // Keep slug as string
+          else if (key === 'slug') {
+            cleaned[key] = String(value);
+          }
+          // Only parse specific numeric fields
+          else if (typeof value === 'string' && !isNaN(value) && value.trim() !== '') {
+            const numericFields = ['minSize', 'maxSize', 'teacherPay', 'assistantPay', 
+                                   'studentCharge', 'teacherReceive', 'managementFee', 'payAmount'];
+            if (numericFields.includes(key)) {
+              cleaned[key] = parseFloat(value);
+            } else {
+              cleaned[key] = value;
+            }
+          } 
+          // Keep everything else as-is
+          else {
+            cleaned[key] = value;
+          }
+        }
+      }
+      return cleaned;
+    }
+
+    function toISOString(date) {
+      if (!date) return new Date().toISOString();
+      if (date instanceof Date) return date.toISOString();
+      if (typeof date === 'string') return date;
+      if (date.toDate) return date.toDate().toISOString(); // Firestore Timestamp
+      return new Date().toISOString();
+    }
+    
+    /**
+     * Normalize date to YYYY-MM-DD format for consistency
+     * Input can be: Date object, ISO string, or YYYY-MM-DD string
+     */
+    function normalizeDateString(date) {
+      if (!date) return '';
+      if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return date; // Already YYYY-MM-DD
+      }
+      const d = date instanceof Date ? date : new Date(date);
+      if (isNaN(d.getTime())) return ''; // Invalid date
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // ============================================
+    // SECTION: Firestore Data Operations
+    // ============================================
+    // ============================================
+    // SECTION: Migration from Numeric IDs
+    // ============================================
+    async function migrateIdsIfNeeded() {
+      if (!isFirebaseInitialized) return;
+
+      console.log('🔍 Checking for legacy numeric IDs...');
+
+      try {
+        // Build a map of old numeric ID -> new string ID for classTypes
+        const classTypeIdMap = new Map();
+
+        // Migrate Class Types
+        const classTypesSnapshot = await db.collection('classTypes').get();
+        const classTypesToMigrate = [];
+        
+        classTypesSnapshot.docs.forEach(doc => {
+          const docId = doc.id;
+          // Check if ID is numeric
+          if (!isNaN(docId) && !docId.startsWith('CT_')) {
+            classTypesToMigrate.push({ oldId: docId, data: doc.data() });
+          }
+        });
+
+        if (classTypesToMigrate.length > 0) {
+          console.log(`📦 Migrating ${classTypesToMigrate.length} class types...`);
+          
+          for (const item of classTypesToMigrate) {
+            const newId = generateClassTypeId(item.data.name);
+            const newData = {
+              ...item.data,
+              id: newId,
+              slug: generateSlug(item.data.name),
+              legacyId: item.oldId,
+              migratedAt: new Date().toISOString()
+            };
+            
+            await db.collection('classTypes').doc(newId).set(cleanDataForFirestore(newData));
+            classTypeIdMap.set(item.oldId, newId);
+            
+            // Mark old doc as migrated
+            await db.collection('classTypes').doc(item.oldId).update({ 
+              migrated: true,
+              newId: newId
+            });
+          }
+          
+          console.log(`✅ Migrated ${classTypesToMigrate.length} class types`);
+        }
+
+        // Migrate Pay Rates
+        const payRatesSnapshot = await db.collection('payRates').get();
+        const payRatesToMigrate = [];
+        
+        payRatesSnapshot.docs.forEach(doc => {
+          const docId = doc.id;
+          const data = doc.data();
+          // Check if ID is numeric and not already migrated
+          if (!isNaN(docId) && !docId.startsWith('PR_') && !data.migrated) {
+            payRatesToMigrate.push({ oldId: docId, data });
+          }
+        });
+
+        if (payRatesToMigrate.length > 0) {
+          console.log(`📦 Migrating ${payRatesToMigrate.length} pay rates...`);
+          
+          for (const item of payRatesToMigrate) {
+            const data = item.data;
+            
+            // Determine category from old type field
+            let category = 'ADMIN';
+            if (data.type === 'group') category = 'GROUP';
+            else if (data.type === 'assistant') category = 'ASSIST';
+            else if (data.type === 'tutoring') category = 'TUTOR';
+            else if (data.type === 'admin') category = 'ADMIN';
+            
+            const newId = await generatePayRateId(category, data.effectiveFrom);
+            
+            // Update classTypeId reference if it's numeric
+            let newClassTypeId = data.classTypeId;
+            if (data.classTypeId && classTypeIdMap.has(String(data.classTypeId))) {
+              newClassTypeId = classTypeIdMap.get(String(data.classTypeId));
+            }
+            
+            const newData = {
+              ...data,
+              id: newId,
+              cat: category,
+              classTypeId: newClassTypeId,
+              legacyId: item.oldId,
+              migratedAt: new Date().toISOString()
+            };
+            
+            // Remove old 'type' field
+            delete newData.type;
+            
+            await db.collection('payRates').doc(newId).set(cleanDataForFirestore(newData));
+            
+            // Mark old doc as migrated
+            await db.collection('payRates').doc(item.oldId).update({ 
+              migrated: true,
+              newId: newId
+            });
+          }
+          
+          console.log(`✅ Migrated ${payRatesToMigrate.length} pay rates`);
+          showToast(`Migrated ${classTypesToMigrate.length + payRatesToMigrate.length} records to new ID format`, 'success');
+        }
+
+        if (classTypesToMigrate.length === 0 && payRatesToMigrate.length === 0) {
+          console.log('✅ No migration needed - all IDs are up to date');
+        }
+
+      } catch (error) {
+        console.error('❌ Migration error:', error);
+        showToast('ID migration encountered errors', 'error');
+      }
+    }
+
+    async function fetchAllData() {
+      if (!isFirebaseInitialized) {
+        console.error('Firebase not initialized');
+        return false;
+      }
+
+      state.isLoading = true;
+      updateDBStatus('connecting', 'Loading...');
+
+      try {
+        // Run migration first
+        await migrateIdsIfNeeded();
+
+        // Fetch class types (exclude migrated ones)
+        const classTypesSnapshot = await db.collection('classTypes')
+          .where('migrated', '!=', true)
+          .get();
+        mockData.classTypes = classTypesSnapshot.docs
+          .filter(doc => doc.id.startsWith('CT_')) // Only load new format IDs
+          .map(doc => ({
+            id: doc.id, // Keep as string, no parseInt!
+            ...doc.data()
+          }));
+
+        // Also get any docs without the migrated field (new docs)
+        const newClassTypesSnapshot = await db.collection('classTypes').get();
+        newClassTypesSnapshot.docs.forEach(doc => {
+          if (doc.id.startsWith('CT_') && !mockData.classTypes.find(ct => ct.id === doc.id)) {
+            mockData.classTypes.push({
+              id: doc.id, // Keep as string, no parseInt!
+              ...doc.data()
+            });
+          }
+        });
+
+        // Fetch pay rates (exclude migrated ones)
+        const payRatesSnapshot = await db.collection('payRates').get();
+        const payRates = payRatesSnapshot.docs
+          .filter(doc => doc.id.startsWith('PR_') && !doc.data().migrated)
+          .map(doc => ({
+            id: doc.id, // Keep as string, no parseInt!
+            ...doc.data()
+          }));
+
+        // Separate pay rates by category
+        mockData.groupClasses = payRates.filter(r => r.cat === 'GROUP');
+        mockData.assistantTeaching = payRates.filter(r => r.cat === 'ASSIST');
+        mockData.tutoring = payRates.filter(r => r.cat === 'TUTOR');
+        mockData.adminTasks = payRates.filter(r => r.cat === 'ADMIN');
+
+        console.log('✅ Data loaded:', {
+          classTypes: mockData.classTypes.length,
+          groupClasses: mockData.groupClasses.length,
+          assistantTeaching: mockData.assistantTeaching.length,
+          tutoring: mockData.tutoring.length,
+          adminTasks: mockData.adminTasks.length
+        });
+
+        updateDBStatus('connected', 'Connected');
+        updateDBCounts();
+        state.isLoading = false;
+        return true;
+      } catch (error) {
+        console.error('❌ Error fetching data:', error);
+        showToast('Failed to load data from Firestore', 'error');
+        updateDBStatus('error', 'Load Failed');
+        state.isLoading = false;
+        return false;
+      }
+    }
+
+    async function saveClassTypeToFirestore(classType, oldName = null) {
+      if (!isFirebaseInitialized) {
+        showToast('Database not connected', 'error');
+        return false;
+      }
+
+      try {
+        const now = new Date().toISOString();
+        const slug = generateSlug(classType.name);
+        const newId = `CT_${slug}`;
+        
+        // Check if this is a rename (ID would change)
+        const isRename = classType.id && classType.id !== newId;
+        
+        if (isRename) {
+          // Create new document with new ID
+          const newData = cleanDataForFirestore({
+            ...classType,
+            id: newId,
+            slug: slug,
+            createdAt: classType.createdAt || now,
+            updatedAt: now
+          });
+          
+          await db.collection('classTypes').doc(newId).set(newData);
+          
+          // Update all pay rates that reference the old ID
+          await updatePayRatesClassTypeId(classType.id, newId, classType.name);
+          
+          // Delete old document
+          await db.collection('classTypes').doc(classType.id).delete();
+          
+          // Update local reference
+          classType.id = newId;
+          classType.slug = slug;
+          
+          console.log('✅ Class type renamed and ID updated:', classType.id, '→', newId);
+        } else {
+          // Normal save with existing or new ID
+          const docId = classType.id || newId;
+          const docRef = db.collection('classTypes').doc(docId);
+          const docSnap = await docRef.get();
+          
+          const data = cleanDataForFirestore({
+            ...classType,
+            id: docId,
+            slug: slug,
+            createdAt: docSnap.exists ? docSnap.data().createdAt : now,
+            updatedAt: now
+          });
+
+          await docRef.set(data);
+          console.log('✅ Class type saved:', docId, data);
+          
+          // Update class type name in pay rates if name changed
+          if (oldName && oldName !== classType.name) {
+            await updatePayRatesClassTypeName(docId, classType.name);
+          }
+        }
+
+        showToast('Class type saved to Firestore');
+        return true;
+      } catch (error) {
+        console.error('❌ Error saving class type:', error, classType);
+        showToast('Failed to save class type', 'error');
+        return false;
+      }
+    }
+
+    async function updatePayRatesClassTypeId(oldId, newId, newName) {
+      try {
+        const batch = db.batch();
+        const payRatesSnapshot = await db.collection('payRates')
+          .where('classTypeId', '==', oldId)
+          .get();
+
+        payRatesSnapshot.docs.forEach(doc => {
+          batch.update(doc.ref, { 
+            classTypeId: newId,
+            classType: newName,
+            updatedAt: new Date().toISOString()
+          });
+        });
+
+        await batch.commit();
+        console.log(`✅ Updated ${payRatesSnapshot.size} pay rates with new class type ID: ${oldId} → ${newId}`);
+        
+        // Update local data
+        [...mockData.groupClasses, ...mockData.assistantTeaching].forEach(rate => {
+          if (rate.classTypeId === oldId) {
+            rate.classTypeId = newId;
+            rate.classType = newName;
+          }
+        });
+      } catch (error) {
+        console.error('❌ Error updating pay rates class type ID:', error);
+      }
+    }
+
+    async function updatePayRatesClassTypeName(classTypeId, newName) {
+      try {
+        const batch = db.batch();
+        const payRatesSnapshot = await db.collection('payRates')
+          .where('classTypeId', '==', classTypeId)
+          .get();
+
+        payRatesSnapshot.docs.forEach(doc => {
+          batch.update(doc.ref, { 
+            classType: newName,
+            updatedAt: new Date().toISOString()
+          });
+        });
+
+        await batch.commit();
+        console.log(`✅ Updated ${payRatesSnapshot.size} pay rates with new class type name: ${newName}`);
+        
+        // Update local data
+        [...mockData.groupClasses, ...mockData.assistantTeaching].forEach(rate => {
+          if (rate.classTypeId === classTypeId) {
+            rate.classType = newName;
+          }
+        });
+      } catch (error) {
+        console.error('❌ Error updating pay rates class type name:', error);
+      }
+    }
+
+    async function savePayRateToFirestore(payRate, template) {
+      if (!isFirebaseInitialized) {
+        showToast('Database not connected', 'error');
+        return false;
+      }
+
+      try {
+        const now = new Date().toISOString();
+        const category = getCategoryFromTemplate(template);
+        
+        // Normalize date strings to YYYY-MM-DD format
+        const normalizedPayRate = {
+          ...payRate,
+          effectiveFrom: normalizeDateString(payRate.effectiveFrom),
+          effectiveTo: normalizeDateString(payRate.effectiveTo)
+        };
+        
+        // Generate new ID if this is a new record
+        const docId = normalizedPayRate.id || await generatePayRateId(category, normalizedPayRate.effectiveFrom);
+        const docRef = db.collection('payRates').doc(docId);
+        const docSnap = await docRef.get();
+        
+        const data = cleanDataForFirestore({
+          ...normalizedPayRate,
+          id: docId,
+          cat: category,
+          createdAt: docSnap.exists ? docSnap.data().createdAt : now,
+          updatedAt: now
+        });
+
+        // Validation
+        if (data.effectiveFrom && data.effectiveTo) {
+          const fromDate = new Date(data.effectiveFrom);
+          const toDate = new Date(data.effectiveTo);
+          if (fromDate > toDate) {
+            showToast('Effective From date must be before Effective To date', 'error');
+            return false;
+          }
+        }
+
+        await docRef.set(data);
+        console.log('✅ Pay rate saved:', docId, data);
+        showToast('Pay rate saved to Firestore');
+        return true;
+      } catch (error) {
+        console.error('❌ Error saving pay rate:', error, payRate);
+        showToast('Failed to save pay rate', 'error');
+        return false;
+      }
+    }
+
+    async function deleteFromFirestore(collection, id) {
+      if (!isFirebaseInitialized) {
+        showToast('Database not connected', 'error');
+        return false;
+      }
+
+      try {
+        const docId = String(id);
+        await db.collection(collection).doc(docId).delete();
+        console.log('✅ Deleted from Firestore:', collection, docId);
+        showToast('Item deleted from Firestore');
+        return true;
+      } catch (error) {
+        console.error('❌ Error deleting from Firestore:', error, collection, id);
+        showToast('Failed to delete from Firestore', 'error');
+        return false;
+      }
+    }
+
+    // ============================================
+    // SECTION: Utility Functions
+    // ============================================
+    function formatNumberInput(input) {
+      // Remove all non-digit characters
+      let value = input.value.replace(/\D/g, '');
+      
+      // Format with thousand separators
+      if (value) {
+        input.value = parseInt(value).toLocaleString();
+      } else {
+        input.value = '';
+      }
+      
+      // Update hidden field with raw number
+      const hiddenField = input.nextElementSibling;
+      if (hiddenField && hiddenField.type === 'hidden') {
+        hiddenField.value = value;
+      }
+    }
+
+    function updateManagementFee() {
+      const studentChargeInput = document.getElementById('studentCharge');
+      const teacherReceiveInput = document.getElementById('teacherReceive');
+      const managementFeeInput = document.getElementById('managementFee');
+      
+      if (studentChargeInput && teacherReceiveInput && managementFeeInput) {
+        const studentCharge = parseFloat(studentChargeInput.nextElementSibling.value) || 0;
+        const teacherReceive = parseFloat(teacherReceiveInput.nextElementSibling.value) || 0;
+        const fee = Math.max(0, studentCharge - teacherReceive);
+        
+        managementFeeInput.value = fee.toLocaleString();
+        const hiddenField = managementFeeInput.nextElementSibling;
+        if (hiddenField && hiddenField.type === 'hidden') {
+          hiddenField.value = fee;
+        }
+      }
+    }
+
+    function getDateStatus(from, to) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Compare dates only, not times
+      
+      if (!from) return 'current'; // No dates = assume current
+      
+      const fromDate = new Date(from);
+      fromDate.setHours(0, 0, 0, 0);
+      
+      // If no end date, treat as open-ended
+      if (!to) {
+        if (now < fromDate) return 'future';
+        return 'current'; // Started, no end = still current
+      }
+      
+      const toDate = new Date(to);
+      toDate.setHours(0, 0, 0, 0);
+      
+      if (now < fromDate) return 'future';
+      if (now > toDate) return 'expired';
+      return 'current';
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function filterData(data, hasDateFields = true) {
+      return data.filter(item => {
+        const matchesSearch = state.searchQuery === '' || 
+          Object.values(item).some(val => 
+            String(val).toLowerCase().includes(state.searchQuery.toLowerCase())
+          );
+        const matchesStatus = state.statusFilter === 'all' || item.status === state.statusFilter;
+        
+        let matchesDate = true;
+        // Apply date filter if enabled (don't require BOTH dates anymore - effectiveTo can be missing)
+        if (hasDateFields && state.dateFilter !== 'all' && item.effectiveFrom) {
+          matchesDate = getDateStatus(item.effectiveFrom, item.effectiveTo) === state.dateFilter;
+        }
+        
+        return matchesSearch && matchesStatus && matchesDate;
+      });
+    }
+
+    // ============================================
+    // SECTION: Toast Notifications
+    // ============================================
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+      const icon = type === 'success' 
+        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
+        : type === 'error' 
+        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+
+      toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 toast-animate min-w-[280px]`;
+      toast.innerHTML = `
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">${icon}</svg>
+        <span class="text-sm font-medium">${message}</span>
+        <button class="ml-auto text-white/80 hover:text-white" onclick="this.parentElement.remove()">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // ============================================
+    // SECTION: Status Badge Renderer
+    // ============================================
+    function renderStatusBadge(status) {
+      const isActive = status === 'active';
+      return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+        <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'} mr-1.5"></span>
+        ${isActive ? 'Active' : 'Inactive'}
+      </span>`;
+    }
+
+    // ============================================
+    // SECTION: Action Buttons Renderer
+    // ============================================
+    function renderActions(id, type, includesCopy = false) {
+      return `
+        <div class="flex items-center gap-1">
+          <button onclick="handleEdit('${type}', '${id}')" class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </button>
+          <button onclick="handleToggleStatus('${type}', '${id}')" class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Toggle Status">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+            </svg>
+          </button>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // SECTION: Empty State Renderer
+    // ============================================
+    function renderEmptyState(tabName) {
+      const labels = {
+        'class-types': 'Class Type',
+        'group-classes': 'Group Class Rate',
+        'assistant': 'Assistant Rate',
+        'tutoring': 'Tutoring Rate',
+        'admin': 'Admin Task Rate'
+      };
+      return `
+        <div class="flex flex-col items-center justify-center py-16 px-4">
+          <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-slate-700 mb-2">No ${labels[tabName]}s Found</h3>
+          <p class="text-sm text-slate-500 mb-4 text-center">Get started by adding your first ${labels[tabName].toLowerCase()}</p>
+          <button onclick="handleAdd()" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add ${labels[tabName]}
+          </button>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // SECTION: Table Renderers
+    // ============================================
+    function renderClassTypesTable() {
+      const filtered = filterData(mockData.classTypes, false);
+      if (filtered.length === 0) return renderEmptyState('class-types');
+
+      return `
+        <table class="w-full">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            ${filtered.map(item => `
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-slate-900">${item.name}</td>
+                <td class="px-4 py-3 text-sm text-slate-600 max-w-xs truncate">${item.description || '-'}</td>
+                <td class="px-4 py-3">${renderStatusBadge(item.status)}</td>
+                <td class="px-4 py-3 text-right">${renderActions(item.id, 'classTypes')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderGroupClassesTable() {
+      const filtered = filterData(mockData.groupClasses);
+      if (filtered.length === 0) return renderEmptyState('group-classes');
+
+      return `
+        <table class="w-full">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Class Type</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Class Size</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Teacher Pay/Session</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Effective From</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Effective To</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            ${filtered.map(item => `
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-slate-900">${item.classType}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${item.minSize} - ${item.maxSize}</td>
+                <td class="px-4 py-3 text-sm text-slate-900 font-medium">${item.teacherPay.toLocaleString()} VND</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${formatDate(item.effectiveFrom)}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${formatDate(item.effectiveTo)}</td>
+                <td class="px-4 py-3">${renderStatusBadge(item.status)}</td>
+                <td class="px-4 py-3 text-right">${renderActions(item.id, 'groupClasses')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderAssistantTable() {
+      const filtered = filterData(mockData.assistantTeaching);
+      if (filtered.length === 0) return renderEmptyState('assistant');
+
+      return `
+        <table class="w-full">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Class Type</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Class Size</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Assistant Pay/Session</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Effective From</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Effective To</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            ${filtered.map(item => `
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-slate-900">${item.classType}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${item.minSize} - ${item.maxSize}</td>
+                <td class="px-4 py-3 text-sm text-slate-900 font-medium">${item.assistantPay.toLocaleString()} VND</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${formatDate(item.effectiveFrom)}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${formatDate(item.effectiveTo)}</td>
+                <td class="px-4 py-3">${renderStatusBadge(item.status)}</td>
+                <td class="px-4 py-3 text-right">${renderActions(item.id, 'assistantTeaching')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderTutoringTable() {
+      const filtered = filterData(mockData.tutoring);
+      if (filtered.length === 0) return renderEmptyState('tutoring');
+
+      return `
+        <table class="w-full">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Student Charge/hr</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Teacher Receive/hr</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Management Fee</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Effective From</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Effective To</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            ${filtered.map(item => `
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-slate-900">${item.subject}</td>
+                <td class="px-4 py-3 text-sm text-slate-900 font-medium">${item.studentCharge.toLocaleString()} VND</td>
+                <td class="px-4 py-3 text-sm text-slate-900 font-medium">${item.teacherReceive.toLocaleString()} VND</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${item.managementFee.toLocaleString()} VND</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${formatDate(item.effectiveFrom)}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${formatDate(item.effectiveTo)}</td>
+                <td class="px-4 py-3">${renderStatusBadge(item.status)}</td>
+                <td class="px-4 py-3 text-right">${renderActions(item.id, 'tutoring')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderAdminTable() {
+      const filtered = filterData(mockData.adminTasks);
+      if (filtered.length === 0) return renderEmptyState('admin');
+
+      return `
+        <table class="w-full">
+          <thead class="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Task Name</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Rate Unit</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Pay Amount</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Effective From</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Effective To</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            ${filtered.map(item => `
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 text-sm font-medium text-slate-900">${item.taskName}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${item.role}</td>
+                <td class="px-4 py-3 text-sm text-slate-600 capitalize">${item.rateUnit}</td>
+                <td class="px-4 py-3 text-sm text-slate-900 font-medium">${item.payAmount.toLocaleString()} VND</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${formatDate(item.effectiveFrom)}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${formatDate(item.effectiveTo)}</td>
+                <td class="px-4 py-3">${renderStatusBadge(item.status)}</td>
+                <td class="px-4 py-3 text-right">${renderActions(item.id, 'adminTasks')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // ============================================
+    // SECTION: Modal Templates
+    // ============================================
+    function renderClassTypeModal(item = null) {
+      const isEdit = item !== null;
+      return `
+        <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onclick="closeModal(event)">
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-md animate-slide-in" onclick="event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-slate-200">
+              <h2 class="text-lg font-semibold text-slate-900">${isEdit ? 'Edit' : 'Add'} Class Type</h2>
+            </div>
+            <form id="class-type-form" class="p-6 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Name <span class="text-red-500">*</span></label>
+                <input type="text" name="name" value="${item?.name || ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter class type name">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <textarea name="description" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Enter description">${item?.description || ''}</textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <select name="status" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <option value="active" ${item?.status === 'active' ? 'selected' : ''}>Active</option>
+                  <option value="inactive" ${item?.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                </select>
+              </div>
+            </form>
+            <div class="px-6 py-4 border-t border-slate-200 flex justify-between">
+              <div>
+                ${isEdit ? `<button onclick="confirmDelete('classTypes', '${item.id}')" class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium">Delete</button>` : ''}
+              </div>
+              <div class="flex gap-2">
+                <button onclick="closeAllModals()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</button>
+                <button onclick="saveClassType('${item?.id || ''}')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPayRateModalStep1() {
+      return `
+        <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onclick="closeModal(event)">
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-slide-in max-h-[90%] overflow-auto" onclick="event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-slate-200">
+              <h2 class="text-lg font-semibold text-slate-900">Add Pay Rate</h2>
+              <p class="text-sm text-slate-500 mt-1">Select a template to get started</p>
+            </div>
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button onclick="selectTemplate('group')" class="template-card p-4 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
+                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                </div>
+                <h3 class="font-semibold text-slate-900 mb-1">Group Class</h3>
+                <p class="text-sm text-slate-500">Pay rates for teaching group classes</p>
+              </button>
+              <button onclick="selectTemplate('tutoring')" class="template-card p-4 border-2 border-slate-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all text-left group">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-purple-200 transition-colors">
+                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                  </svg>
+                </div>
+                <h3 class="font-semibold text-slate-900 mb-1">1-1 Tutoring</h3>
+                <p class="text-sm text-slate-500">Private tutoring session rates</p>
+              </button>
+              <button onclick="selectTemplate('assistant')" class="template-card p-4 border-2 border-slate-200 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left group">
+                <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-emerald-200 transition-colors">
+                  <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                  </svg>
+                </div>
+                <h3 class="font-semibold text-slate-900 mb-1">Assistant Teaching</h3>
+                <p class="text-sm text-slate-500">Assistant teacher compensation</p>
+              </button>
+              <button onclick="selectTemplate('admin')" class="template-card p-4 border-2 border-slate-200 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all text-left group">
+                <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mb-3 group-hover:bg-amber-200 transition-colors">
+                  <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                  </svg>
+                </div>
+                <h3 class="font-semibold text-slate-900 mb-1">Admin Task</h3>
+                <p class="text-sm text-slate-500">Administrative and academic tasks</p>
+              </button>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 flex justify-end">
+              <button onclick="closeAllModals()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPayRateModalStep2(template, item = null) {
+      const isEdit = item !== null;
+      const classTypeOptions = mockData.classTypes.filter(ct => ct.status === 'active').map(ct => 
+        `<option value="${ct.id}" ${item?.classTypeId === ct.id ? 'selected' : ''}>${ct.name}</option>`
+      ).join('');
+
+      let formFields = '';
+      let formTitle = '';
+
+      switch(template) {
+        case 'group':
+          formTitle = 'Group Class Rate';
+          formFields = `
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Class Type <span class="text-red-500">*</span></label>
+              <select name="classTypeId" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Select class type</option>
+                ${classTypeOptions}
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Min Class Size</label>
+                <input type="number" name="minSize" value="${item?.minSize || ''}" min="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Max Class Size</label>
+                <input type="number" name="maxSize" value="${item?.maxSize || ''}" min="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Teacher Pay per Session (VND) <span class="text-red-500">*</span></label>
+              <input type="text" name="teacherPay" value="${item?.teacherPay ? item.teacherPay.toLocaleString() : ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="formatNumberInput(this)">
+              <input type="hidden" name="teacherPayHidden" value="${item?.teacherPay || ''}">
+            </div>
+          `;
+          break;
+        case 'assistant':
+          formTitle = 'Assistant Teaching Rate';
+          formFields = `
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Class Type <span class="text-red-500">*</span></label>
+              <select name="classTypeId" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Select class type</option>
+                ${classTypeOptions}
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Min Class Size</label>
+                <input type="number" name="minSize" value="${item?.minSize || ''}" min="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Max Class Size</label>
+                <input type="number" name="maxSize" value="${item?.maxSize || ''}" min="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Assistant Pay per Session (VND) <span class="text-red-500">*</span></label>
+              <input type="text" name="assistantPay" value="${item?.assistantPay ? item.assistantPay.toLocaleString() : ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="formatNumberInput(this)">
+              <input type="hidden" name="assistantPayHidden" value="${item?.assistantPay || ''}">
+            </div>
+          `;
+          break;
+        case 'tutoring':
+          formTitle = '1-1 Tutoring Rate';
+          formFields = `
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Subject <span class="text-red-500">*</span></label>
+              <input type="text" name="subject" value="${item?.subject || ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Advanced Math">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Student Charge/hr (VND) <span class="text-red-500">*</span></label>
+                <input type="text" id="studentCharge" name="studentCharge" value="${item?.studentCharge ? item.studentCharge.toLocaleString() : ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="formatNumberInput(this); updateManagementFee()">
+                <input type="hidden" name="studentChargeHidden" value="${item?.studentCharge || ''}">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Teacher Receive/hr (VND) <span class="text-red-500">*</span></label>
+                <input type="text" id="teacherReceive" name="teacherReceive" value="${item?.teacherReceive ? item.teacherReceive.toLocaleString() : ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="formatNumberInput(this); updateManagementFee()">
+                <input type="hidden" name="teacherReceiveHidden" value="${item?.teacherReceive || ''}">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Management Fee (VND)</label>
+              <input type="text" id="managementFee" name="managementFee" value="${item?.managementFee ? item.managementFee.toLocaleString() : ''}" readonly class="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-600">
+              <input type="hidden" name="managementFeeHidden" value="${item?.managementFee || ''}">
+            </div>
+          `;
+          break;
+        case 'admin':
+          formTitle = 'Admin Task Rate';
+          formFields = `
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Task Name <span class="text-red-500">*</span></label>
+              <input type="text" name="taskName" value="${item?.taskName || ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Curriculum Development">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Role <span class="text-red-500">*</span></label>
+                <input type="text" name="role" value="${item?.role || ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Senior Teacher">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Rate Unit <span class="text-red-500">*</span></label>
+                <select name="rateUnit" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <option value="hour" ${item?.rateUnit === 'hour' ? 'selected' : ''}>Per Hour</option>
+                  <option value="session" ${item?.rateUnit === 'session' ? 'selected' : ''}>Per Session</option>
+                  <option value="meeting" ${item?.rateUnit === 'meeting' ? 'selected' : ''}>Per Meeting</option>
+                  <option value="task" ${item?.rateUnit === 'task' ? 'selected' : ''}>Per Task</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Pay Amount (VND) <span class="text-red-500">*</span></label>
+              <input type="text" name="payAmount" value="${item?.payAmount ? item.payAmount.toLocaleString() : ''}" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="formatNumberInput(this)">
+              <input type="hidden" name="payAmountHidden" value="${item?.payAmount || ''}">
+            </div>
+          `;
+          break;
+      }
+
+      return `
+        <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onclick="closeModal(event)">
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg animate-slide-in max-h-[90%] overflow-auto" onclick="event.stopPropagation()">
+            <div class="px-6 py-4 border-b border-slate-200">
+              <h2 class="text-lg font-semibold text-slate-900">${isEdit ? 'Edit' : 'Add'} ${formTitle}</h2>
+            </div>
+            <form id="pay-rate-form" class="p-6 space-y-4">
+              ${formFields}
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1">Effective From</label>
+                  <input type="date" name="effectiveFrom" value="${item?.effectiveFrom || ''}" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1">Effective To</label>
+                  <input type="date" name="effectiveTo" value="${item?.effectiveTo || ''}" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                <select name="status" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <option value="active" ${item?.status === 'active' ? 'selected' : ''}>Active</option>
+                  <option value="inactive" ${item?.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+                </select>
+              </div>
+            </form>
+            <div class="px-6 py-4 border-t border-slate-200 flex justify-between">
+              <div>
+                ${isEdit ? `<button onclick="confirmDelete('${getDataKeyFromTemplate(template)}', '${item.id}')" class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium">Delete</button>` : ''}
+              </div>
+              <div class="flex gap-2">
+                ${!isEdit ? `<button onclick="goBackToStep1()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Back</button>` : ''}
+                <button onclick="closeAllModals()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</button>
+                <button onclick="savePayRate('${template}', '${item?.id || ''}')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderConfirmDeleteModal(type, id) {
+      const item = getItemById(type, id);
+      const typeName = type === 'classTypes' ? 'Class Type' : 'Pay Rate';
+      return `
+        <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onclick="closeModal(event)">
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm animate-slide-in" onclick="event.stopPropagation()">
+            <div class="p-6 text-center">
+              <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-slate-900 mb-2">Delete ${typeName}?</h3>
+              <p class="text-sm text-slate-500 mb-6">This action cannot be undone. Are you sure you want to delete this ${typeName.toLowerCase()}?</p>
+              <div class="flex gap-3 justify-center">
+                <button onclick="closeAllModals()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</button>
+                <button onclick="executeDelete('${type}', ${id})" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCannotDeleteModal(type) {
+      const typeName = type === 'classTypes' ? 'Class Type' : 'Pay Rate';
+      return `
+        <div class="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onclick="closeModal(event)">
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm animate-slide-in" onclick="event.stopPropagation()">
+            <div class="p-6 text-center">
+              <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-slate-900 mb-2">Cannot Delete</h3>
+              <p class="text-sm text-slate-500 mb-6">This ${typeName.toLowerCase()} is currently in use and cannot be deleted. Please remove all associated records first.</p>
+              <button onclick="closeAllModals()" class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm font-medium">Understood</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // SECTION: Helper Functions
+    // ============================================
+    function getDataKeyFromTemplate(template) {
+      const map = {
+        'group': 'groupClasses',
+        'assistant': 'assistantTeaching',
+        'tutoring': 'tutoring',
+        'admin': 'adminTasks'
+      };
+      return map[template];
+    }
+
+    function getTemplateFromTab(tab) {
+      const map = {
+        'group-classes': 'group',
+        'assistant': 'assistant',
+        'tutoring': 'tutoring',
+        'admin': 'admin'
+      };
+      return map[tab];
+    }
+
+    function getItemById(type, id) {
+      return mockData[type].find(item => item.id === id);
+    }
+
+    function isClassTypeInUse(classTypeId) {
+      // Check if referenced in group classes or assistant rates
+      const inPayRates = mockData.groupClasses.some(item => item.classTypeId === classTypeId) ||
+                        mockData.assistantTeaching.some(item => item.classTypeId === classTypeId);
+      
+      // TODO: Check if class type is referenced in payroll/timesheet records
+      // Once payroll system is built, query those collections here:
+      // const inPayroll = await db.collection('timesheets').where('classTypeId', '==', classTypeId).limit(1).get()
+      // const inPayrollRuns = await db.collection('payrollRuns').where('classTypeId', '==', classTypeId).limit(1).get()
+      
+      return inPayRates;
+    }
+    
+    function isPayRateInUse(payRateId) {
+      // TODO: Check if pay rate is referenced in payroll/timesheet records
+      // Before allowing delete, verify this rate isn't used in:
+      // - Timesheets (teaching sessions that used this rate)
+      // - Payroll runs (calculated pay based on this rate)
+      // Example queries:
+      // const inTimesheets = await db.collection('timesheets').where('payRateId', '==', payRateId).limit(1).get()
+      // const inPayroll = await db.collection('payrollRuns').where('rateIds', 'array-contains', payRateId).limit(1).get()
+      
+      return false; // For now, allow deletion - will need proper checks later
+    }
+
+    // ============================================
+    // SECTION: Event Handlers
+    // ============================================
+    window.handleAdd = function() {
+      state.editingItem = null;
+      state.modalStep = 1;
+      state.selectedTemplate = null;
+      
+      if (state.activeTab === 'class-types') {
+        openModal(renderClassTypeModal());
+      } else {
+        openModal(renderPayRateModalStep1());
+      }
+    }
+
+    window.handleEdit = function(type, id) {
+      const item = getItemById(type, id);
+      state.editingItem = item;
+
+      if (type === 'classTypes') {
+        openModal(renderClassTypeModal(item));
+      } else {
+        let template = '';
+        if (type === 'groupClasses') template = 'group';
+        else if (type === 'assistantTeaching') template = 'assistant';
+        else if (type === 'tutoring') template = 'tutoring';
+        else if (type === 'adminTasks') template = 'admin';
+        
+        state.selectedTemplate = template;
+        openModal(renderPayRateModalStep2(template, item));
+      }
+    }
+
+    window.handleToggleStatus = async function(type, id) {
+      const item = getItemById(type, id);
+      const oldStatus = item.status;
+      item.status = item.status === 'active' ? 'inactive' : 'active';
+      
+      // Save to Firestore
+      if (type === 'classTypes') {
+        await saveClassTypeToFirestore(item);
+      } else {
+        const firestoreType = type === 'groupClasses' ? 'group' :
+                             type === 'assistantTeaching' ? 'assistant' :
+                             type === 'tutoring' ? 'tutoring' : 'admin';
+        await savePayRateToFirestore(item, firestoreType);
+      }
+      
+      renderTable();
+      updateDBCounts();
+    }
+
+    window.selectTemplate = function(template) {
+      state.selectedTemplate = template;
+      state.modalStep = 2;
+      openModal(renderPayRateModalStep2(template));
+    }
+
+    window.goBackToStep1 = function() {
+      state.modalStep = 1;
+      state.selectedTemplate = null;
+      openModal(renderPayRateModalStep1());
+    }
+
+    window.confirmDelete = function(type, id) {
+      if (type === 'classTypes' && isClassTypeInUse(id)) {
+        openModal(renderCannotDeleteModal(type));
+      } else {
+        openModal(renderConfirmDeleteModal(type, id));
+      }
+    }
+
+    window.executeDelete = async function(type, id) {
+      const index = mockData[type].findIndex(item => item.id === id);
+      if (index > -1) {
+        mockData[type].splice(index, 1);
+      }
+      
+      // Delete from Firestore
+      const collection = type === 'classTypes' ? 'classTypes' : 'payRates';
+      await deleteFromFirestore(collection, id);
+      
+      closeAllModals();
+      renderTable();
+      updateDBCounts();
+    }
+
+    window.saveClassType = async function(id) {
+      const form = document.getElementById('class-type-form');
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const formData = new FormData(form);
+      const data = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        status: formData.get('status')
+      };
+
+      let oldName = null;
+      if (id) {
+        // Editing existing item
+        const item = getItemById('classTypes', id);
+        oldName = item ? item.name : null;
+        Object.assign(item || {}, data);
+        data.id = id;
+        data.createdAt = item?.createdAt;
+      } else {
+        // New item - ID will be generated in saveClassTypeToFirestore
+        const newId = generateClassTypeId(data.name);
+        data.id = newId;
+        
+        // Check if item already exists in local array
+        const existingIndex = mockData.classTypes.findIndex(ct => ct.id === newId);
+        if (existingIndex === -1) {
+          mockData.classTypes.push(data);
+        } else {
+          mockData.classTypes[existingIndex] = data;
+        }
+      }
+
+      const success = await saveClassTypeToFirestore(data, oldName);
+      
+      if (success) {
+        closeAllModals();
+        await fetchAllData(); // Reload to ensure consistency
+        renderTable();
+      }
+    }
+
+    window.savePayRate = async function(template, id) {
+      const form = document.getElementById('pay-rate-form');
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const formData = new FormData(form);
+      const dataKey = getDataKeyFromTemplate(template);
+      let data = {
+        effectiveFrom: formData.get('effectiveFrom'),
+        effectiveTo: formData.get('effectiveTo'),
+        status: formData.get('status')
+      };
+
+      switch(template) {
+        case 'group':
+          const classTypeIdGroup = formData.get('classTypeId');
+          const classTypeGroup = mockData.classTypes.find(ct => ct.id === classTypeIdGroup);
+          data = {
+            ...data,
+            classTypeId: classTypeIdGroup,
+            classType: classTypeGroup?.name || '',
+            minSize: parseInt(formData.get('minSize')) || 0,
+            maxSize: parseInt(formData.get('maxSize')) || 0,
+            teacherPay: parseFloat(formData.get('teacherPayHidden'))
+          };
+          break;
+        case 'assistant':
+          const classTypeIdAssist = formData.get('classTypeId');
+          const classTypeAssist = mockData.classTypes.find(ct => ct.id === classTypeIdAssist);
+          data = {
+            ...data,
+            classTypeId: classTypeIdAssist,
+            classType: classTypeAssist?.name || '',
+            minSize: parseInt(formData.get('minSize')) || 0,
+            maxSize: parseInt(formData.get('maxSize')) || 0,
+            assistantPay: parseFloat(formData.get('assistantPayHidden'))
+          };
+          break;
+        case 'tutoring':
+          const studentCharge = parseFloat(formData.get('studentChargeHidden')) || 0;
+          const teacherReceive = parseFloat(formData.get('teacherReceiveHidden')) || 0;
+          data = {
+            ...data,
+            subject: formData.get('subject'),
+            studentCharge: studentCharge,
+            teacherReceive: teacherReceive,
+            managementFee: Math.max(0, studentCharge - teacherReceive)
+          };
+          break;
+        case 'admin':
+          data = {
+            ...data,
+            taskName: formData.get('taskName'),
+            role: formData.get('role'),
+            rateUnit: formData.get('rateUnit'),
+            payAmount: parseFloat(formData.get('payAmountHidden'))
+          };
+          break;
+      }
+
+      if (id) {
+        // Editing existing item
+        const item = getItemById(dataKey, id);
+        Object.assign(item, data);
+        data.id = id;
+        data.createdAt = item?.createdAt;
+      } else {
+        // New item - ID will be generated in savePayRateToFirestore
+        const existingIndex = mockData[dataKey].findIndex(r => r.id === id);
+        if (existingIndex === -1) {
+          mockData[dataKey].push(data);
+        } else {
+          mockData[dataKey][existingIndex] = data;
+        }
+      }
+
+      const success = await savePayRateToFirestore(data, template);
+      
+      if (success) {
+        closeAllModals();
+        await fetchAllData(); // Reload to ensure consistency
+        renderTable();
+      }
+    }
+
+    // ============================================
+    // SECTION: Modal Management
+    // ============================================
+    function openModal(content) {
+      document.getElementById('modals-container').innerHTML = content;
+    }
+
+    window.closeModal = function(event) {
+      if (event.target.classList.contains('modal-overlay')) {
+        closeAllModals();
+      }
+    }
+
+    window.closeAllModals = function() {
+      document.getElementById('modals-container').innerHTML = '';
+      state.editingItem = null;
+      state.modalStep = 1;
+      state.selectedTemplate = null;
+    }
+
+    // ============================================
+    // SECTION: Render Functions
+    // ============================================
+    function renderTable() {
+      const container = document.getElementById('table-container');
+      
+      switch(state.activeTab) {
+        case 'class-types':
+          container.innerHTML = renderClassTypesTable();
+          break;
+        case 'group-classes':
+          container.innerHTML = renderGroupClassesTable();
+          break;
+        case 'assistant':
+          container.innerHTML = renderAssistantTable();
+          break;
+        case 'tutoring':
+          container.innerHTML = renderTutoringTable();
+          break;
+        case 'admin':
+          container.innerHTML = renderAdminTable();
+          break;
+      }
+    }
+
+    function updateAddButtonText() {
+      const btn = document.getElementById('add-btn-text');
+      const labels = {
+        'class-types': 'Add Class Type',
+        'group-classes': 'Add Pay Rate',
+        'assistant': 'Add Pay Rate',
+        'tutoring': 'Add Pay Rate',
+        'admin': 'Add Pay Rate'
+      };
+      btn.textContent = labels[state.activeTab];
+    }
+
+    // ============================================
+    // SECTION: Event Listeners Setup
+    // ============================================
+    function setupEventListeners() {
+      // Tab switching
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('tab-active');
+            b.classList.add('text-slate-500');
+          });
+          btn.classList.add('tab-active');
+          btn.classList.remove('text-slate-500');
+          state.activeTab = btn.dataset.tab;
+          updateAddButtonText();
+          renderTable();
+        });
+      });
+
+      // Search
+      document.getElementById('search-input').addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        renderTable();
+      });
+
+      // Status filter
+      document.getElementById('status-filter').addEventListener('change', (e) => {
+        state.statusFilter = e.target.value;
+        renderTable();
+      });
+
+      // Date filter
+      document.getElementById('date-filter').addEventListener('change', (e) => {
+        state.dateFilter = e.target.value;
+        renderTable();
+      });
+
+      // Add button
+      document.getElementById('add-btn').addEventListener('click', handleAdd);
+    }
+
+    // ============================================
+    // SECTION: SDK Integration
+    // ============================================
+    async function onConfigChange(newConfig) {
+      config = { ...config, ...newConfig };
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.primary_color || defaultConfig.primary_color,
+            set: (value) => {
+              config.primary_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ primary_color: value });
+            }
+          },
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => {
+              config.background_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ background_color: value });
+            }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => {
+              config.text_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ text_color: value });
+            }
+          },
+          {
+            get: () => config.surface_color || defaultConfig.surface_color,
+            set: (value) => {
+              config.surface_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ surface_color: value });
+            }
+          },
+          {
+            get: () => config.accent_color || defaultConfig.accent_color,
+            set: (value) => {
+              config.accent_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ accent_color: value });
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map();
+    }
+
+    // ============================================
+    // SECTION: Initialization
+    // ============================================
+    async function init() {
+      setupEventListeners();
+      updateAddButtonText();
+      
+      // Initialize Firebase
+      const firebaseReady = initializeFirebase();
+      
+      if (firebaseReady) {
+        // Fetch data from Firestore
+        const dataLoaded = await fetchAllData();
+        
+        if (dataLoaded) {
+          renderTable();
+        } else {
+          // Show empty state if load fails
+          renderTable();
+        }
+      } else {
+        // Show empty state if Firebase fails
+        renderTable();
+      }
+
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities,
+          mapToEditPanelValues
+        });
+      }
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9beb50d427b5a880',t:'MTc2ODU0MjQyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

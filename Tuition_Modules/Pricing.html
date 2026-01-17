@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing &amp; Course Setup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script><!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="w-full h-full bg-slate-50 overflow-auto"><!-- Header -->
+   <header class="w-full bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+     <h1 id="module-title" class="text-3xl font-bold text-slate-800">Pricing &amp; Course Setup</h1>
+     <p class="text-slate-600 mt-1 text-base">Define pricing logic and sellable tuition products</p>
+    </div>
+   </header><!-- Main Content -->
+   <main class="w-full max-w-7xl mx-auto px-6 py-8"><!-- Tab Navigation -->
+    <div class="bg-white rounded-lg shadow-sm border border-slate-200 mb-6">
+     <nav class="flex border-b border-slate-200"><button id="tab-course-types" class="tab-btn px-6 py-3 text-base font-medium border-b-2 border-blue-600 text-blue-600" onclick="switchTab('course-types')"> <span id="course-types-label">Course Types</span> </button> <button id="tab-courses" class="tab-btn px-6 py-3 text-base font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-800" onclick="switchTab('courses')"> <span id="courses-label">Courses</span> </button> <button id="tab-tuition-plans" class="tab-btn px-6 py-3 text-base font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-800" onclick="switchTab('tuition-plans')"> <span id="tuition-plans-label">Tuition Plans</span> </button>
+     </nav>
+    </div><!-- Course Types Section -->
+    <div id="section-course-types" class="section-content">
+     <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+      <div class="flex justify-between items-center mb-6">
+       <div>
+        <h2 class="text-2xl font-semibold text-slate-800">Course Types</h2>
+        <p class="text-slate-600 mt-1 text-base">Define pricing rules for different course categories</p>
+       </div><button onclick="openCourseTypeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-base transition-colors"> + Add Course Type </button>
+      </div>
+      <div id="course-types-list" class="space-y-3"><!-- Course types will be rendered here -->
+      </div>
+      <div id="course-types-empty" class="text-center py-12 hidden">
+       <div class="text-slate-400 text-5xl mb-4">
+        📚
+       </div>
+       <p class="text-slate-500 text-lg">No course types yet</p>
+       <p class="text-slate-400 text-base mt-2">Create your first course type to define pricing rules</p>
+      </div>
+     </div>
+    </div><!-- Courses Section -->
+    <div id="section-courses" class="section-content hidden">
+     <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+      <div class="flex justify-between items-center mb-6">
+       <div>
+        <h2 class="text-2xl font-semibold text-slate-800">Courses</h2>
+        <p class="text-slate-600 mt-1 text-base">Loaded from Firestore database</p>
+       </div><button onclick="loadCoursesFromFirestore()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-base transition-colors"> 🔄 Refresh from Firestore </button>
+      </div>
+      <div id="courses-list" class="space-y-3"><!-- Courses will be rendered here -->
+      </div>
+      <div id="courses-empty" class="text-center py-12 hidden">
+       <div class="text-slate-400 text-5xl mb-4">
+        📖
+       </div>
+       <p class="text-slate-500 text-lg">No courses found</p>
+       <p class="text-slate-400 text-base mt-2">Courses are loaded from Firestore</p>
+      </div>
+      <div id="courses-loading" class="text-center py-12 hidden">
+       <div class="text-blue-600 text-5xl mb-4">
+        ⏳
+       </div>
+       <p class="text-slate-500 text-lg">Loading courses from Firestore...</p>
+      </div>
+     </div>
+    </div><!-- Tuition Plans Section -->
+    <div id="section-tuition-plans" class="section-content hidden">
+     <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+      <div class="flex justify-between items-center mb-6">
+       <div>
+        <h2 class="text-2xl font-semibold text-slate-800">Tuition Plans</h2>
+        <p class="text-slate-600 mt-1 text-base">Create sellable tuition packages</p>
+       </div><button onclick="openTuitionPlanModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-base transition-colors"> + Add Tuition Plan </button>
+      </div>
+      <div id="tuition-plans-list" class="space-y-3"><!-- Tuition plans will be rendered here -->
+      </div>
+      <div id="tuition-plans-empty" class="text-center py-12 hidden">
+       <div class="text-slate-400 text-5xl mb-4">
+        💰
+       </div>
+       <p class="text-slate-500 text-lg">No tuition plans yet</p>
+       <p class="text-slate-400 text-base mt-2">Create packages combining multiple course types</p>
+      </div>
+     </div>
+    </div>
+   </main><!-- Course Type Modal -->
+   <div id="course-type-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeModalOnBackdrop(event, 'course-type-modal')">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" onclick="event.stopPropagation()">
+     <div class="p-6">
+      <h3 id="course-type-modal-title" class="text-2xl font-semibold text-slate-800 mb-4">Add Course Type</h3>
+      <form id="course-type-form" onsubmit="saveCourseType(event)">
+       <div class="space-y-4">
+        <div><label for="ct-name" class="block text-base font-medium text-slate-700 mb-2">Name *</label> <input type="text" id="ct-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base" placeholder="e.g., IELTS">
+        </div>
+        <div><label for="ct-pricing-method" class="block text-base font-medium text-slate-700 mb-2">Pricing Method *</label> <select id="ct-pricing-method" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"> <option value="">Select method...</option> <option value="per_session">Per Session</option> <option value="per_month">Per Month</option> </select>
+        </div>
+        <div><label for="ct-description" class="block text-base font-medium text-slate-700 mb-2">Description</label> <textarea id="ct-description" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base" placeholder="Optional description"></textarea>
+        </div>
+       </div>
+       <div class="flex gap-3 mt-6"><button type="button" onclick="closeCourseTypeModal()" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium text-base transition-colors"> Cancel </button> <button type="submit" id="ct-submit-btn" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-base transition-colors"> Save </button>
+       </div>
+      </form>
+     </div>
+    </div>
+   </div><!-- Tuition Plan Modal -->
+   <div id="tuition-plan-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeModalOnBackdrop(event, 'tuition-plan-modal')">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+     <div class="p-6">
+      <h3 id="tuition-plan-modal-title" class="text-2xl font-semibold text-slate-800 mb-4">Add Tuition Plan</h3>
+      <form id="tuition-plan-form" onsubmit="saveTuitionPlan(event)">
+       <div class="space-y-4">
+        <div><label for="tp-name" class="block text-base font-medium text-slate-700 mb-2">Plan Name *</label> <input type="text" id="tp-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base" placeholder="e.g., IELTS + THPT">
+        </div>
+        <div><label class="block text-base font-medium text-slate-700 mb-2">Plan Items</label>
+         <p class="text-sm text-slate-600 mb-3">Step: Select Course Type → enter number of sessions/months → enter unit price.</p>
+         <div id="plan-items-container" class="space-y-3"><!-- Plan items will be added here -->
+         </div><button type="button" onclick="addPlanItem()" class="mt-3 text-blue-600 hover:text-blue-700 font-medium text-base"> + Add Course Type </button>
+        </div>
+        <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
+         <div class="flex justify-between items-center"><span class="text-lg font-medium text-slate-700">Total Price:</span> <span id="tp-total-display" class="text-2xl font-bold text-blue-600">₫0</span>
+         </div>
+        </div>
+        <div><label for="tp-status" class="block text-base font-medium text-slate-700 mb-2">Status *</label> <select id="tp-status" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"> <option value="active">Active</option> <option value="inactive">Inactive</option> </select>
+        </div>
+       </div>
+       <div class="flex gap-3 mt-6"><button type="button" onclick="closeTuitionPlanModal()" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium text-base transition-colors"> Cancel </button> <button type="submit" id="tp-submit-btn" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-base transition-colors"> Save </button>
+       </div>
+      </form>
+     </div>
+    </div>
+   </div><!-- Delete Confirmation Modal -->
+   <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeModalOnBackdrop(event, 'delete-modal')">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" onclick="event.stopPropagation()">
+     <div class="p-6">
+      <h3 class="text-2xl font-semibold text-slate-800 mb-2">Confirm Delete</h3>
+      <p id="delete-message" class="text-slate-600 text-base mb-6">Are you sure you want to delete this item?</p>
+      <div class="flex gap-3"><button type="button" onclick="closeDeleteModal()" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium text-base transition-colors"> Cancel </button> <button type="button" onclick="confirmDelete()" id="delete-confirm-btn" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-base transition-colors"> Delete </button>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    // Initialize Firebase
+    let db;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+    } catch (error) {
+      console.error('Firebase initialization error:', error);
+    }
+
+    // State management
+    let allData = [];
+    let currentTab = 'course-types';
+    let editingItem = null;
+    let deleteTarget = null;
+    let planItemCounter = 0;
+
+    // Default config
+    const defaultConfig = {
+      module_title: 'Pricing & Course Setup',
+      course_types_label: 'Course Types',
+      courses_label: 'Courses',
+      tuition_plans_label: 'Tuition Plans',
+      background_color: '#f8fafc',
+      surface_color: '#ffffff',
+      text_color: '#1e293b',
+      primary_action_color: '#2563eb',
+      secondary_action_color: '#64748b'
+    };
+
+    // Load course types from Firestore
+    async function loadCourseTypesFromFirestore() {
+      if (!db) {
+        showError('Firestore is not initialized');
+        return;
+      }
+
+      try {
+        const snapshot = await db.collection('course_types').where('status', '==', 'active').get();
+        
+        // Remove existing course types from allData
+        allData = allData.filter(item => item.collection !== 'course_types');
+        
+        // Add Firestore course types to allData
+        snapshot.forEach(doc => {
+          allData.push({
+            collection: 'course_types',
+            __backendId: doc.id,
+            ...doc.data()
+          });
+        });
+
+        renderCurrentTab();
+        updateCourseTypeDropdown();
+
+      } catch (error) {
+        console.error('Firestore load error:', error);
+        showError('Failed to load course types from Firestore');
+      }
+    }
+
+    // Load courses from Firestore
+    async function loadCoursesFromFirestore() {
+      if (!db) {
+        showError('Firestore is not initialized');
+        return;
+      }
+
+      const loadingEl = document.getElementById('courses-loading');
+      const listEl = document.getElementById('courses-list');
+      const emptyEl = document.getElementById('courses-empty');
+
+      try {
+        // Show loading state
+        if (loadingEl) loadingEl.classList.remove('hidden');
+        if (listEl) listEl.classList.add('hidden');
+        if (emptyEl) emptyEl.classList.add('hidden');
+
+        // Fetch courses from Firestore
+        const snapshot = await db.collection('courses').get();
+        
+        // Remove existing courses from allData
+        allData = allData.filter(item => item.collection !== 'courses');
+        
+        // Add Firestore courses to allData
+        snapshot.forEach(doc => {
+          allData.push({
+            collection: 'courses',
+            __backendId: doc.id,
+            ...doc.data()
+          });
+        });
+
+        // Hide loading state
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (listEl) listEl.classList.remove('hidden');
+
+        // Render and update dropdowns
+        renderCurrentTab();
+        updateCourseTypeDropdown();
+
+      } catch (error) {
+        console.error('Firestore load error:', error);
+        showError('Failed to load courses from Firestore');
+        
+        // Hide loading, show empty or list
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (listEl) listEl.classList.remove('hidden');
+      }
+    }
+
+    // Load tuition plans from Firestore
+    async function loadTuitionPlansFromFirestore() {
+      if (!db) {
+        showError('Firestore is not initialized');
+        return;
+      }
+
+      try {
+        const snapshot = await db.collection('tuition_plans').get();
+        
+        // Remove existing tuition plans from allData
+        allData = allData.filter(item => item.collection !== 'tuition_plans');
+        
+        // Add Firestore tuition plans to allData
+        snapshot.forEach(doc => {
+          allData.push({
+            collection: 'tuition_plans',
+            __backendId: doc.id,
+            ...doc.data()
+          });
+        });
+
+        renderCurrentTab();
+        updateCourseTypeDropdown();
+
+      } catch (error) {
+        console.error('Firestore load error:', error);
+        showError('Failed to load tuition plans from Firestore');
+      }
+    }
+
+    // Assign course type to a course and save to Firestore
+    async function assignCourseType(courseId, courseTypeId) {
+      if (!db) {
+        showError('Firestore is not initialized');
+        return;
+      }
+
+      try {
+        // Update Firestore
+        await db.collection('courses').doc(courseId).update({
+          courseTypeId: courseTypeId || null
+        });
+
+        // Update local data
+        const course = allData.find(c => c.__backendId === courseId && c.collection === 'courses');
+        if (course) {
+          course.courseTypeId = courseTypeId || null;
+        }
+
+        // Show success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg shadow-lg z-50';
+        successDiv.textContent = 'Course type assigned successfully!';
+        document.body.appendChild(successDiv);
+        setTimeout(() => successDiv.remove(), 3000);
+
+        // Re-render to show updated assignment
+        renderCourses();
+
+      } catch (error) {
+        console.error('Firestore update error:', error);
+        showError('Failed to assign course type. Please try again.');
+        
+        // Reload from Firestore to reset the UI
+        await loadCoursesFromFirestore();
+      }
+    }
+
+    // Initialize app
+    async function initApp() {
+      await loadCourseTypesFromFirestore();
+      await loadCoursesFromFirestore();
+      await loadTuitionPlansFromFirestore();
+    }
+
+    // Element SDK integration
+    async function onConfigChange(config) {
+      const moduleTitle = config.module_title || defaultConfig.module_title;
+      const courseTypesLabel = config.course_types_label || defaultConfig.course_types_label;
+      const coursesLabel = config.courses_label || defaultConfig.courses_label;
+      const tuitionPlansLabel = config.tuition_plans_label || defaultConfig.tuition_plans_label;
+      const backgroundColor = config.background_color || defaultConfig.background_color;
+      const surfaceColor = config.surface_color || defaultConfig.surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const primaryColor = config.primary_action_color || defaultConfig.primary_action_color;
+      const secondaryColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+
+      document.getElementById('module-title').textContent = moduleTitle;
+      document.getElementById('course-types-label').textContent = courseTypesLabel;
+      document.getElementById('courses-label').textContent = coursesLabel;
+      document.getElementById('tuition-plans-label').textContent = tuitionPlansLabel;
+
+      document.getElementById('app').style.backgroundColor = backgroundColor;
+      
+      const surfaces = document.querySelectorAll('.bg-white');
+      surfaces.forEach(el => el.style.backgroundColor = surfaceColor);
+      
+      const textElements = document.querySelectorAll('.text-slate-800, .text-slate-700, .text-slate-600');
+      textElements.forEach(el => el.style.color = textColor);
+      
+      const primaryButtons = document.querySelectorAll('.bg-blue-600');
+      primaryButtons.forEach(el => {
+        el.style.backgroundColor = primaryColor;
+        el.addEventListener('mouseenter', () => el.style.backgroundColor = adjustColor(primaryColor, -10));
+        el.addEventListener('mouseleave', () => el.style.backgroundColor = primaryColor);
+      });
+    }
+
+    function adjustColor(color, amount) {
+      const num = parseInt(color.replace('#', ''), 16);
+      const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+      const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+      const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+      return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            {
+              get: () => config.background_color || defaultConfig.background_color,
+              set: (value) => {
+                config.background_color = value;
+                window.elementSdk.setConfig({ background_color: value });
+              }
+            },
+            {
+              get: () => config.surface_color || defaultConfig.surface_color,
+              set: (value) => {
+                config.surface_color = value;
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            },
+            {
+              get: () => config.text_color || defaultConfig.text_color,
+              set: (value) => {
+                config.text_color = value;
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            },
+            {
+              get: () => config.primary_action_color || defaultConfig.primary_action_color,
+              set: (value) => {
+                config.primary_action_color = value;
+                window.elementSdk.setConfig({ primary_action_color: value });
+              }
+            }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['module_title', config.module_title || defaultConfig.module_title],
+          ['course_types_label', config.course_types_label || defaultConfig.course_types_label],
+          ['courses_label', config.courses_label || defaultConfig.courses_label],
+          ['tuition_plans_label', config.tuition_plans_label || defaultConfig.tuition_plans_label]
+        ])
+      });
+    }
+
+    // Tab switching
+    function switchTab(tabName) {
+      currentTab = tabName;
+      
+      // Update tab buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'text-blue-600');
+        btn.classList.add('border-transparent', 'text-slate-600');
+      });
+      document.getElementById(`tab-${tabName}`).classList.remove('border-transparent', 'text-slate-600');
+      document.getElementById(`tab-${tabName}`).classList.add('border-blue-600', 'text-blue-600');
+      
+      // Show/hide sections
+      document.querySelectorAll('.section-content').forEach(section => {
+        section.classList.add('hidden');
+      });
+      document.getElementById(`section-${tabName}`).classList.remove('hidden');
+      
+      // Refresh data from Firestore when switching tabs
+      if (tabName === 'course-types') {
+        loadCourseTypesFromFirestore();
+      } else if (tabName === 'courses') {
+        loadCoursesFromFirestore();
+      } else if (tabName === 'tuition-plans') {
+        loadTuitionPlansFromFirestore();
+      }
+    }
+
+    // Render functions
+    function renderCurrentTab() {
+      switch(currentTab) {
+        case 'course-types':
+          renderCourseTypes();
+          break;
+        case 'courses':
+          renderCourses();
+          break;
+        case 'tuition-plans':
+          renderTuitionPlans();
+          break;
+      }
+    }
+
+    function renderCourseTypes() {
+      const courseTypes = allData.filter(item => item.collection === 'course_types');
+      const container = document.getElementById('course-types-list');
+      const emptyState = document.getElementById('course-types-empty');
+      
+      if (courseTypes.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      container.innerHTML = courseTypes.map(ct => `
+        <div class="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-slate-800">${escapeHtml(ct.name)}</h3>
+              <div class="mt-2 flex items-center gap-3">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${ct.pricingMethod === 'per_session' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
+                  ${ct.pricingMethod === 'per_session' ? '📊 Per Session' : '📅 Per Month'}
+                </span>
+              </div>
+              ${ct.description ? `<p class="text-slate-600 mt-2 text-base">${escapeHtml(ct.description)}</p>` : ''}
+            </div>
+            <div class="flex gap-2 ml-4">
+              <button onclick="editCourseType('${ct.__backendId}')" class="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded text-base font-medium transition-colors">
+                Edit
+              </button>
+              <button onclick="deleteCourseType('${ct.__backendId}')" class="px-3 py-1 text-red-600 hover:bg-red-50 rounded text-base font-medium transition-colors">
+                Archive
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderCourses() {
+      const courses = allData.filter(item => item.collection === 'courses');
+      const courseTypes = allData.filter(item => item.collection === 'course_types');
+      const container = document.getElementById('courses-list');
+      const emptyState = document.getElementById('courses-empty');
+      
+      if (courses.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      container.innerHTML = courses.map(course => {
+        const courseType = courseTypes.find(ct => ct.__backendId === course.courseTypeId);
+        return `
+          <div class="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start">
+              <div class="flex-1">
+                <div class="flex items-center gap-3">
+                  <h3 class="text-lg font-semibold text-slate-800">${escapeHtml(course.name || 'Unnamed Course')}</h3>
+                  ${course.status ? `<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${course.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}">
+                    ${course.status === 'active' ? '✓ Active' : '○ Inactive'}
+                  </span>` : ''}
+                </div>
+                <div class="mt-3 flex items-center gap-3">
+                  <label class="text-slate-600 text-base">Course Type:</label>
+                  <select 
+                    class="px-3 py-1 border border-slate-300 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onchange="assignCourseType('${course.__backendId}', this.value)"
+                  >
+                    <option value="">Not assigned</option>
+                    ${courseTypes.map(ct => `
+                      <option value="${ct.__backendId}" ${course.courseTypeId === ct.__backendId ? 'selected' : ''}>
+                        ${escapeHtml(ct.name)}
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+                <div class="mt-1 text-xs text-slate-400">
+                  From Firestore (ID: ${escapeHtml(course.__backendId)})
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTuitionPlans() {
+      const plans = allData.filter(item => item.collection === 'tuition_plans');
+      const courseTypes = allData.filter(item => item.collection === 'course_types');
+      const container = document.getElementById('tuition-plans-list');
+      const emptyState = document.getElementById('tuition-plans-empty');
+      
+      if (plans.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      container.innerHTML = plans.map(plan => {
+        const items = plan.items || [];
+        return `
+          <div class="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start mb-3">
+              <div class="flex-1">
+                <div class="flex items-center gap-3">
+                  <h3 class="text-lg font-semibold text-slate-800">${escapeHtml(plan.name)}</h3>
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${plan.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}">
+                    ${plan.status === 'active' ? '✓ Active' : '○ Inactive'}
+                  </span>
+                </div>
+              </div>
+              <div class="flex gap-2 ml-4">
+                <button onclick="editTuitionPlan('${plan.__backendId}')" class="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded text-base font-medium transition-colors">
+                  Edit
+                </button>
+                <button onclick="deleteTuitionPlan('${plan.__backendId}')" class="px-3 py-1 text-red-600 hover:bg-red-50 rounded text-base font-medium transition-colors">
+                  Delete
+                </button>
+              </div>
+            </div>
+            <div class="space-y-2 bg-slate-50 rounded p-3">
+              ${items.map(item => {
+                const ct = courseTypes.find(c => c.__backendId === item.courseTypeId);
+                const ctName = ct ? escapeHtml(ct.name) : 'Unknown';
+                let label = '';
+                let subtotal = 0;
+                
+                if (item.sessionCount !== undefined) {
+                  label = `${ctName}: ${item.sessionCount} sessions × ₫${formatNumber(item.pricePerSession)}`;
+                  subtotal = item.sessionCount * item.pricePerSession;
+                } else if (item.monthCount !== undefined) {
+                  label = `${ctName}: ${item.monthCount} months × ₫${formatNumber(item.pricePerMonth)}`;
+                  subtotal = item.monthCount * item.pricePerMonth;
+                }
+                
+                return `
+                  <div class="flex justify-between text-base">
+                    <span class="text-slate-700">${label}</span>
+                    <span class="text-slate-800 font-medium">₫${formatNumber(subtotal)}</span>
+                  </div>
+                `;
+              }).join('')}
+              <div class="border-t border-slate-300 mt-2 pt-2 flex justify-between">
+                <span class="font-semibold text-slate-800 text-lg">Total:</span>
+                <span class="font-bold text-blue-600 text-lg">₫${formatNumber(plan.totalPrice)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Course Type operations
+    function openCourseTypeModal(id = null) {
+      editingItem = id ? allData.find(item => item.__backendId === id) : null;
+      
+      document.getElementById('course-type-modal-title').textContent = editingItem ? 'Edit Course Type' : 'Add Course Type';
+      document.getElementById('ct-name').value = editingItem ? editingItem.name : '';
+      document.getElementById('ct-pricing-method').value = editingItem ? editingItem.pricingMethod : '';
+      document.getElementById('ct-description').value = editingItem ? (editingItem.description || '') : '';
+      
+      document.getElementById('course-type-modal').classList.remove('hidden');
+      document.getElementById('course-type-modal').classList.add('flex');
+    }
+
+    function closeCourseTypeModal() {
+      document.getElementById('course-type-modal').classList.add('hidden');
+      document.getElementById('course-type-modal').classList.remove('flex');
+      document.getElementById('course-type-form').reset();
+      editingItem = null;
+    }
+
+    async function saveCourseType(event) {
+      event.preventDefault();
+      
+      if (!db) {
+        showError('Firestore is not initialized');
+        return;
+      }
+      
+      const submitBtn = document.getElementById('ct-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+      
+      const data = {
+        name: document.getElementById('ct-name').value.trim(),
+        pricingMethod: document.getElementById('ct-pricing-method').value,
+        description: document.getElementById('ct-description').value.trim(),
+        status: 'active',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      try {
+        if (editingItem) {
+          await db.collection('course_types').doc(editingItem.__backendId).update(data);
+        } else {
+          await db.collection('course_types').add({
+            ...data,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        await loadCourseTypesFromFirestore();
+        closeCourseTypeModal();
+        
+      } catch (error) {
+        console.error('Firestore save error:', error);
+        showError('Failed to save course type. Please try again.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save';
+      }
+    }
+
+    function editCourseType(id) {
+      openCourseTypeModal(id);
+    }
+
+    function deleteCourseType(id) {
+      const item = allData.find(i => i.__backendId === id);
+      deleteTarget = item;
+      document.getElementById('delete-message').textContent = `Are you sure you want to archive "${item.name}"? This action cannot be undone.`;
+      document.getElementById('delete-modal').classList.remove('hidden');
+      document.getElementById('delete-modal').classList.add('flex');
+    }
+
+    function updateCourseTypeDropdown() {
+      const courseTypes = allData.filter(item => item.collection === 'course_types');
+      
+      // Update tuition plan dropdowns if they exist
+      document.querySelectorAll('.plan-item-course-type').forEach(dropdown => {
+        const val = dropdown.value;
+        dropdown.innerHTML = '<option value="">Select course type...</option>' + 
+          courseTypes.map(ct => `<option value="${ct.__backendId}">${escapeHtml(ct.name)}</option>`).join('');
+        if (val) dropdown.value = val;
+      });
+    }
+
+    // Tuition Plan operations
+    function openTuitionPlanModal(id = null) {
+      editingItem = id ? allData.find(item => item.__backendId === id) : null;
+      planItemCounter = 0;
+      
+      document.getElementById('tuition-plan-modal-title').textContent = editingItem ? 'Edit Tuition Plan' : 'Add Tuition Plan';
+      document.getElementById('tp-name').value = editingItem ? editingItem.name : '';
+      document.getElementById('tp-status').value = editingItem ? editingItem.status : 'active';
+      
+      const container = document.getElementById('plan-items-container');
+      container.innerHTML = '';
+      
+      if (editingItem) {
+        const items = editingItem.items || [];
+        items.forEach(item => addPlanItem(item));
+      } else {
+        addPlanItem();
+      }
+      
+      document.getElementById('tuition-plan-modal').classList.remove('hidden');
+      document.getElementById('tuition-plan-modal').classList.add('flex');
+      updateCourseTypeDropdown();
+    }
+
+    function closeTuitionPlanModal() {
+      document.getElementById('tuition-plan-modal').classList.add('hidden');
+      document.getElementById('tuition-plan-modal').classList.remove('flex');
+      document.getElementById('tuition-plan-form').reset();
+      editingItem = null;
+    }
+
+    function addPlanItem(data = null) {
+      const id = planItemCounter++;
+      const courseTypes = allData.filter(item => item.collection === 'course_types');
+      const container = document.getElementById('plan-items-container');
+      
+      const itemHtml = `
+        <div class="border border-slate-200 rounded-lg p-4 bg-slate-50" data-item-id="${id}">
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Course Type *</label>
+              <select class="plan-item-course-type w-full px-3 py-2 border border-slate-300 rounded-lg text-base" required onchange="handleCourseTypeChange(${id})">
+                <option value="">Select course type...</option>
+                ${courseTypes.map(ct => `<option value="${ct.__backendId}" data-pricing="${ct.pricingMethod}" ${data && data.courseTypeId === ct.__backendId ? 'selected' : ''}>${escapeHtml(ct.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="plan-item-fields-container">
+              <div class="plan-item-placeholder bg-blue-50 border border-blue-200 rounded p-3 text-center text-blue-700 text-sm">
+                Select a course type to enter price.
+              </div>
+              <div class="plan-item-session-fields" style="display: none;">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Number of Sessions *</label>
+                    <input type="number" class="plan-item-session-count w-full px-3 py-2 border border-slate-300 rounded-lg text-base" min="1" value="${data && data.sessionCount ? data.sessionCount : 1}" onchange="updateTotal()" disabled>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Price per Session (₫) *</label>
+                    <input type="number" class="plan-item-session-price w-full px-3 py-2 border border-slate-300 rounded-lg text-base" min="0" value="${data && data.pricePerSession ? data.pricePerSession : 0}" onchange="updateTotal()" disabled>
+                  </div>
+                </div>
+              </div>
+              <div class="plan-item-month-fields" style="display: none;">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Number of Months *</label>
+                    <input type="number" class="plan-item-month-count w-full px-3 py-2 border border-slate-300 rounded-lg text-base" min="1" value="${data && data.monthCount ? data.monthCount : 1}" onchange="updateTotal()" disabled>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Price per Month (₫) *</label>
+                    <input type="number" class="plan-item-month-price w-full px-3 py-2 border border-slate-300 rounded-lg text-base" min="0" value="${data && data.pricePerMonth ? data.pricePerMonth : 0}" onchange="updateTotal()" disabled>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="removePlanItem(${id})" class="mt-3 text-red-600 hover:text-red-700 text-sm font-medium">
+            Remove
+          </button>
+        </div>
+      `;
+      
+      container.insertAdjacentHTML('beforeend', itemHtml);
+      
+      setTimeout(() => {
+        handleCourseTypeChange(id);
+      }, 0);
+      
+      updateTotal();
+    }
+
+    function removePlanItem(id) {
+      const item = document.querySelector(`[data-item-id="${id}"]`);
+      if (item) {
+        item.remove();
+        updateTotal();
+      }
+    }
+
+    function handleCourseTypeChange(itemId) {
+      const item = document.querySelector(`[data-item-id="${itemId}"]`);
+      if (!item) return;
+      
+      const select = item.querySelector('.plan-item-course-type');
+      const selectedOption = select.options[select.selectedIndex];
+      const pricingMethod = selectedOption ? selectedOption.getAttribute('data-pricing') : null;
+      
+      const placeholder = item.querySelector('.plan-item-placeholder');
+      const sessionFields = item.querySelector('.plan-item-session-fields');
+      const monthFields = item.querySelector('.plan-item-month-fields');
+      
+      if (!select.value || !pricingMethod) {
+        if (placeholder) placeholder.style.display = 'block';
+        if (sessionFields) sessionFields.style.display = 'none';
+        if (monthFields) monthFields.style.display = 'none';
+        updateTotal();
+        return;
+      }
+      
+      if (placeholder) placeholder.style.display = 'none';
+      
+      if (pricingMethod === 'per_session') {
+        if (sessionFields) {
+          sessionFields.style.display = 'block';
+          const inputs = sessionFields.querySelectorAll('input');
+          inputs.forEach(input => {
+            input.setAttribute('required', 'required');
+            input.disabled = false;
+          });
+        }
+        if (monthFields) {
+          monthFields.style.display = 'none';
+          const inputs = monthFields.querySelectorAll('input');
+          inputs.forEach(input => input.removeAttribute('required'));
+        }
+      } else if (pricingMethod === 'per_month') {
+        if (monthFields) {
+          monthFields.style.display = 'block';
+          const inputs = monthFields.querySelectorAll('input');
+          inputs.forEach(input => {
+            input.setAttribute('required', 'required');
+            input.disabled = false;
+          });
+        }
+        if (sessionFields) {
+          sessionFields.style.display = 'none';
+          const inputs = sessionFields.querySelectorAll('input');
+          inputs.forEach(input => input.removeAttribute('required'));
+        }
+      }
+      
+      updateTotal();
+    }
+
+    function updateTotal() {
+      const items = document.querySelectorAll('#plan-items-container > div');
+      let total = 0;
+      
+      items.forEach(item => {
+        const select = item.querySelector('.plan-item-course-type');
+        if (!select || !select.value) return;
+        
+        const selectedOption = select.options[select.selectedIndex];
+        const pricingMethod = selectedOption.getAttribute('data-pricing');
+        
+        if (pricingMethod === 'per_session') {
+          const sessionCount = parseInt(item.querySelector('.plan-item-session-count')?.value) || 0;
+          const pricePerSession = parseInt(item.querySelector('.plan-item-session-price')?.value) || 0;
+          total += sessionCount * pricePerSession;
+        } else if (pricingMethod === 'per_month') {
+          const monthCount = parseInt(item.querySelector('.plan-item-month-count')?.value) || 0;
+          const pricePerMonth = parseInt(item.querySelector('.plan-item-month-price')?.value) || 0;
+          total += monthCount * pricePerMonth;
+        }
+      });
+      
+      document.getElementById('tp-total-display').textContent = `₫${formatNumber(total)}`;
+    }
+
+    async function saveTuitionPlan(event) {
+      event.preventDefault();
+      
+      if (!db) {
+        showError('Firestore is not initialized');
+        return;
+      }
+      
+      const submitBtn = document.getElementById('tp-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+      
+      const items = [];
+      const itemElements = document.querySelectorAll('#plan-items-container > div');
+      let total = 0;
+      
+      itemElements.forEach(item => {
+        const select = item.querySelector('.plan-item-course-type');
+        const courseTypeId = select.value;
+        const selectedOption = select.options[select.selectedIndex];
+        const pricingMethod = selectedOption.getAttribute('data-pricing');
+        
+        if (pricingMethod === 'per_session') {
+          const sessionCount = parseInt(item.querySelector('.plan-item-session-count').value);
+          const pricePerSession = parseInt(item.querySelector('.plan-item-session-price').value);
+          items.push({
+            courseTypeId,
+            sessionCount,
+            pricePerSession
+          });
+          total += sessionCount * pricePerSession;
+        } else if (pricingMethod === 'per_month') {
+          const monthCount = parseInt(item.querySelector('.plan-item-month-count').value);
+          const pricePerMonth = parseInt(item.querySelector('.plan-item-month-price').value);
+          items.push({
+            courseTypeId,
+            monthCount,
+            pricePerMonth
+          });
+          total += monthCount * pricePerMonth;
+        }
+      });
+      
+      const data = {
+        name: document.getElementById('tp-name').value.trim(),
+        items: items,
+        totalPrice: total,
+        status: document.getElementById('tp-status').value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      try {
+        if (editingItem) {
+          await db.collection('tuition_plans').doc(editingItem.__backendId).update(data);
+        } else {
+          await db.collection('tuition_plans').add({
+            ...data,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        await loadTuitionPlansFromFirestore();
+        closeTuitionPlanModal();
+        
+      } catch (error) {
+        console.error('Firestore save error:', error);
+        showError('Failed to save tuition plan. Please try again.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save';
+      }
+    }
+
+    function editTuitionPlan(id) {
+      openTuitionPlanModal(id);
+    }
+
+    function deleteTuitionPlan(id) {
+      const item = allData.find(i => i.__backendId === id);
+      deleteTarget = item;
+      document.getElementById('delete-message').textContent = `Are you sure you want to delete "${item.name}"?`;
+      document.getElementById('delete-modal').classList.remove('hidden');
+      document.getElementById('delete-modal').classList.add('flex');
+    }
+
+    // Delete confirmation
+    function closeDeleteModal() {
+      document.getElementById('delete-modal').classList.add('hidden');
+      document.getElementById('delete-modal').classList.remove('flex');
+      deleteTarget = null;
+    }
+
+    async function confirmDelete() {
+      if (!deleteTarget || !db) return;
+      
+      const btn = document.getElementById('delete-confirm-btn');
+      btn.disabled = true;
+      btn.textContent = 'Deleting...';
+      
+      try {
+        if (deleteTarget.collection === 'course_types') {
+          // Soft archive course types
+          await db.collection('course_types').doc(deleteTarget.__backendId).update({
+            status: 'archived',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          await loadCourseTypesFromFirestore();
+        } else if (deleteTarget.collection === 'tuition_plans') {
+          // Hard delete tuition plans
+          await db.collection('tuition_plans').doc(deleteTarget.__backendId).delete();
+          await loadTuitionPlansFromFirestore();
+        }
+        
+        closeDeleteModal();
+        
+      } catch (error) {
+        console.error('Firestore delete error:', error);
+        showError('Failed to delete item. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Delete';
+      }
+    }
+
+    // Utility functions
+    function closeModalOnBackdrop(event, modalId) {
+      if (event.target.id === modalId) {
+        const closeFunc = {
+          'course-type-modal': closeCourseTypeModal,
+          'tuition-plan-modal': closeTuitionPlanModal,
+          'delete-modal': closeDeleteModal
+        }[modalId];
+        if (closeFunc) closeFunc();
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatNumber(num) {
+      return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    function showError(message) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg z-50';
+      errorDiv.textContent = message;
+      document.body.appendChild(errorDiv);
+      setTimeout(() => errorDiv.remove(), 5000);
+    }
+
+    // Initialize on load
+    initApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b948991e3d20495',t:'MTc2NzYzMjQ4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timesheet Training</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    * {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+    .editor-content {
+      min-height: 200px;
+      outline: none;
+    }
+    .editor-content:focus {
+      outline: none;
+    }
+    .editor-content h1 { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
+    .editor-content h2 { font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; }
+    .editor-content h3 { font-size: 1.1rem; font-weight: 600; margin: 0.4rem 0; }
+    .editor-content ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+    .editor-content ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
+    .editor-content a { color: #3b82f6; text-decoration: underline; }
+    .editor-content p { margin: 0.25rem 0; }
+    .toolbar-btn {
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: all 0.15s;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+    }
+    .toolbar-btn:hover {
+      background: #334155;
+    }
+    .toolbar-btn:active {
+      transform: scale(0.95);
+    }
+    .action-btn {
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .action-btn:active {
+      transform: scale(0.95);
+    }
+    .tab-btn {
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: #3b82f6;
+      color: white;
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-content {
+      background: #1e293b;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      max-width: 400px;
+      width: 90%;
+      border: 1px solid #334155;
+    }
+    .hidden { display: none !important; }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full text-slate-100 overflow-hidden">
+  <div id="app-wrapper" class="h-full flex flex-col"><!-- Mobile Tabs -->
+   <div id="mobile-tabs" class="md:hidden flex border-b border-slate-700 bg-slate-800"><button onclick="switchTab('timesheet')" id="tab-timesheet" class="tab-btn flex-1 text-slate-300 active">Timesheet</button> <button onclick="switchTab('instructions')" id="tab-instructions" class="tab-btn flex-1 text-slate-300">Instructions</button>
+   </div><!-- Main Content -->
+   <main class="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0 p-4 md:p-6 gap-4"><!-- Instructions Panel -->
+    <section id="instructions-panel" class="flex flex-col w-full md:w-[35%] bg-slate-800 rounded-lg overflow-hidden transition-all duration-300 min-h-0"><!-- Instructions Header -->
+     <div class="flex items-center justify-between p-2 bg-slate-800 border-b border-slate-700">
+      <h2 class="text-sm font-semibold text-slate-200">Instructions</h2><button onclick="toggleInstructions()" id="toggle-btn" class="action-btn bg-slate-600 hover:bg-slate-500 text-white">◀ Collapse</button>
+     </div><!-- Action Buttons -->
+     <div id="instructions-content" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div class="flex items-center gap-1 p-2 bg-slate-800 border-b border-slate-700 flex-wrap"><button onclick="saveContent()" class="action-btn bg-emerald-600 hover:bg-emerald-700 text-white">Save</button> <button onclick="undoAction()" class="action-btn bg-slate-600 hover:bg-slate-500 text-white">Undo</button> <button onclick="redoAction()" class="action-btn bg-slate-600 hover:bg-slate-500 text-white">Redo</button> <button onclick="showResetConfirm()" class="action-btn bg-red-600 hover:bg-red-700 text-white">Reset</button> <span id="status-text" class="text-xs text-slate-400 ml-2">Loading...</span>
+      </div><!-- Formatting Toolbar -->
+      <div class="flex items-center gap-1 p-2 bg-slate-800 border-b border-slate-700 flex-wrap"><button onclick="formatDoc('formatBlock', 'H1')" class="toolbar-btn">H1</button> <button onclick="formatDoc('formatBlock', 'H2')" class="toolbar-btn">H2</button> <button onclick="formatDoc('formatBlock', 'H3')" class="toolbar-btn">H3</button> <span class="w-px h-4 bg-slate-600 mx-1"></span> <button onclick="formatDoc('bold')" class="toolbar-btn font-bold">B</button> <button onclick="formatDoc('italic')" class="toolbar-btn italic">I</button> <span class="w-px h-4 bg-slate-600 mx-1"></span> <button onclick="formatDoc('insertUnorderedList')" class="toolbar-btn">• List</button> <button onclick="formatDoc('insertOrderedList')" class="toolbar-btn">1. List</button> <span class="w-px h-4 bg-slate-600 mx-1"></span> <button onclick="insertLink()" class="toolbar-btn">🔗 Link</button> <button onclick="formatDoc('removeFormat')" class="toolbar-btn">Clear</button>
+      </div><!-- Editor -->
+      <div class="flex-1 overflow-hidden p-3 min-h-0">
+       <div id="editor" class="editor-content bg-slate-800 rounded p-3 text-slate-200 text-sm h-full overflow-y-auto" contenteditable="true" oninput="onContentChange()">
+       </div>
+      </div><!-- Last Saved -->
+      <div class="px-3 py-2 bg-slate-800 border-t border-slate-700 text-xs text-slate-400"><span id="last-saved">Last saved: Never</span>
+      </div>
+     </div>
+    </section><!-- Timesheet Panel -->
+    <section id="timesheet-panel" class="flex-1 relative bg-slate-800 rounded-lg overflow-hidden"><iframe id="timesheet-iframe" src="Timesheet_Generator.html" class="w-full h-full border-0"></iframe>
+    </section>
+   </main>
+  </div><!-- Reset Confirm Modal -->
+  <div id="reset-modal" class="modal-overlay hidden">
+   <div class="modal-content">
+    <h3 class="text-lg font-semibold mb-3">Reset Instructions?</h3>
+    <p class="text-slate-400 text-sm mb-4">This will clear all your instructions and cannot be undone.</p>
+    <div class="flex gap-2 justify-end"><button onclick="hideResetConfirm()" class="action-btn bg-slate-600 hover:bg-slate-500 text-white">Cancel</button> <button onclick="resetContent()" class="action-btn bg-red-600 hover:bg-red-700 text-white">Reset</button>
+    </div>
+   </div>
+  </div><!-- Link Input Modal -->
+  <div id="link-modal" class="modal-overlay hidden">
+   <div class="modal-content">
+    <h3 class="text-lg font-semibold mb-3">Insert Link</h3><input type="url" id="link-input" class="w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm text-slate-200 mb-3" placeholder="https://example.com">
+    <div class="flex gap-2 justify-end"><button onclick="hideLinkModal()" class="action-btn bg-slate-600 hover:bg-slate-500 text-white">Cancel</button> <button onclick="applyLink()" class="action-btn bg-blue-600 hover:bg-blue-700 text-white">Insert</button>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    const STORAGE_KEY = 'timesheet_instructions_v1';
+    const FIRESTORE_DOC_ID = 'main_instructions';
+    const defaultConfig = {
+      page_title: 'Timesheet Training'
+    };
+    
+    let undoStack = [];
+    let redoStack = [];
+    let hasUnsavedChanges = false;
+    let autoSaveTimer = null;
+    let currentTab = 'timesheet';
+    let isInstructionsCollapsed = false;
+    let isSaving = false;
+    let userRole = null;
+    let sessionUid = null;
+
+    // Element SDK initialization
+    const element = {
+      defaultConfig,
+      onConfigChange: async (config) => {
+        // Config updates handled by dashboard
+      },
+      mapToCapabilities: (config) => ({
+        recolorables: [],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ['page_title', config.page_title || defaultConfig.page_title]
+      ])
+    };
+
+    if (window.elementSdk) {
+      window.elementSdk.init(element);
+    }
+
+    // Initialize
+    async function init() {
+      await initAuthAndRole();
+    }
+
+    // Check authentication and role
+    function initAuthAndRole() {
+      // Read session data
+      sessionUid = sessionStorage.getItem('sessionUid');
+      const sessionRole = sessionStorage.getItem('sessionRole');
+
+      // Redirect if not authenticated
+      if (!sessionUid || !sessionRole) {
+        window.location.href = 'Authen.html?next=Timesheet_Training.html';
+        return;
+      }
+
+      // Normalize role to lowercase
+      userRole = sessionRole.toLowerCase();
+
+      // Apply UI permissions
+      applyRolePermissions();
+
+      // Load content
+      loadContent();
+    }
+
+    // Apply role-based UI permissions
+    function applyRolePermissions() {
+      const editor = document.getElementById('editor');
+      const saveBtn = document.querySelector('button[onclick="saveContent()"]');
+      const undoBtn = document.querySelector('button[onclick="undoAction()"]');
+      const redoBtn = document.querySelector('button[onclick="redoAction()"]');
+      const resetBtn = document.querySelector('button[onclick="showResetConfirm()"]');
+      const toolbar = document.querySelectorAll('.toolbar-btn');
+      const instructionsHeader = document.querySelector('#instructions-panel > div:first-child');
+
+      if (userRole !== 'admin') {
+        // Make editor read-only
+        editor.contentEditable = 'false';
+        editor.classList.add('opacity-80');
+        editor.style.pointerEvents = 'auto';
+        editor.style.cursor = 'default';
+
+        // Hide/disable action buttons
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (undoBtn) undoBtn.style.display = 'none';
+        if (redoBtn) redoBtn.style.display = 'none';
+        if (resetBtn) resetBtn.style.display = 'none';
+
+        // Hide toolbar
+        toolbar.forEach(btn => btn.style.display = 'none');
+        document.querySelectorAll('.toolbar-btn').forEach(btn => {
+          if (btn.parentElement) {
+            btn.parentElement.querySelectorAll('.w-px').forEach(sep => sep.style.display = 'none');
+          }
+        });
+
+        // Hide formatting toolbar container if all buttons are hidden
+        const formattingToolbar = document.querySelector('.flex.items-center.gap-1.p-2.bg-slate-800.border-b.border-slate-700:has(.toolbar-btn)');
+        if (formattingToolbar) {
+          formattingToolbar.style.display = 'none';
+        }
+      }
+    }
+
+    // Load content from Firestore
+    async function loadContent() {
+      updateStatus('Loading...');
+      try {
+        const docRef = db.collection('training_instructions').doc(FIRESTORE_DOC_ID);
+        const doc = await docRef.get();
+        
+        if (doc.exists) {
+          const data = doc.data();
+          document.getElementById('editor').innerHTML = data.content || '';
+          updateLastSaved(data.timestamp);
+          updateStatus('Saved');
+        } else {
+          // Try localStorage as fallback
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            try {
+              const data = JSON.parse(saved);
+              document.getElementById('editor').innerHTML = data.content || '';
+              updateLastSaved(data.timestamp);
+            } catch (e) {
+              console.error('Failed to load from localStorage');
+            }
+          }
+          updateStatus('Saved');
+        }
+      } catch (error) {
+        console.error('Error loading from Firestore:', error);
+        updateStatus('Error loading');
+        // Try localStorage as fallback
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            document.getElementById('editor').innerHTML = data.content || '';
+            updateLastSaved(data.timestamp);
+          } catch (e) {
+            console.error('Failed to load from localStorage');
+          }
+        }
+      }
+    }
+
+    // Save content to Firestore
+    async function saveContent() {
+      // Role guard
+      if (userRole !== 'admin') {
+        updateStatus('Read-only (Admin only)');
+        return;
+      }
+
+      if (isSaving) return;
+      
+      isSaving = true;
+      const editor = document.getElementById('editor');
+      const content = editor.innerHTML;
+      const timestamp = Date.now();
+      
+      updateStatus('Saving...');
+      
+      try {
+        // Save to Firestore
+        await db.collection('training_instructions').doc(FIRESTORE_DOC_ID).set({
+          content: content,
+          timestamp: timestamp,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Also save to localStorage as backup
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          content,
+          timestamp
+        }));
+        
+        hasUnsavedChanges = false;
+        updateStatus('Saved');
+        updateLastSaved(timestamp);
+      } catch (error) {
+        console.error('Error saving to Firestore:', error);
+        updateStatus('Error saving');
+        
+        // Save to localStorage as fallback
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          content,
+          timestamp
+        }));
+      } finally {
+        isSaving = false;
+      }
+    }
+
+    // Auto-save with debounce
+    function onContentChange() {
+      hasUnsavedChanges = true;
+      updateStatus('Unsaved changes');
+      
+      // Save to undo stack
+      const editor = document.getElementById('editor');
+      undoStack.push(editor.innerHTML);
+      if (undoStack.length > 50) undoStack.shift();
+      redoStack = [];
+      
+      // Debounced auto-save
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(saveContent, 2000);
+    }
+
+    // Update status text
+    function updateStatus(text) {
+      document.getElementById('status-text').textContent = text;
+    }
+
+    // Update last saved display
+    function updateLastSaved(timestamp) {
+      const el = document.getElementById('last-saved');
+      if (timestamp) {
+        const date = new Date(timestamp);
+        el.textContent = `Last saved: ${date.toLocaleString()}`;
+      } else {
+        el.textContent = 'Last saved: Never';
+      }
+    }
+
+    // Format document
+    function formatDoc(command, value = null) {
+      // Role guard
+      if (userRole !== 'admin') {
+        updateStatus('Read-only (Admin only)');
+        return;
+      }
+
+      document.execCommand(command, false, value);
+      document.getElementById('editor').focus();
+      onContentChange();
+    }
+
+    // Insert link
+    function insertLink() {
+      // Role guard
+      if (userRole !== 'admin') {
+        updateStatus('Read-only (Admin only)');
+        return;
+      }
+
+      document.getElementById('link-modal').classList.remove('hidden');
+      document.getElementById('link-input').value = '';
+      document.getElementById('link-input').focus();
+    }
+
+    function applyLink() {
+      // Role guard
+      if (userRole !== 'admin') {
+        updateStatus('Read-only (Admin only)');
+        return;
+      }
+
+      const url = document.getElementById('link-input').value;
+      if (url) {
+        document.execCommand('createLink', false, url);
+        onContentChange();
+      }
+      hideLinkModal();
+    }
+
+    function hideLinkModal() {
+      document.getElementById('link-modal').classList.add('hidden');
+    }
+
+    // Undo/Redo
+    function undoAction() {
+      // Role guard
+      if (userRole !== 'admin') {
+        updateStatus('Read-only (Admin only)');
+        return;
+      }
+
+      if (undoStack.length > 1) {
+        const current = undoStack.pop();
+        redoStack.push(current);
+        document.getElementById('editor').innerHTML = undoStack[undoStack.length - 1] || '';
+        hasUnsavedChanges = true;
+        updateStatus('Unsaved changes');
+      }
+    }
+
+    function redoAction() {
+      // Role guard
+      if (userRole !== 'admin') {
+        updateStatus('Read-only (Admin only)');
+        return;
+      }
+
+      if (redoStack.length > 0) {
+        const content = redoStack.pop();
+        undoStack.push(content);
+        document.getElementById('editor').innerHTML = content;
+        hasUnsavedChanges = true;
+        updateStatus('Unsaved changes');
+      }
+    }
+
+    // Reset modal
+    function showResetConfirm() {
+      // Role guard
+      if (userRole !== 'admin') {
+        updateStatus('Read-only (Admin only)');
+        return;
+      }
+
+      document.getElementById('reset-modal').classList.remove('hidden');
+    }
+
+    function hideResetConfirm() {
+      document.getElementById('reset-modal').classList.add('hidden');
+    }
+
+    async function resetContent() {
+      // Role guard
+      if (userRole !== 'admin') {
+        updateStatus('Read-only (Admin only)');
+        hideResetConfirm();
+        return;
+      }
+
+      const timestamp = Date.now();
+      
+      document.getElementById('editor').innerHTML = '';
+      undoStack = [];
+      redoStack = [];
+      hasUnsavedChanges = false;
+      
+      try {
+        await db.collection('training_instructions').doc(FIRESTORE_DOC_ID).set({
+          content: '',
+          timestamp: timestamp,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        localStorage.removeItem(STORAGE_KEY);
+        updateStatus('Saved');
+        updateLastSaved(timestamp);
+      } catch (error) {
+        console.error('Error resetting content:', error);
+        updateStatus('Error saving');
+      }
+      
+      hideResetConfirm();
+    }
+
+    // Toggle instructions panel
+    function toggleInstructions() {
+      const panel = document.getElementById('instructions-panel');
+      const content = document.getElementById('instructions-content');
+      const toggleBtn = document.getElementById('toggle-btn');
+      
+      isInstructionsCollapsed = !isInstructionsCollapsed;
+      
+      if (isInstructionsCollapsed) {
+        panel.style.width = 'auto';
+        panel.style.minWidth = 'auto';
+        content.style.display = 'none';
+        toggleBtn.textContent = '▶ Expand';
+      } else {
+        panel.style.width = '';
+        panel.style.minWidth = '';
+        content.style.display = '';
+        toggleBtn.textContent = '◀ Collapse';
+      }
+    }
+
+    // Mobile tab switching
+    function switchTab(tab) {
+      currentTab = tab;
+      const instructionsPanel = document.getElementById('instructions-panel');
+      const timesheetPanel = document.getElementById('timesheet-panel');
+      const tabInstructions = document.getElementById('tab-instructions');
+      const tabTimesheet = document.getElementById('tab-timesheet');
+      
+      if (tab === 'instructions') {
+        instructionsPanel.classList.remove('hidden');
+        instructionsPanel.classList.add('flex');
+        timesheetPanel.classList.add('hidden');
+        tabInstructions.classList.add('active');
+        tabTimesheet.classList.remove('active');
+      } else {
+        instructionsPanel.classList.add('hidden');
+        instructionsPanel.classList.remove('flex');
+        timesheetPanel.classList.remove('hidden');
+        tabInstructions.classList.remove('active');
+        tabTimesheet.classList.add('active');
+      }
+    }
+
+    // Handle keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 's') {
+          e.preventDefault();
+          saveContent();
+        } else if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          undoAction();
+        } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+          e.preventDefault();
+          redoAction();
+        }
+      }
+    });
+
+    // Initialize on load
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bec7f9752bddd39',t:'MTc2ODU1NDgyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
