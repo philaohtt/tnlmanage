@@ -1,0 +1,1579 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Settings CMS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    body { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    .menu-item { 
+      transition: all 0.2s ease; 
+      position: relative;
+    }
+    .menu-item:hover { 
+      background: linear-gradient(to right, #f1f5f9, transparent);
+      padding-left: 18px;
+    }
+    .menu-item.active { 
+      background: linear-gradient(to right, #e0e7ff, transparent);
+      color: #4338ca; 
+      border-left: 4px solid #4338ca;
+      font-weight: 600;
+    }
+    .input-field { 
+      @apply w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all;
+      background: #fafafa;
+    }
+    .input-field:focus {
+      background: white;
+    }
+    .btn-primary { 
+      @apply px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-sm hover:shadow;
+    }
+    .btn-secondary { 
+      @apply px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm;
+    }
+    .btn-danger { 
+      @apply px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 rounded-lg hover:from-red-700 hover:to-red-800 transition-all shadow-sm hover:shadow;
+    }
+    .btn-sm { @apply px-3 py-1.5 text-xs; }
+    .btn-icon {
+      @apply w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900;
+    }
+    .card { 
+      @apply bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow;
+    }
+    .section-header {
+      @apply text-2xl font-bold text-gray-900 mb-2;
+      background: linear-gradient(135deg, #4338ca 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .section-description {
+      @apply text-sm text-gray-600 mb-6;
+    }
+    .toast { 
+      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    .badge { 
+      @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+    }
+    .badge-blue { @apply bg-blue-100 text-blue-700 border border-blue-200; }
+    .badge-green { @apply bg-green-100 text-green-700 border border-green-200; }
+    .badge-yellow { @apply bg-yellow-100 text-yellow-700 border border-yellow-200; }
+    .nav-group-card {
+      @apply bg-gradient-to-br from-white to-gray-50 rounded-xl border-2 border-gray-200 p-5 transition-all hover:border-indigo-300 hover:shadow-md;
+    }
+    .nav-item-row {
+      @apply flex items-center gap-2 p-3 bg-white rounded-lg text-xs border border-gray-200 hover:border-indigo-300 transition-all;
+    }
+    .field-label {
+      @apply block text-sm font-semibold text-gray-700 mb-2;
+    }
+    .help-text {
+      @apply text-xs text-gray-500 mt-1 italic;
+    }
+    .table-header {
+      @apply text-xs font-bold text-gray-700 uppercase tracking-wide;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900"><!-- No Permission Screen -->
+  <div id="no-permission" class="hidden h-full flex items-center justify-center">
+   <div class="text-center">
+    <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+     <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+     </svg>
+    </div>
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+    <p class="text-base text-gray-600">You don't have permission to access Dashboard Settings.</p>
+    <p class="text-sm text-gray-500 mt-2">Admin role required.</p>
+   </div>
+  </div><!-- Loading Screen -->
+  <div id="loading-screen" class="h-full flex items-center justify-center">
+   <div class="text-center">
+    <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+    <p class="text-base text-gray-600 font-medium">Loading settings...</p>
+   </div>
+  </div><!-- Main App -->
+  <div id="main-app" class="hidden h-full flex flex-col"><!-- Header -->
+   <header class="bg-white border-b-2 border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0 shadow-sm">
+    <div class="flex items-center gap-4">
+     <div>
+      <h1 class="text-2xl font-bold text-gray-900">Dashboard CMS</h1>
+      <p class="text-sm text-gray-500">Manage your dashboard configuration</p>
+     </div>
+     <div id="status-badges" class="flex gap-2"><span id="draft-badge" class="badge badge-blue">📝 Draft loaded</span> <span id="live-badge" class="badge badge-green hidden">✓ Live: --</span>
+     </div>
+    </div>
+    <div class="flex items-center gap-3"><button id="btn-export-json" class="btn-secondary btn-sm">
+      <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg> Export Draft </button> <button id="btn-import-json" class="btn-secondary btn-sm">
+      <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L9 8m4-4v12" />
+      </svg> Import JSON </button> <button id="btn-reset" class="btn-secondary">
+      <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg> Reset from Live </button> <button id="btn-save" class="btn-secondary">
+      <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+      </svg> Save Draft </button> <button id="btn-publish" class="btn-primary">
+      <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      </svg> Publish to Live </button>
+    </div>
+   </header><!-- Content -->
+   <div class="flex-1 flex overflow-hidden"><!-- Sidebar Menu -->
+    <nav class="w-64 bg-white border-r-2 border-gray-200 flex-shrink-0 overflow-y-auto">
+     <div class="p-4">
+      <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Configuration</h3>
+     </div>
+     <div class="pb-4"><button data-section="branding" class="menu-item active w-full text-left px-4 py-3 text-sm flex items-center gap-3">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+       </svg>
+       <div>
+        <div class="font-medium">
+         Branding
+        </div>
+        <div class="text-xs text-gray-500">
+         Logo, title, welcome text
+        </div>
+       </div></button> <button data-section="navigation" class="menu-item w-full text-left px-4 py-3 text-sm flex items-center gap-3">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+       </svg>
+       <div>
+        <div class="font-medium">
+         Navigation
+        </div>
+        <div class="text-xs text-gray-500">
+         Menu groups &amp; items
+        </div>
+       </div></button> <button data-section="modules" class="menu-item w-full text-left px-4 py-3 text-sm flex items-center gap-3">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+       </svg>
+       <div>
+        <div class="font-medium">
+         Module Paths
+        </div>
+        <div class="text-xs text-gray-500">
+         Route configurations
+        </div>
+       </div></button> <button data-section="payroll" class="menu-item w-full text-left px-4 py-3 text-sm flex items-center gap-3">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+       </svg>
+       <div>
+        <div class="font-medium">
+         Payroll Tabs
+        </div>
+        <div class="text-xs text-gray-500">
+         Admin &amp; staff views
+        </div>
+       </div></button> <button data-section="tuition" class="menu-item w-full text-left px-4 py-3 text-sm flex items-center gap-3">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+       </svg>
+       <div>
+        <div class="font-medium">
+         Tuition Tabs
+        </div>
+        <div class="text-xs text-gray-500">
+         Admin &amp; manager views
+        </div>
+       </div></button> <button data-section="publish" class="menu-item w-full text-left px-4 py-3 text-sm flex items-center gap-3">
+       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+       </svg>
+       <div>
+        <div class="font-medium">
+         Publish
+        </div>
+        <div class="text-xs text-gray-500">
+         Workflow &amp; status
+        </div>
+       </div></button>
+     </div>
+    </nav><!-- Editor Panel -->
+    <main class="flex-1 overflow-y-auto p-8"><!-- Branding Section -->
+     <section id="section-branding" class="space-y-4 max-w-6xl">
+      <div>
+       <h2 class="section-header">🎨 Branding Settings</h2>
+       <p class="section-description">Customize your dashboard's appearance, logo, and welcome messaging</p>
+      </div>
+      <div class="card p-4">
+       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4"><!-- Column 1: Title + Subtitle -->
+        <div class="space-y-3">
+         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Dashboard Title</label> <input type="text" id="app-title" class="input-field text-sm py-1.5" placeholder="e.g., CWC Staff Portal">
+         </div>
+         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Dashboard Subtitle</label> <input type="text" id="app-subtitle" class="input-field text-sm py-1.5" placeholder="e.g., Staff Management System">
+         </div>
+        </div><!-- Column 2: Welcome Message -->
+        <div><label class="block text-xs font-semibold text-gray-700 mb-1">Welcome Message</label> <textarea id="app-welcome" class="input-field text-sm py-1.5 h-full min-h-[100px] resize-none" placeholder="Greeting message for users when they log in..."></textarea>
+        </div><!-- Column 3: Logo + Preview -->
+        <div class="space-y-3">
+         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Logo Type</label> <select id="logo-type" class="input-field text-sm py-1.5"> <option value="svg">SVG Code</option> <option value="imageUrl">Image URL</option> <option value="text">Text Logo</option> </select>
+         </div>
+         <div id="logo-input-container">
+          <div id="logo-svg-input"><textarea id="logo-svg" class="input-field text-xs py-1.5 h-16 resize-none font-mono" placeholder="<svg>...</svg>"></textarea>
+          </div>
+          <div id="logo-url-input" class="hidden"><input type="url" id="logo-url" class="input-field text-sm py-1.5" placeholder="https://...">
+          </div>
+          <div id="logo-text-input" class="hidden"><input type="text" id="logo-text" class="input-field text-sm py-1.5" placeholder="CWC">
+          </div>
+         </div>
+         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Preview</label>
+          <div id="logo-preview" class="w-full h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden"><span class="text-xs text-gray-400">No logo</span>
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </section><!-- Navigation Section -->
+     <section id="section-navigation" class="hidden space-y-4 max-w-6xl">
+      <div>
+       <h2 class="section-header">🧭 Navigation Groups</h2>
+       <p class="section-description">Organize menu items into groups. Edit labels, reorder items, and configure role-specific text</p>
+      </div>
+      <div class="card p-4">
+       <div class="flex items-center justify-between mb-3"><input type="text" id="nav-search" class="input-field text-sm py-1.5 w-64" placeholder="Search by route ID or label..."> <button id="add-nav-group" class="btn-primary btn-sm">
+         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+         </svg> Add Group </button>
+       </div>
+      </div>
+      <div id="nav-groups-container" class="space-y-4"></div>
+     </section><!-- Module Paths Section -->
+     <section id="section-modules" class="hidden space-y-4 max-w-6xl">
+      <div>
+       <h2 class="section-header">🔗 Module Paths</h2>
+       <p class="section-description">Configure source paths for each route. Define default paths and role-specific overrides for teachers and managers</p>
+      </div>
+      <div class="card p-4">
+       <div class="flex items-center justify-between gap-3 mb-3"><input type="text" id="modules-search" class="input-field text-sm py-1.5 w-64" placeholder="Search route ID...">
+        <div class="flex items-center gap-2"><label class="flex items-center gap-2 text-sm text-gray-700"> <input type="checkbox" id="show-unused-routes" class="rounded"> Show unused routes </label> <button id="auto-sync-routes" class="btn-secondary btn-sm">
+          <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg> Auto-sync routes </button>
+        </div>
+       </div>
+      </div>
+      <div class="card overflow-x-auto p-4">
+       <table class="w-full text-xs">
+        <thead>
+         <tr class="border-b-2 border-gray-200">
+          <th class="text-left py-2 px-2 table-header w-40">Route ID</th>
+          <th class="text-left py-2 px-2 table-header">Default Source Path</th>
+          <th class="text-left py-2 px-2 table-header">Teacher Override</th>
+          <th class="text-left py-2 px-2 table-header">Manager Override</th>
+          <th class="text-left py-2 px-2 table-header w-20">Actions</th>
+         </tr>
+        </thead>
+        <tbody id="modules-table-body"></tbody>
+       </table>
+      </div>
+     </section><!-- Payroll Tabs Section -->
+     <section id="section-payroll" class="hidden space-y-6 max-w-6xl">
+      <div>
+       <h2 class="section-header">💰 Payroll Tabs</h2>
+       <p class="section-description">Configure tabs for the payroll module. Separate configurations for admin and staff views</p>
+      </div>
+      <div class="card">
+       <div class="flex items-center justify-between mb-4">
+        <div>
+         <h3 class="text-base font-bold text-gray-800">Admin Tabs</h3>
+         <p class="text-xs text-gray-500 mt-1">Tabs visible to administrators</p>
+        </div><button id="add-payroll-admin-tab" class="btn-secondary btn-sm">
+         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+         </svg> Add Tab </button>
+       </div>
+       <div id="payroll-admin-tabs" class="space-y-2"></div>
+      </div>
+      <div class="card">
+       <div class="flex items-center justify-between mb-4">
+        <div>
+         <h3 class="text-base font-bold text-gray-800">Staff Tabs</h3>
+         <p class="text-xs text-gray-500 mt-1">Tabs visible to staff members</p>
+        </div><button id="add-payroll-staff-tab" class="btn-secondary btn-sm">
+         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+         </svg> Add Tab </button>
+       </div>
+       <div id="payroll-staff-tabs" class="space-y-2"></div>
+      </div>
+     </section><!-- Tuition Tabs Section -->
+     <section id="section-tuition" class="hidden space-y-6 max-w-6xl">
+      <div>
+       <h2 class="section-header">🎓 Tuition Tabs</h2>
+       <p class="section-description">Configure tabs for the tuition module. Separate configurations for admin and manager views</p>
+      </div>
+      <div class="card">
+       <div class="flex items-center justify-between mb-4">
+        <div>
+         <h3 class="text-base font-bold text-gray-800">Admin Tabs</h3>
+         <p class="text-xs text-gray-500 mt-1">Tabs visible to administrators</p>
+        </div><button id="add-tuition-admin-tab" class="btn-secondary btn-sm">
+         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+         </svg> Add Tab </button>
+       </div>
+       <div id="tuition-admin-tabs" class="space-y-2"></div>
+      </div>
+      <div class="card">
+       <div class="flex items-center justify-between mb-4">
+        <div>
+         <h3 class="text-base font-bold text-gray-800">Manager Tabs</h3>
+         <p class="text-xs text-gray-500 mt-1">Tabs visible to managers</p>
+        </div><button id="add-tuition-manager-tab" class="btn-secondary btn-sm">
+         <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+         </svg> Add Tab </button>
+       </div>
+       <div id="tuition-manager-tabs" class="space-y-2"></div>
+      </div>
+     </section><!-- Publish Section -->
+     <section id="section-publish" class="hidden space-y-6 max-w-5xl">
+      <div>
+       <h2 class="section-header">🚀 Publish Workflow</h2>
+       <p class="section-description">View status and manage publishing workflow between draft and live configurations</p>
+      </div>
+      <div class="card">
+       <h3 class="text-base font-bold text-gray-800 mb-4">Configuration Status</h3>
+       <div class="grid grid-cols-2 gap-6">
+        <div class="p-5 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+         <div class="flex items-center gap-2 mb-2">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          <div class="text-sm text-blue-600 font-bold">
+           Draft Version
+          </div>
+         </div>
+         <div id="draft-status" class="text-sm text-blue-900 font-medium">
+          Loading...
+         </div>
+        </div>
+        <div class="p-5 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+         <div class="flex items-center gap-2 mb-2">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="text-sm text-green-600 font-bold">
+           Live Version
+          </div>
+         </div>
+         <div id="live-status" class="text-sm text-green-900 font-medium">
+          Loading...
+         </div>
+        </div>
+       </div>
+      </div>
+      <div class="card">
+       <h3 class="text-base font-bold text-gray-800 mb-4">Publishing Actions</h3>
+       <div class="space-y-4">
+        <div class="flex items-center justify-between p-5 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+         <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center border border-gray-200">
+           <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+           </svg>
+          </div>
+          <div>
+           <div class="text-sm font-bold text-gray-900">
+            Save Draft
+           </div>
+           <div class="text-xs text-gray-600">
+            Save current changes without affecting live users
+           </div>
+          </div>
+         </div><button id="publish-save-draft" class="btn-secondary">Save Changes</button>
+        </div>
+        <div class="flex items-center justify-between p-5 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl border-2 border-indigo-200">
+         <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center border border-indigo-200">
+           <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+           </svg>
+          </div>
+          <div>
+           <div class="text-sm font-bold text-indigo-900">
+            Publish to Live
+           </div>
+           <div class="text-xs text-indigo-700">
+            ⚠️ Copy draft configuration to live (affects all users)
+           </div>
+          </div>
+         </div><button id="publish-to-live" class="btn-primary">Publish Now</button>
+        </div>
+        <div class="flex items-center justify-between p-5 bg-gradient-to-r from-red-50 to-red-100 rounded-xl border border-red-200">
+         <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center border border-red-200">
+           <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+           </svg>
+          </div>
+          <div>
+           <div class="text-sm font-bold text-red-900">
+            Reset Draft
+           </div>
+           <div class="text-xs text-red-700">
+            Discard all draft changes and reload from live version
+           </div>
+          </div>
+         </div><button id="publish-reset" class="btn-danger">Reset Draft</button>
+        </div>
+       </div>
+      </div>
+     </section>
+    </main>
+   </div>
+  </div><!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div><!-- Validation Modal -->
+  <div id="validation-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+   <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+     <div class="flex items-center gap-2">
+      <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <h3 class="text-lg font-bold text-gray-900">Validation Errors</h3>
+     </div><button id="close-validation-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg></button>
+    </div>
+    <div class="px-6 py-4 max-h-96 overflow-y-auto">
+     <p class="text-sm text-gray-600 mb-3">Please fix the following errors before saving:</p>
+     <ul id="validation-errors" class="space-y-2 text-sm text-red-600"></ul>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-end"><button id="dismiss-validation" class="btn-secondary">Close</button>
+    </div>
+   </div>
+  </div><!-- Confirm Modal -->
+  <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+   <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4">
+    <div class="px-6 py-4 border-b border-gray-200">
+     <h3 id="confirm-title" class="text-lg font-bold text-gray-900">Confirm Action</h3>
+    </div>
+    <div class="px-6 py-5">
+     <p id="confirm-message" class="text-sm text-gray-600"></p>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3"><button id="confirm-cancel" class="btn-secondary">Cancel</button> <button id="confirm-ok" class="btn-primary">Confirm</button>
+    </div>
+   </div>
+  </div><!-- Import JSON Modal -->
+  <div id="import-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+   <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+     <h3 class="text-lg font-bold text-gray-900">Import JSON Configuration</h3><button id="close-import-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg></button>
+    </div>
+    <div class="px-6 py-4">
+     <p class="text-sm text-gray-600 mb-3">Paste your JSON configuration below or upload a file:</p>
+     <div class="mb-3"><input type="file" id="import-file-input" accept=".json" class="text-sm">
+     </div><textarea id="import-json-textarea" class="input-field w-full h-64 resize-none font-mono text-xs" placeholder="{&quot;schemaVersion&quot;: 1, ...}"></textarea>
+     <p class="text-xs text-gray-500 mt-2">Changes will be loaded into draft but not saved automatically.</p>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3"><button id="import-cancel" class="btn-secondary">Cancel</button> <button id="import-ok" class="btn-primary">Import to Draft</button>
+    </div>
+   </div>
+  </div>
+  <script>
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+  authDomain: "tnl2026.firebaseapp.com",
+  projectId: "tnl2026",
+  storageBucket: "tnl2026.firebasestorage.app",
+  messagingSenderId: "883525152224",
+  appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+  measurementId: "G-3K6LXCKHZ9"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+// Default config fallback
+const DEFAULT_CONFIG = {
+  schemaVersion: 1,
+  app: {
+    title: "CWC Staff Portal",
+    subtitle: "Staff Management System",
+    welcomeMessage: "Welcome to the CWC Staff Portal",
+    logo: { type: "text", value: "CWC" }
+  },
+  navigationGroups: [
+    {
+      name: "Staff Management",
+      items: [
+        { id: "staff-directory", label: "Staff Directory", roles: ["admin", "manager", "teacher"] },
+        { id: "teacher-schedule", label: "Teacher Schedule", roles: ["admin", "manager", "teacher"], managerLabel: "Team Schedule", teacherLabel: "My Schedule" },
+        { id: "sub-request", label: "Sub Request", roles: ["admin", "manager", "teacher"] }
+      ]
+    },
+    {
+      name: "Finance",
+      items: [
+        { id: "payroll", label: "Payroll", roles: ["admin", "teacher"], teacherLabel: "My Pay" },
+        { id: "tuition", label: "Tuition", roles: ["admin", "manager"], managerLabel: "Center Tuition" }
+      ]
+    },
+    {
+      name: "Operations",
+      items: [
+        { id: "classroom-roster", label: "Classroom Roster", roles: ["admin", "manager", "teacher"] },
+        { id: "reports", label: "Reports", roles: ["admin", "manager"], comingSoon: true }
+      ]
+    }
+  ],
+  routeModules: {
+    "staff-directory": { srcDefault: "/modules/StaffDirectory.html" },
+    "teacher-schedule": { srcDefault: "/modules/TeacherSchedule.html", srcTeacher: "/modules/TeacherScheduleReadOnly.html" },
+    "sub-request": { srcDefault: "/modules/SubRequest.html" },
+    "payroll": { srcDefault: "/modules/Payroll.html", srcTeacher: "/modules/PayrollStaff.html" },
+    "tuition": { srcDefault: "/modules/Tuition.html", srcManager: "/modules/TuitionManager.html" },
+    "classroom-roster": { srcDefault: "/modules/ClassroomRoster.html" },
+    "reports": { srcDefault: "/modules/Reports.html" }
+  },
+  payrollTabs: {
+    adminTabs: [
+      { id: "summary", label: "Summary", src: "/modules/payroll/Summary.html" },
+      { id: "timesheets", label: "Timesheets", src: "/modules/payroll/Timesheets.html" },
+      { id: "adjustments", label: "Adjustments", src: "/modules/payroll/Adjustments.html" }
+    ],
+    staffTabs: [
+      { id: "my-hours", label: "My Hours", src: "/modules/payroll/MyHours.html" },
+      { id: "pay-history", label: "Pay History", src: "/modules/payroll/PayHistory.html" }
+    ]
+  },
+  tuitionTabs: {
+    adminTabs: [
+      { id: "overview", label: "Overview", src: "/modules/tuition/Overview.html" },
+      { id: "billing", label: "Billing", src: "/modules/tuition/Billing.html" },
+      { id: "payments", label: "Payments", src: "/modules/tuition/Payments.html" }
+    ],
+    managerTabs: [
+      { id: "center-overview", label: "Center Overview", src: "/modules/tuition/CenterOverview.html" },
+      { id: "families", label: "Families", src: "/modules/tuition/Families.html" }
+    ]
+  }
+};
+
+// State
+let currentConfig = null;
+let liveConfig = null;
+let currentSection = 'branding';
+let confirmCallback = null;
+let navSearchFilter = '';
+let modulesSearchFilter = '';
+let showUnusedRoutes = false;
+
+// DOM Elements
+const elements = {
+  noPermission: document.getElementById('no-permission'),
+  loadingScreen: document.getElementById('loading-screen'),
+  mainApp: document.getElementById('main-app'),
+  draftBadge: document.getElementById('draft-badge'),
+  liveBadge: document.getElementById('live-badge'),
+  toastContainer: document.getElementById('toast-container'),
+  validationModal: document.getElementById('validation-modal'),
+  validationErrors: document.getElementById('validation-errors'),
+  confirmModal: document.getElementById('confirm-modal'),
+  confirmTitle: document.getElementById('confirm-title'),
+  confirmMessage: document.getElementById('confirm-message')
+};
+
+// Toast notification
+function showToast(message, type = 'info') {
+  const colors = {
+    success: 'bg-green-600',
+    error: 'bg-red-600',
+    info: 'bg-blue-600',
+    warning: 'bg-yellow-600'
+  };
+  
+  const toast = document.createElement('div');
+  toast.className = `toast px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium ${colors[type] || colors.info}`;
+  toast.textContent = message;
+  elements.toastContainer.appendChild(toast);
+  
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// Confirm dialog
+function showConfirm(title, message) {
+  return new Promise((resolve) => {
+    elements.confirmTitle.textContent = title;
+    elements.confirmMessage.textContent = message;
+    elements.confirmModal.classList.remove('hidden');
+    confirmCallback = resolve;
+  });
+}
+
+// Validation modal
+function showValidationErrors(errors) {
+  elements.validationErrors.innerHTML = errors.map(e => `<li class="flex items-start gap-2"><span class="text-red-600 mt-0.5">•</span><span>${e}</span></li>`).join('');
+  elements.validationModal.classList.remove('hidden');
+}
+
+// Section navigation
+function switchSection(section) {
+  currentSection = section;
+  document.querySelectorAll('[data-section]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.section === section);
+  });
+  document.querySelectorAll('section[id^="section-"]').forEach(sec => {
+    sec.classList.toggle('hidden', sec.id !== `section-${section}`);
+  });
+}
+
+// Logo type switch
+function switchLogoType(type) {
+  document.getElementById('logo-svg-input').classList.toggle('hidden', type !== 'svg');
+  document.getElementById('logo-url-input').classList.toggle('hidden', type !== 'imageUrl');
+  document.getElementById('logo-text-input').classList.toggle('hidden', type !== 'text');
+}
+
+// Update logo preview
+function updateLogoPreview() {
+  const type = document.getElementById('logo-type').value;
+  const preview = document.getElementById('logo-preview');
+  let value = '';
+  
+  if (type === 'svg') value = document.getElementById('logo-svg').value;
+  else if (type === 'imageUrl') value = document.getElementById('logo-url').value;
+  else value = document.getElementById('logo-text').value;
+  
+  if (!value) {
+    preview.innerHTML = '<span class="text-sm text-gray-400">No logo set</span>';
+    return;
+  }
+  
+  if (type === 'svg') {
+    preview.innerHTML = value;
+  } else if (type === 'imageUrl') {
+    preview.innerHTML = `<img src="${value}" alt="Logo" class="max-w-full max-h-full object-contain" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'text-sm text-red-400\\'>Invalid URL</span>'">`;
+  } else {
+    preview.innerHTML = `<span class="text-2xl font-bold text-indigo-600">${value}</span>`;
+  }
+}
+
+// Render navigation groups
+function renderNavigationGroups() {
+  const container = document.getElementById('nav-groups-container');
+  if (!currentConfig?.navigationGroups) {
+    container.innerHTML = '<p class="text-sm text-gray-500">No navigation groups defined</p>';
+    return;
+  }
+  
+  const filterLower = navSearchFilter.toLowerCase();
+  
+  container.innerHTML = currentConfig.navigationGroups.map((group, gi) => {
+    const filteredItems = group.items.filter(item => {
+      if (!filterLower) return true;
+      return item.id.toLowerCase().includes(filterLower) || item.label.toLowerCase().includes(filterLower);
+    });
+    
+    if (filteredItems.length === 0 && filterLower) return '';
+    
+    return `
+    <div class="nav-group-card" data-group-index="${gi}">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2 flex-1">
+          <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+            ${gi + 1}
+          </div>
+          <input type="text" class="input-field flex-1 max-w-xs font-semibold text-sm py-1.5" value="${group.name}" data-field="group-name" data-gi="${gi}" placeholder="Group name">
+          <span class="badge badge-blue text-xs">${group.items.length} items</span>
+        </div>
+        <div class="flex gap-1">
+          <button class="btn-icon" title="Move up" ${gi === 0 ? 'disabled style="opacity:0.3"' : ''} data-action="move-group-up" data-gi="${gi}">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+          </button>
+          <button class="btn-icon" title="Move down" ${gi === currentConfig.navigationGroups.length - 1 ? 'disabled style="opacity:0.3"' : ''} data-action="move-group-down" data-gi="${gi}">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <button class="btn-icon text-red-600 hover:bg-red-50" title="Delete group" data-action="delete-group" data-gi="${gi}">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+          <button class="btn-secondary btn-sm" data-action="add-item" data-gi="${gi}">
+            <svg class="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add Item
+          </button>
+        </div>
+      </div>
+      <div class="space-y-1">
+        <div class="grid grid-cols-12 gap-2 px-2 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div class="col-span-2">Route ID</div>
+          <div class="col-span-2">Label</div>
+          <div class="col-span-2">Manager Label</div>
+          <div class="col-span-2">Teacher Label</div>
+          <div class="col-span-1">Soon?</div>
+          <div class="col-span-2">Roles</div>
+          <div class="col-span-1 text-right">Actions</div>
+        </div>
+        ${(filterLower ? filteredItems : group.items).map((item) => {
+          const ii = group.items.indexOf(item);
+          return `
+          <div class="grid grid-cols-12 gap-2 p-2 bg-white rounded-lg text-xs border border-gray-200 hover:border-indigo-300 transition-all items-center" data-item-index="${ii}">
+            <div class="col-span-2 flex items-center gap-1">
+              <span class="font-mono text-gray-700 truncate" title="${item.id}">${item.id}</span>
+              <button class="btn-icon p-0.5" title="Copy ID" data-action="copy-id" data-id="${item.id}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </button>
+            </div>
+            <div class="col-span-2">
+              <input type="text" class="input-field py-1 px-2 text-xs" value="${item.label}" placeholder="Label" data-field="item-label" data-gi="${gi}" data-ii="${ii}">
+            </div>
+            <div class="col-span-2">
+              <input type="text" class="input-field py-1 px-2 text-xs" value="${item.managerLabel || ''}" placeholder="Manager" data-field="item-manager-label" data-gi="${gi}" data-ii="${ii}">
+            </div>
+            <div class="col-span-2">
+              <input type="text" class="input-field py-1 px-2 text-xs" value="${item.teacherLabel || ''}" placeholder="Teacher" data-field="item-teacher-label" data-gi="${gi}" data-ii="${ii}">
+            </div>
+            <div class="col-span-1">
+              <label class="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
+                <input type="checkbox" class="rounded" ${item.comingSoon ? 'checked' : ''} data-field="item-coming-soon" data-gi="${gi}" data-ii="${ii}">
+              </label>
+            </div>
+            <div class="col-span-2">
+              <span class="text-gray-500 text-xs truncate" title="${item.roles?.join(', ')}">${item.roles?.join(', ') || '-'}</span>
+            </div>
+            <div class="col-span-1 flex gap-0.5 justify-end">
+              <button class="btn-icon p-0.5" title="Move up" ${ii === 0 ? 'disabled style="opacity:0.3"' : ''} data-action="move-item-up" data-gi="${gi}" data-ii="${ii}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+              </button>
+              <button class="btn-icon p-0.5" title="Move down" ${ii === group.items.length - 1 ? 'disabled style="opacity:0.3"' : ''} data-action="move-item-down" data-gi="${gi}" data-ii="${ii}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <button class="btn-icon p-0.5 text-red-600 hover:bg-red-50" title="Delete" data-action="delete-item" data-gi="${gi}" data-ii="${ii}">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+        `}).join('')}
+      </div>
+    </div>
+  `}).filter(Boolean).join('');
+}
+
+// Render module paths
+function renderModulePaths() {
+  const tbody = document.getElementById('modules-table-body');
+  if (!currentConfig?.routeModules) {
+    tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500 text-xs">No routes defined</td></tr>';
+    return;
+  }
+  
+  const filterLower = modulesSearchFilter.toLowerCase();
+  const usedRoutes = new Set();
+  
+  // Collect all used routes
+  currentConfig.navigationGroups?.forEach(g => g.items?.forEach(i => usedRoutes.add(i.id)));
+  currentConfig.payrollTabs?.adminTabs?.forEach(t => usedRoutes.add(t.id));
+  currentConfig.payrollTabs?.staffTabs?.forEach(t => usedRoutes.add(t.id));
+  currentConfig.tuitionTabs?.adminTabs?.forEach(t => usedRoutes.add(t.id));
+  currentConfig.tuitionTabs?.managerTabs?.forEach(t => usedRoutes.add(t.id));
+  
+  const entries = Object.entries(currentConfig.routeModules).filter(([id]) => {
+    if (filterLower && !id.toLowerCase().includes(filterLower)) return false;
+    if (showUnusedRoutes) return !usedRoutes.has(id);
+    return true;
+  });
+  
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500 text-xs">No routes match</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = entries.map(([id, mod]) => {
+    const isUnused = !usedRoutes.has(id);
+    return `
+    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors ${isUnused ? 'bg-yellow-50' : ''}">
+      <td class="py-2 px-2 font-mono text-gray-700 font-medium text-xs">${id}</td>
+      <td class="py-2 px-2">
+        <div class="flex items-center gap-1">
+          <input type="text" class="input-field py-1 px-2 text-xs flex-1" value="${mod.srcDefault || ''}" data-field="route-default" data-id="${id}">
+          <button class="btn-icon p-0.5" title="Copy path" data-action="copy-path" data-path="${mod.srcDefault || ''}">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          </button>
+        </div>
+      </td>
+      <td class="py-2 px-2"><input type="text" class="input-field py-1 px-2 text-xs" value="${mod.srcTeacher || ''}" placeholder="(optional)" data-field="route-teacher" data-id="${id}"></td>
+      <td class="py-2 px-2"><input type="text" class="input-field py-1 px-2 text-xs" value="${mod.srcManager || ''}" placeholder="(optional)" data-field="route-manager" data-id="${id}"></td>
+      <td class="py-2 px-2">
+        <button class="btn-secondary btn-sm text-xs py-0.5 px-2" data-action="test-route" data-src="${mod.srcDefault}">
+          <svg class="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          Open
+        </button>
+      </td>
+    </tr>
+  `}).join('');
+}
+
+// Render tabs
+function renderTabs(containerId, tabs, prefix) {
+  const container = document.getElementById(containerId);
+  if (!tabs?.length) {
+    container.innerHTML = '<p class="text-sm text-gray-500 p-3">No tabs defined yet. Click "Add Tab" to create one.</p>';
+    return;
+  }
+  
+  container.innerHTML = tabs.map((tab, i) => `
+    <div class="grid grid-cols-12 gap-2 p-2 bg-white rounded-lg text-xs border border-gray-200 hover:border-indigo-300 transition-all items-center" data-tab-index="${i}">
+      <div class="col-span-2 font-mono text-gray-500 truncate" title="${tab.id}">${tab.id}</div>
+      <div class="col-span-3">
+        <input type="text" class="input-field py-1 px-2 text-xs" value="${tab.label}" placeholder="Tab label" data-field="tab-label" data-prefix="${prefix}" data-ti="${i}">
+      </div>
+      <div class="col-span-4">
+        <input type="text" class="input-field py-1 px-2 text-xs" value="${tab.src}" placeholder="Source path" data-field="tab-src" data-prefix="${prefix}" data-ti="${i}">
+      </div>
+      <div class="col-span-3 flex gap-0.5 justify-end">
+        <button class="btn-secondary btn-sm text-xs py-0.5 px-2" data-action="open-tab-src" data-src="${tab.src}" title="Open in new tab">
+          <svg class="w-3 h-3 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          Open
+        </button>
+        <button class="btn-icon p-0.5" title="Copy src" data-action="copy-tab-src" data-src="${tab.src}">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        </button>
+        <button class="btn-icon p-0.5" title="Move up" ${i === 0 ? 'disabled style="opacity:0.3"' : ''} data-action="move-tab-up" data-prefix="${prefix}" data-ti="${i}">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+        </button>
+        <button class="btn-icon p-0.5" title="Move down" ${i === tabs.length - 1 ? 'disabled style="opacity:0.3"' : ''} data-action="move-tab-down" data-prefix="${prefix}" data-ti="${i}">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <button class="btn-icon p-0.5 text-red-600 hover:bg-red-50" title="Remove" data-action="remove-tab" data-prefix="${prefix}" data-ti="${i}">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Get tabs array by prefix
+function getTabsArray(prefix) {
+  const parts = prefix.split('-');
+  const section = parts[0]; // payroll or tuition
+  const type = parts[1] + 'Tabs'; // adminTabs or staffTabs/managerTabs
+  return currentConfig[section + 'Tabs']?.[type];
+}
+
+// Set tabs array by prefix
+function setTabsArray(prefix, tabs) {
+  const parts = prefix.split('-');
+  const section = parts[0];
+  const type = parts[1] + 'Tabs';
+  if (!currentConfig[section + 'Tabs']) currentConfig[section + 'Tabs'] = {};
+  currentConfig[section + 'Tabs'][type] = tabs;
+}
+
+// Render all payroll tabs
+function renderPayrollTabs() {
+  renderTabs('payroll-admin-tabs', currentConfig?.payrollTabs?.adminTabs, 'payroll-admin');
+  renderTabs('payroll-staff-tabs', currentConfig?.payrollTabs?.staffTabs, 'payroll-staff');
+}
+
+// Render all tuition tabs
+function renderTuitionTabs() {
+  renderTabs('tuition-admin-tabs', currentConfig?.tuitionTabs?.adminTabs, 'tuition-admin');
+  renderTabs('tuition-manager-tabs', currentConfig?.tuitionTabs?.managerTabs, 'tuition-manager');
+}
+
+// Update status displays
+function updateStatusDisplays() {
+  const draftStatus = document.getElementById('draft-status');
+  const liveStatus = document.getElementById('live-status');
+  
+  if (currentConfig?.updatedAt) {
+    const date = currentConfig.updatedAt.toDate ? currentConfig.updatedAt.toDate() : new Date(currentConfig.updatedAt);
+    draftStatus.textContent = `Last saved: ${date.toLocaleString()}`;
+    elements.draftBadge.textContent = '📝 Draft loaded';
+  } else {
+    draftStatus.textContent = 'Not yet saved';
+    elements.draftBadge.textContent = '📝 New draft';
+  }
+  
+  if (liveConfig?.updatedAt) {
+    const date = liveConfig.updatedAt.toDate ? liveConfig.updatedAt.toDate() : new Date(liveConfig.updatedAt);
+    liveStatus.textContent = `Published: ${date.toLocaleString()}`;
+    elements.liveBadge.textContent = `✓ Live: ${date.toLocaleDateString()}`;
+    elements.liveBadge.classList.remove('hidden');
+  } else {
+    liveStatus.textContent = 'Never published';
+    elements.liveBadge.classList.add('hidden');
+  }
+}
+
+// Collect config from form
+function collectConfig() {
+  // App info
+  currentConfig.app = currentConfig.app || {};
+  currentConfig.app.title = document.getElementById('app-title').value;
+  currentConfig.app.subtitle = document.getElementById('app-subtitle').value;
+  currentConfig.app.welcomeMessage = document.getElementById('app-welcome').value;
+  
+  // Logo
+  const logoType = document.getElementById('logo-type').value;
+  let logoValue = '';
+  if (logoType === 'svg') logoValue = document.getElementById('logo-svg').value;
+  else if (logoType === 'imageUrl') logoValue = document.getElementById('logo-url').value;
+  else logoValue = document.getElementById('logo-text').value;
+  currentConfig.app.logo = { type: logoType, value: logoValue };
+  
+  return currentConfig;
+}
+
+// Populate form from config
+function populateForm() {
+  if (!currentConfig) return;
+  
+  // App info
+  document.getElementById('app-title').value = currentConfig.app?.title || '';
+  document.getElementById('app-subtitle').value = currentConfig.app?.subtitle || '';
+  document.getElementById('app-welcome').value = currentConfig.app?.welcomeMessage || '';
+  
+  // Logo
+  const logo = currentConfig.app?.logo || { type: 'text', value: '' };
+  document.getElementById('logo-type').value = logo.type;
+  switchLogoType(logo.type);
+  document.getElementById('logo-svg').value = logo.type === 'svg' ? logo.value : '';
+  document.getElementById('logo-url').value = logo.type === 'imageUrl' ? logo.value : '';
+  document.getElementById('logo-text').value = logo.type === 'text' ? logo.value : '';
+  updateLogoPreview();
+  
+  // Navigation
+  renderNavigationGroups();
+  
+  // Modules
+  renderModulePaths();
+  
+  // Tabs
+  renderPayrollTabs();
+  renderTuitionTabs();
+  
+  // Status
+  updateStatusDisplays();
+}
+
+// Validate config
+function validateConfig() {
+  const errors = [];
+  const config = collectConfig();
+  
+  if (typeof config.schemaVersion !== 'number') {
+    errors.push('Schema version must be a number');
+  }
+  
+  if (!Array.isArray(config.navigationGroups)) {
+    errors.push('Navigation groups must be an array');
+  } else {
+    const allRouteIds = [];
+    config.navigationGroups.forEach((group, gi) => {
+      if (!Array.isArray(group.items)) {
+        errors.push(`Group ${gi + 1}: items must be an array`);
+      } else {
+        group.items.forEach((item, ii) => {
+          if (!item.id) {
+            errors.push(`Group ${gi + 1}, Item ${ii + 1}: missing id`);
+          } else {
+            allRouteIds.push(item.id);
+          }
+          if (!Array.isArray(item.roles)) {
+            errors.push(`Group ${gi + 1}, Item ${ii + 1}: roles must be an array`);
+          }
+        });
+      }
+    });
+    
+    // Check for duplicate route IDs
+    const duplicates = allRouteIds.filter((id, i) => allRouteIds.indexOf(id) !== i);
+    if (duplicates.length > 0) {
+      errors.push(`Duplicate route IDs found: ${[...new Set(duplicates)].join(', ')}`);
+    }
+  }
+  
+  // Check routeModules - require srcDefault UNLESS comingSoon=true
+  const requiredRoutes = new Set();
+  config.navigationGroups?.forEach(g => g.items?.forEach(i => {
+    if (!i.comingSoon) {
+      requiredRoutes.add(i.id);
+    }
+  }));
+  
+  requiredRoutes.forEach(routeId => {
+    if (!config.routeModules?.[routeId]?.srcDefault) {
+      errors.push(`Route "${routeId}": missing srcDefault`);
+    }
+  });
+  
+  // Validate tabs - check for duplicate IDs
+  const validateTabIds = (tabs, name) => {
+    if (!tabs) return;
+    const tabIds = [];
+    tabs.forEach((tab, i) => {
+      if (!tab.id) errors.push(`${name} tab ${i + 1}: missing id`);
+      else tabIds.push(tab.id);
+      if (!tab.label) errors.push(`${name} tab ${i + 1}: missing label`);
+      if (!tab.src) errors.push(`${name} tab ${i + 1}: missing src`);
+    });
+    const duplicates = tabIds.filter((id, i) => tabIds.indexOf(id) !== i);
+    if (duplicates.length > 0) {
+      errors.push(`${name}: Duplicate tab IDs: ${[...new Set(duplicates)].join(', ')}`);
+    }
+  };
+  
+  validateTabIds(config.payrollTabs?.adminTabs, 'Payroll Admin');
+  validateTabIds(config.payrollTabs?.staffTabs, 'Payroll Staff');
+  validateTabIds(config.tuitionTabs?.adminTabs, 'Tuition Admin');
+  validateTabIds(config.tuitionTabs?.managerTabs, 'Tuition Manager');
+  
+  return errors;
+}
+
+// Save draft
+async function saveDraft() {
+  const errors = validateConfig();
+  if (errors.length > 0) {
+    showValidationErrors(errors);
+    return false;
+  }
+  
+  try {
+    const config = collectConfig();
+    config.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection('system_settings').doc('dashboard_draft').set(config);
+    currentConfig.updatedAt = new Date();
+    updateStatusDisplays();
+    showToast('Draft saved successfully', 'success');
+    return true;
+  } catch (err) {
+    console.error('Save error:', err);
+    showToast('Failed to save draft', 'error');
+    return false;
+  }
+}
+
+// Publish to live
+async function publishToLive() {
+  const errors = validateConfig();
+  if (errors.length > 0) {
+    showValidationErrors(errors);
+    return;
+  }
+  
+  const confirmed = await showConfirm('Publish to Live', 'This will update the live dashboard for all users. Continue?');
+  if (!confirmed) return;
+  
+  try {
+    const config = collectConfig();
+    config.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    
+    await db.collection('system_settings').doc('dashboard_draft').set(config);
+    await db.collection('system_settings').doc('dashboard_live').set(config);
+    
+    liveConfig = { ...config, updatedAt: new Date() };
+    currentConfig.updatedAt = new Date();
+    updateStatusDisplays();
+    showToast('Published to live successfully', 'success');
+  } catch (err) {
+    console.error('Publish error:', err);
+    showToast('Failed to publish', 'error');
+  }
+}
+
+// Reset from live
+async function resetFromLive() {
+  const confirmed = await showConfirm('Reset Draft', 'This will discard all draft changes and reload from live. Continue?');
+  if (!confirmed) return;
+  
+  try {
+    if (liveConfig) {
+      currentConfig = JSON.parse(JSON.stringify(liveConfig));
+      await db.collection('system_settings').doc('dashboard_draft').set(currentConfig);
+      populateForm();
+      showToast('Draft reset from live', 'success');
+    } else {
+      showToast('No live config to reset from', 'warning');
+    }
+  } catch (err) {
+    console.error('Reset error:', err);
+    showToast('Failed to reset', 'error');
+  }
+}
+
+// Load config
+async function loadConfig() {
+  try {
+    // Try loading draft
+    const draftDoc = await db.collection('system_settings').doc('dashboard_draft').get();
+    
+    // Try loading live
+    const liveDoc = await db.collection('system_settings').doc('dashboard_live').get();
+    if (liveDoc.exists) {
+      liveConfig = liveDoc.data();
+    }
+    
+    if (draftDoc.exists) {
+      currentConfig = draftDoc.data();
+    } else if (liveConfig) {
+      // Clone from live
+      currentConfig = JSON.parse(JSON.stringify(liveConfig));
+      showToast('Draft created from live config', 'info');
+    } else {
+      // Use default
+      currentConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      showToast('Using default config', 'info');
+    }
+    
+    populateForm();
+  } catch (err) {
+    console.error('Load error:', err);
+    showToast('Failed to load config', 'error');
+    currentConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    populateForm();
+  }
+}
+
+// Check admin permission
+async function checkPermission(uid) {
+  try {
+    const userDoc = await db.collection('users').doc(uid).get();
+    if (userDoc.exists) {
+      const role = userDoc.data().role;
+      return role === 'admin';
+    }
+    return false;
+  } catch (err) {
+    console.error('Permission check error:', err);
+    return false;
+  }
+}
+
+// Event handlers
+function setupEventHandlers() {
+  // Section navigation
+  document.querySelectorAll('[data-section]').forEach(btn => {
+    btn.addEventListener('click', () => switchSection(btn.dataset.section));
+  });
+  
+  // Logo type change
+  document.getElementById('logo-type').addEventListener('change', (e) => {
+    switchLogoType(e.target.value);
+    updateLogoPreview();
+  });
+  
+  // Logo input changes
+  ['logo-svg', 'logo-url', 'logo-text'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateLogoPreview);
+  });
+  
+  // Save/Publish buttons
+  document.getElementById('btn-save').addEventListener('click', saveDraft);
+  document.getElementById('btn-publish').addEventListener('click', publishToLive);
+  document.getElementById('btn-reset').addEventListener('click', resetFromLive);
+  document.getElementById('publish-save-draft').addEventListener('click', saveDraft);
+  document.getElementById('publish-to-live').addEventListener('click', publishToLive);
+  document.getElementById('publish-reset').addEventListener('click', resetFromLive);
+  
+  // Modal close buttons
+  document.getElementById('close-validation-modal').addEventListener('click', () => {
+    elements.validationModal.classList.add('hidden');
+  });
+  document.getElementById('dismiss-validation').addEventListener('click', () => {
+    elements.validationModal.classList.add('hidden');
+  });
+  document.getElementById('confirm-cancel').addEventListener('click', () => {
+    elements.confirmModal.classList.add('hidden');
+    if (confirmCallback) confirmCallback(false);
+  });
+  document.getElementById('confirm-ok').addEventListener('click', () => {
+    elements.confirmModal.classList.add('hidden');
+    if (confirmCallback) confirmCallback(true);
+  });
+  
+  // Add tab buttons
+  document.getElementById('add-payroll-admin-tab').addEventListener('click', () => addTab('payroll-admin'));
+  document.getElementById('add-payroll-staff-tab').addEventListener('click', () => addTab('payroll-staff'));
+  document.getElementById('add-tuition-admin-tab').addEventListener('click', () => addTab('tuition-admin'));
+  document.getElementById('add-tuition-manager-tab').addEventListener('click', () => addTab('tuition-manager'));
+  
+  // Search inputs
+  document.getElementById('nav-search').addEventListener('input', (e) => {
+    navSearchFilter = e.target.value;
+    renderNavigationGroups();
+  });
+  
+  document.getElementById('modules-search').addEventListener('input', (e) => {
+    modulesSearchFilter = e.target.value;
+    renderModulePaths();
+  });
+  
+  // Show unused routes toggle
+  document.getElementById('show-unused-routes').addEventListener('change', (e) => {
+    showUnusedRoutes = e.target.checked;
+    renderModulePaths();
+  });
+  
+  // Auto-sync routes
+  document.getElementById('auto-sync-routes').addEventListener('click', autoSyncRoutes);
+  
+  // Add navigation group
+  document.getElementById('add-nav-group').addEventListener('click', addNavGroup);
+  
+  // Import/Export
+  document.getElementById('btn-export-json').addEventListener('click', exportJSON);
+  document.getElementById('btn-import-json').addEventListener('click', () => {
+    document.getElementById('import-json-textarea').value = '';
+    document.getElementById('import-modal').classList.remove('hidden');
+  });
+  
+  document.getElementById('close-import-modal').addEventListener('click', () => {
+    document.getElementById('import-modal').classList.add('hidden');
+  });
+  
+  document.getElementById('import-cancel').addEventListener('click', () => {
+    document.getElementById('import-modal').classList.add('hidden');
+  });
+  
+  document.getElementById('import-ok').addEventListener('click', importJSON);
+  
+  document.getElementById('import-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        document.getElementById('import-json-textarea').value = event.target.result;
+      };
+      reader.readAsText(file);
+    }
+  });
+  
+  // Delegated events for dynamic content
+  document.addEventListener('input', handleInput);
+  document.addEventListener('change', handleChange);
+  document.addEventListener('click', handleClick);
+}
+
+function handleInput(e) {
+  const field = e.target.dataset.field;
+  if (!field) return;
+  
+  if (field === 'group-name') {
+    const gi = parseInt(e.target.dataset.gi);
+    currentConfig.navigationGroups[gi].name = e.target.value;
+  } else if (field === 'item-label') {
+    const gi = parseInt(e.target.dataset.gi);
+    const ii = parseInt(e.target.dataset.ii);
+    currentConfig.navigationGroups[gi].items[ii].label = e.target.value;
+  } else if (field === 'item-manager-label') {
+    const gi = parseInt(e.target.dataset.gi);
+    const ii = parseInt(e.target.dataset.ii);
+    const val = e.target.value;
+    if (val) currentConfig.navigationGroups[gi].items[ii].managerLabel = val;
+    else delete currentConfig.navigationGroups[gi].items[ii].managerLabel;
+  } else if (field === 'item-teacher-label') {
+    const gi = parseInt(e.target.dataset.gi);
+    const ii = parseInt(e.target.dataset.ii);
+    const val = e.target.value;
+    if (val) currentConfig.navigationGroups[gi].items[ii].teacherLabel = val;
+    else delete currentConfig.navigationGroups[gi].items[ii].teacherLabel;
+  } else if (field === 'route-default') {
+    const id = e.target.dataset.id;
+    currentConfig.routeModules[id].srcDefault = e.target.value;
+  } else if (field === 'route-teacher') {
+    const id = e.target.dataset.id;
+    const val = e.target.value;
+    if (val) currentConfig.routeModules[id].srcTeacher = val;
+    else delete currentConfig.routeModules[id].srcTeacher;
+  } else if (field === 'route-manager') {
+    const id = e.target.dataset.id;
+    const val = e.target.value;
+    if (val) currentConfig.routeModules[id].srcManager = val;
+    else delete currentConfig.routeModules[id].srcManager;
+  } else if (field === 'tab-label') {
+    const prefix = e.target.dataset.prefix;
+    const ti = parseInt(e.target.dataset.ti);
+    const tabs = getTabsArray(prefix);
+    if (tabs) tabs[ti].label = e.target.value;
+  } else if (field === 'tab-src') {
+    const prefix = e.target.dataset.prefix;
+    const ti = parseInt(e.target.dataset.ti);
+    const tabs = getTabsArray(prefix);
+    if (tabs) tabs[ti].src = e.target.value;
+  }
+}
+
+function handleChange(e) {
+  const field = e.target.dataset.field;
+  if (field === 'item-coming-soon') {
+    const gi = parseInt(e.target.dataset.gi);
+    const ii = parseInt(e.target.dataset.ii);
+    if (e.target.checked) {
+      currentConfig.navigationGroups[gi].items[ii].comingSoon = true;
+    } else {
+      delete currentConfig.navigationGroups[gi].items[ii].comingSoon;
+    }
+  }
+}
+
+async function handleClick(e) {
+  const action = e.target.closest('[data-action]')?.dataset.action;
+  if (!action) return;
+  
+  const btn = e.target.closest('[data-action]');
+  
+  if (action === 'copy-id') {
+    const id = btn.dataset.id;
+    await navigator.clipboard.writeText(id);
+    showToast('Route ID copied', 'success');
+  } else if (action === 'copy-path') {
+    const path = btn.dataset.path;
+    if (path) {
+      await navigator.clipboard.writeText(path);
+      showToast('Path copied', 'success');
+    }
+  } else if (action === 'copy-tab-src') {
+    const src = btn.dataset.src;
+    if (src) {
+      await navigator.clipboard.writeText(src);
+      showToast('Source copied', 'success');
+    }
+  } else if (action === 'open-tab-src') {
+    const src = btn.dataset.src;
+    if (src) window.open(src, '_blank', 'noopener,noreferrer');
+  } else if (action === 'add-item') {
+    const gi = parseInt(btn.dataset.gi);
+    const newId = 'new-route-' + Date.now();
+    currentConfig.navigationGroups[gi].items.push({
+      id: newId,
+      label: 'New Item',
+      roles: ['admin']
+    });
+    renderNavigationGroups();
+  } else if (action === 'delete-item') {
+    const confirmed = await showConfirm('Delete Item', 'Are you sure you want to delete this navigation item?');
+    if (!confirmed) return;
+    const gi = parseInt(btn.dataset.gi);
+    const ii = parseInt(btn.dataset.ii);
+    currentConfig.navigationGroups[gi].items.splice(ii, 1);
+    renderNavigationGroups();
+  } else if (action === 'delete-group') {
+    const confirmed = await showConfirm('Delete Group', 'Are you sure you want to delete this entire group?');
+    if (!confirmed) return;
+    const gi = parseInt(btn.dataset.gi);
+    currentConfig.navigationGroups.splice(gi, 1);
+    renderNavigationGroups();
+  } else if (action === 'move-group-up') {
+    const gi = parseInt(btn.dataset.gi);
+    if (gi > 0) {
+      const groups = currentConfig.navigationGroups;
+      [groups[gi - 1], groups[gi]] = [groups[gi], groups[gi - 1]];
+      renderNavigationGroups();
+    }
+  } else if (action === 'move-group-down') {
+    const gi = parseInt(btn.dataset.gi);
+    const groups = currentConfig.navigationGroups;
+    if (gi < groups.length - 1) {
+      [groups[gi], groups[gi + 1]] = [groups[gi + 1], groups[gi]];
+      renderNavigationGroups();
+    }
+  } else if (action === 'move-item-up') {
+    const gi = parseInt(btn.dataset.gi);
+    const ii = parseInt(btn.dataset.ii);
+    if (ii > 0) {
+      const items = currentConfig.navigationGroups[gi].items;
+      [items[ii - 1], items[ii]] = [items[ii], items[ii - 1]];
+      renderNavigationGroups();
+    }
+  } else if (action === 'move-item-down') {
+    const gi = parseInt(btn.dataset.gi);
+    const ii = parseInt(btn.dataset.ii);
+    const items = currentConfig.navigationGroups[gi].items;
+    if (ii < items.length - 1) {
+      [items[ii], items[ii + 1]] = [items[ii + 1], items[ii]];
+      renderNavigationGroups();
+    }
+  } else if (action === 'test-route') {
+    const src = btn.dataset.src;
+    if (src) window.open(src, '_blank', 'noopener,noreferrer');
+  } else if (action === 'move-tab-up') {
+    const prefix = btn.dataset.prefix;
+    const ti = parseInt(btn.dataset.ti);
+    const tabs = getTabsArray(prefix);
+    if (tabs && ti > 0) {
+      [tabs[ti - 1], tabs[ti]] = [tabs[ti], tabs[ti - 1]];
+      if (prefix.startsWith('payroll')) renderPayrollTabs();
+      else renderTuitionTabs();
+    }
+  } else if (action === 'move-tab-down') {
+    const prefix = btn.dataset.prefix;
+    const ti = parseInt(btn.dataset.ti);
+    const tabs = getTabsArray(prefix);
+    if (tabs && ti < tabs.length - 1) {
+      [tabs[ti], tabs[ti + 1]] = [tabs[ti + 1], tabs[ti]];
+      if (prefix.startsWith('payroll')) renderPayrollTabs();
+      else renderTuitionTabs();
+    }
+  } else if (action === 'remove-tab') {
+    const confirmed = await showConfirm('Remove Tab', 'Are you sure you want to remove this tab?');
+    if (!confirmed) return;
+    
+    const prefix = btn.dataset.prefix;
+    const ti = parseInt(btn.dataset.ti);
+    const tabs = getTabsArray(prefix);
+    if (tabs) {
+      tabs.splice(ti, 1);
+      setTabsArray(prefix, tabs);
+      if (prefix.startsWith('payroll')) renderPayrollTabs();
+      else renderTuitionTabs();
+    }
+  }
+}
+
+function addTab(prefix) {
+  let tabs = getTabsArray(prefix);
+  if (!tabs) {
+    tabs = [];
+    setTabsArray(prefix, tabs);
+  }
+  
+  const newId = `custom-${Date.now()}`;
+  tabs.push({ id: newId, label: 'New Tab', src: '' });
+  
+  if (prefix.startsWith('payroll')) renderPayrollTabs();
+  else renderTuitionTabs();
+}
+
+// Add navigation group
+function addNavGroup() {
+  if (!currentConfig.navigationGroups) {
+    currentConfig.navigationGroups = [];
+  }
+  currentConfig.navigationGroups.push({
+    name: 'New Group',
+    items: []
+  });
+  renderNavigationGroups();
+  showToast('Group added', 'success');
+}
+
+// Auto-sync routes
+function autoSyncRoutes() {
+  if (!currentConfig.routeModules) {
+    currentConfig.routeModules = {};
+  }
+  
+  const allRouteIds = new Set();
+  currentConfig.navigationGroups?.forEach(g => g.items?.forEach(i => allRouteIds.add(i.id)));
+  
+  let addedCount = 0;
+  allRouteIds.forEach(id => {
+    if (!currentConfig.routeModules[id]) {
+      currentConfig.routeModules[id] = { srcDefault: '', srcTeacher: '', srcManager: '' };
+      addedCount++;
+    }
+  });
+  
+  renderModulePaths();
+  showToast(`Added ${addedCount} missing routes`, addedCount > 0 ? 'success' : 'info');
+}
+
+// Export JSON
+function exportJSON() {
+  const config = collectConfig();
+  const jsonStr = JSON.stringify(config, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dashboard_draft.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('JSON exported', 'success');
+}
+
+// Import JSON
+function importJSON() {
+  const jsonStr = document.getElementById('import-json-textarea').value;
+  if (!jsonStr.trim()) {
+    showToast('No JSON provided', 'error');
+    return;
+  }
+  
+  try {
+    const imported = JSON.parse(jsonStr);
+    
+    // Basic validation
+    if (typeof imported !== 'object' || !imported.schemaVersion) {
+      showToast('Invalid configuration JSON', 'error');
+      return;
+    }
+    
+    currentConfig = imported;
+    populateForm();
+    document.getElementById('import-modal').classList.add('hidden');
+    showToast('Imported into draft (not saved yet)', 'success');
+  } catch (err) {
+    console.error('Import error:', err);
+    showToast('Invalid JSON format', 'error');
+  }
+}
+
+// Initialize
+async function init() {
+  if (window.elementSdk) {
+    window.elementSdk.init({
+      defaultConfig: {},
+      onConfigChange: async () => {},
+      mapToCapabilities: () => ({ recolorables: [], borderables: [], fontEditable: undefined, fontSizeable: undefined }),
+      mapToEditPanelValues: () => new Map()
+    });
+  }
+  
+  setupEventHandlers();
+  
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) {
+      elements.loadingScreen.classList.add('hidden');
+      elements.noPermission.classList.remove('hidden');
+      return;
+    }
+    
+    const isAdmin = await checkPermission(user.uid);
+    
+    if (!isAdmin) {
+      elements.loadingScreen.classList.add('hidden');
+      elements.noPermission.classList.remove('hidden');
+      return;
+    }
+    
+    await loadConfig();
+    elements.loadingScreen.classList.add('hidden');
+    elements.mainApp.classList.remove('hidden');
+  });
+}
+
+init();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bf4bd2155200901',t:'MTc2ODY0MTIyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
