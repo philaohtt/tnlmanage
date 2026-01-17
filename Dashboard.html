@@ -1228,27 +1228,45 @@
 
     // Helper: Resolve and URL-encode module paths
     function resolveModuleUrl(path) {
-      // Get base directory from current page URL (remove hash and query params)
-      const currentUrl = window.location.href.split('#')[0].split('?')[0];
-      const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+      // Get the repository base URL
+      const currentUrl = window.location.href;
       
-      // Split path into segments, encode each segment individually, then rejoin
+      // Remove hash and query params
+      const cleanUrl = currentUrl.split('#')[0].split('?')[0];
+      
+      // Split URL into parts and remove the last part (Dashboard.html)
+      const urlParts = cleanUrl.split('/');
+      urlParts.pop();
+      
+      // Rebuild base URL
+      const baseUrl = urlParts.join('/') + '/';
+      
+      // Split path into segments and encode each individually
       const segments = path.split('/');
       const encodedSegments = segments.map(segment => {
-        // Don't double-encode if already encoded
+        // Check if already encoded
         try {
           if (decodeURIComponent(segment) !== segment) {
-            return segment; // Already encoded
+            return segment;
           }
         } catch (e) {
-          // If decode fails, it's not encoded
+          // Not encoded
         }
         return encodeURIComponent(segment);
       });
-      const encodedPath = encodedSegments.join('/');
       
-      // Return full absolute URL
-      return baseUrl + encodedPath;
+      // Join segments and create full URL
+      const encodedPath = encodedSegments.join('/');
+      const fullUrl = baseUrl + encodedPath;
+      
+      console.log('Resolving module URL:', {
+        path,
+        baseUrl,
+        encodedPath,
+        fullUrl
+      });
+      
+      return fullUrl;
     }
 
     // Iframe cache to prevent reloading
@@ -1263,7 +1281,7 @@
       }
       
       const iframe = document.createElement('iframe');
-      iframe.src = resolveModuleUrl(src);
+      iframe.src = src;
       iframe.className = 'w-full h-full border-0';
       iframe.id = id;
       
@@ -1279,6 +1297,7 @@
         }
       });
       
+      const resolvedSrc = resolveModuleUrl(src);
       const cacheKey = `${id}-${src}`;
       let iframe = iframeCache.get(cacheKey);
       
@@ -1287,7 +1306,7 @@
         iframe.style.display = 'block';
       } else {
         // Create or retrieve iframe and add to container
-        iframe = getOrCreateIframe(src, id);
+        iframe = getOrCreateIframe(resolvedSrc, id);
         iframe.style.display = 'block';
         container.appendChild(iframe);
       }
@@ -1340,7 +1359,7 @@
       
       const container = document.getElementById('payroll-iframe-container');
       const activeTab = tabs.find(t => t.id === savedTab) || tabs[0];
-      showIframe(container, resolveModuleUrl(activeTab.src), `payroll-iframe-${activeTab.id}`);
+      showIframe(container, activeTab.src, `payroll-iframe-${activeTab.id}`);
       
       const tabButtons = document.querySelectorAll('[data-module-tab]');
       
@@ -1355,7 +1374,7 @@
           button.classList.add('active');
           
           saveTabState('payroll', tabId);
-          showIframe(container, resolveModuleUrl(tab.src), `payroll-iframe-${tabId}`);
+          showIframe(container, tab.src, `payroll-iframe-${tabId}`);
         });
       });
     }
@@ -1394,7 +1413,7 @@
       
       const container = document.getElementById('tuition-iframe-container');
       const activeTab = tabs.find(t => t.id === savedTab) || tabs[0];
-      showIframe(container, resolveModuleUrl(activeTab.src), `tuition-iframe-${activeTab.id}`);
+      showIframe(container, activeTab.src, `tuition-iframe-${activeTab.id}`);
       
       const tabButtons = document.querySelectorAll('[data-module-tab]');
       
@@ -1409,7 +1428,7 @@
           button.classList.add('active');
           
           saveTabState('tuition', tabId);
-          showIframe(container, resolveModuleUrl(tab.src), `tuition-iframe-${tabId}`);
+          showIframe(container, tab.src, `tuition-iframe-${tabId}`);
         });
       });
     }
@@ -1727,5 +1746,5 @@
 
     initApp();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bf62833a3e236f1',t:'MTc2ODY1NjEwMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bf632e7f560ddcc',t:'MTc2ODY1NjU0MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
