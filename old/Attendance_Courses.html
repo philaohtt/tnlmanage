@@ -1,0 +1,1214 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Attendance - Course</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+  </style><!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window.db = db;
+  </script>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full w-full overflow-auto bg-gray-900 bg-opacity-50"><!-- Global Loading Overlay -->
+  <div id="globalLoadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[100]">
+   <div class="bg-white rounded-lg shadow-xl px-8 py-6 flex flex-col items-center">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-3"></div>
+    <p id="globalLoadingText" class="text-gray-700 font-medium">Processing...</p>
+   </div>
+  </div><!-- Main Modal Container -->
+  <div class="h-full w-full">
+   <div class="bg-white h-full w-full flex flex-col"><!-- Header -->
+    <div class="px-4 py-3 border-b border-gray-200 flex-shrink-0">
+     <div>
+      <p id="courseSubtitle" class="text-2xl font-bold text-gray-900">Loading...</p>
+     </div>
+    </div><!-- Loading Indicator -->
+    <div id="loadingIndicator" class="flex-1 flex items-center justify-center">
+     <div class="text-center">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+      <p class="text-gray-600 font-medium">Loading course data...</p>
+     </div>
+    </div><!-- Scrollable Content -->
+    <div id="mainContent" class="flex-1 overflow-y-auto px-4 py-3 hidden"><!-- Section 1: Add New Session -->
+     <div class="bg-gray-50 rounded-lg p-3 mb-3">
+      <div class="flex items-center justify-between mb-3">
+       <h2 class="text-sm font-semibold text-gray-900">Add New Session</h2>
+       <div class="flex items-center gap-2"><label class="text-xs text-gray-700">Sort students by:</label> <select id="sortDropdown" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="id">Student ID</option> <option value="name">Name</option> </select>
+       </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-2"><input type="date" id="sessionDate" class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"> <select id="teacherSelect" class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Select teacher</option> </select> <input type="text" id="lessonName" placeholder="Lesson name" class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"> <button id="addSessionBtn" class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded px-3 py-1.5 transition-colors"> Add Session </button>
+      </div>
+     </div><!-- Section 2: Attendance Table -->
+     <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto max-h-[calc(100vh-200px)] overflow-y-auto">
+       <table class="w-full">
+        <thead class="bg-gray-100 border-b border-gray-200 sticky top-0 z-40">
+         <tr>
+          <th class="sticky left-0 z-50 bg-gray-100 px-3 py-2 text-left text-xs font-semibold text-gray-900 border-r border-gray-200 w-24 min-w-[96px] max-w-[96px]">Student ID</th>
+          <th class="sticky left-24 z-50 bg-gray-100 px-3 py-2 text-left text-xs font-semibold text-gray-900 border-r border-gray-200 w-48 min-w-[192px] max-w-[192px]">Student Name</th>
+          <th id="sessionsHeader" class="px-3 py-2 text-center text-xs font-semibold text-gray-900"></th>
+         </tr>
+        </thead>
+        <tbody id="attendanceTableBody" class="divide-y divide-gray-200">
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Modal: Edit Student Attendance -->
+  <div id="editStudentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+   <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div class="px-6 py-4 border-b border-gray-200">
+     <h2 class="text-xl font-bold text-gray-900">Edit Student Attendance</h2>
+    </div>
+    <div class="px-6 py-4">
+     <div class="mb-4">
+      <p class="text-sm text-gray-600"><strong>Student:</strong> <span id="editStudentName"></span></p>
+      <p class="text-sm text-gray-600"><strong>ID:</strong> <span id="editStudentId"></span></p>
+      <p class="text-sm text-gray-600"><strong>Date:</strong> <span id="editSessionDate"></span></p>
+      <p class="text-sm text-gray-600"><strong>Teacher:</strong> <span id="editSessionTeacher"></span></p>
+      <p class="text-sm text-gray-600"><strong>Lesson:</strong> <span id="editSessionLesson"></span></p>
+     </div>
+     <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Attendance Status</label>
+      <div class="space-y-2"><label class="flex items-center"> <input type="radio" name="editStatus" value="present" class="mr-2"> <span class="text-sm text-gray-900">Present</span> </label> <label class="flex items-center"> <input type="radio" name="editStatus" value="absent" class="mr-2"> <span class="text-sm text-gray-900">Absent</span> </label> <label class="flex items-center"> <input type="radio" name="editStatus" value="late" class="mr-2"> <span class="text-sm text-gray-900">Late</span> </label> <label class="flex items-center"> <input type="radio" name="editStatus" value="excused" class="mr-2"> <span class="text-sm text-gray-900">Excused</span> </label> <label class="flex items-center"> <input type="radio" name="editStatus" value="-" class="mr-2"> <span class="text-sm text-gray-900">No Record</span> </label>
+      </div>
+     </div>
+     <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Notes</label> <textarea id="editStudentNotes" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+     </div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2"><button id="cancelEditStudentBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded px-4 py-2 transition-colors"> Cancel </button> <button id="saveEditStudentBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded px-4 py-2 transition-colors"> Save </button>
+    </div>
+   </div>
+  </div><!-- Modal: Edit Session Info -->
+  <div id="editSessionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+   <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div class="px-6 py-4 border-b border-gray-200">
+     <h2 class="text-xl font-bold text-gray-900">Edit Session Information</h2>
+    </div>
+    <div class="px-6 py-4">
+     <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Date</label> <input type="date" id="editSessionDateInput" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+     </div>
+     <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Teacher</label> <select id="editSessionTeacherSelect" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">Select teacher</option> </select>
+     </div>
+     <div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-2">Lesson</label> <input type="text" id="editSessionLessonInput" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+     </div>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2"><button id="cancelEditSessionBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded px-4 py-2 transition-colors"> Cancel </button> <button id="saveEditSessionBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded px-4 py-2 transition-colors"> Save Changes </button>
+    </div>
+   </div>
+  </div><!-- Modal: Manage Attendance for Date -->
+  <div id="manageSessionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+   <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+     <div class="flex items-start justify-between">
+      <div>
+       <h2 class="text-xl font-bold text-gray-900">Manage Attendance for Date</h2>
+       <div class="mt-2">
+        <p class="text-sm text-gray-600"><strong>Date:</strong> <span id="manageSessionDate"></span></p>
+        <p class="text-sm text-gray-600"><strong>Teacher:</strong> <span id="manageSessionTeacher"></span></p>
+        <p class="text-sm text-gray-600"><strong>Topic:</strong> <span id="manageSessionLesson"></span></p>
+       </div>
+      </div><button id="editSessionInfoBtn" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-2 rounded text-sm font-medium"> Edit Session Info </button>
+     </div>
+     <div class="flex gap-2 mt-3"><button id="markAllPresentBtn" class="bg-green-600 hover:bg-green-700 text-white font-medium rounded px-4 py-2 transition-colors"> Mark All Present </button> <button id="clearAllBtn" class="bg-gray-400 hover:bg-gray-500 text-white font-medium rounded px-4 py-2 transition-colors"> Clear All </button>
+     </div>
+    </div>
+    <div class="flex-1 overflow-y-auto px-6 py-4">
+     <table class="w-full">
+      <thead class="bg-gray-50 border-b border-gray-200">
+       <tr>
+        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900">Student ID</th>
+        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900">Student Name</th>
+        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900">Attendance</th>
+        <th class="px-4 py-2 text-left text-sm font-semibold text-gray-900">Notes</th>
+       </tr>
+      </thead>
+      <tbody id="manageSessionTableBody" class="divide-y divide-gray-200">
+      </tbody>
+     </table>
+    </div>
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0"><button id="cancelManageSessionBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded px-4 py-2 transition-colors"> Cancel </button> <button id="saveManageSessionBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded px-4 py-2 transition-colors"> Save Changes </button>
+    </div>
+   </div>
+  </div>
+  <script type="module">
+    import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, writeBatch, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+    const db = window.db;
+
+    // Global variables
+    let courseId = null;
+    let students = [];
+    let sessions = [];
+    let sortBy = 'id';
+    let currentEditStudent = null;
+    let currentEditSession = null;
+    let currentManageSession = null;
+    let currentEditSessionIndex = null;
+    let coursePrimaryTeacherId = null;
+    let coursePrimaryTeacherName = '';
+    let staffTeacherList = [];
+    let currentUserStaffId = null;
+
+    // Helper functions for loading overlay
+    function showLoadingOverlay(message = 'Processing...') {
+      document.getElementById('globalLoadingText').textContent = message;
+      document.getElementById('globalLoadingOverlay').classList.remove('hidden');
+    }
+
+    function hideLoadingOverlay() {
+      document.getElementById('globalLoadingOverlay').classList.add('hidden');
+    }
+
+    // Resolve courseId dynamically
+    function resolveCourseId() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCourseId = urlParams.get('courseId');
+      if (urlCourseId) return urlCourseId;
+
+      const activeCourseId = localStorage.getItem('activeCourseId');
+      if (activeCourseId) return activeCourseId;
+
+      const activeCourseStr = localStorage.getItem('activeCourse');
+      if (activeCourseStr) {
+        try {
+          const activeCourse = JSON.parse(activeCourseStr);
+          const resolvedId = activeCourse.courseId || activeCourse.id;
+          if (resolvedId) return resolvedId;
+        } catch (e) {
+          console.error('Error parsing activeCourse:', e);
+        }
+      }
+
+      return null;
+    }
+
+    // Initialize UI on load
+    async function initializeUI() {
+      courseId = resolveCourseId();
+
+      if (!courseId) {
+        document.getElementById('courseSubtitle').textContent = 'Missing courseId';
+        document.getElementById('addSessionBtn').disabled = true;
+        document.getElementById('sessionDate').disabled = true;
+        document.getElementById('teacherSelect').disabled = true;
+        document.getElementById('lessonName').disabled = true;
+        document.getElementById('sortDropdown').disabled = true;
+        return;
+      }
+
+      document.getElementById('courseSubtitle').textContent = 'Loading course information...';
+      
+      try {
+        await loadCourseInfo();
+        await loadActiveTeachers();
+        await loadEnrolledStudents();
+        await loadCourseSessions();
+        await loadAttendanceForAllSessions();
+        sortStudents();
+        
+        document.getElementById('loadingIndicator').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+      } catch (error) {
+        console.error('Error initializing UI:', error);
+        document.getElementById('courseSubtitle').textContent = 'Error loading course data';
+        document.getElementById('loadingIndicator').innerHTML = '<div class="text-center"><p class="text-red-600 font-medium">Error loading course data</p></div>';
+      }
+    }
+
+    // Load Course Info
+    async function loadCourseInfo() {
+      try {
+        const courseDoc = await getDoc(doc(db, 'courses', courseId));
+        
+        if (courseDoc.exists()) {
+          const courseData = courseDoc.data();
+          const publicCode = courseData.publicCode || courseId;
+          const courseName = courseData.name || 'Unknown Course';
+          document.getElementById('courseSubtitle').textContent = `${publicCode}: ${courseName}`;
+          
+          const courseStaffQuery = query(
+            collection(db, 'course_staff'),
+            where('courseId', '==', courseId),
+            where('role', '==', 'primary')
+          );
+          const courseStaffSnapshot = await getDocs(courseStaffQuery);
+          
+          if (!courseStaffSnapshot.empty) {
+            const primaryStaffDoc = courseStaffSnapshot.docs[0];
+            const staffData = primaryStaffDoc.data();
+            coursePrimaryTeacherId = staffData.staffId;
+            coursePrimaryTeacherName = staffData.staffNameCache || '';
+          }
+        } else {
+          document.getElementById('courseSubtitle').textContent = `${courseId}: Course not found`;
+        }
+      } catch (error) {
+        console.error('Error loading course info:', error);
+        document.getElementById('courseSubtitle').textContent = 'Error loading course';
+      }
+    }
+
+    // Load Active Teachers
+    async function loadActiveTeachers() {
+      try {
+        const staffQuery = query(
+          collection(db, 'staff'),
+          where('status', '==', 'active')
+        );
+        const staffSnapshot = await getDocs(staffQuery);
+        
+        staffTeacherList = [];
+        
+        staffSnapshot.forEach(docSnap => {
+          const staffData = docSnap.data();
+          const roles = staffData.roles || [];
+          
+          if (roles.includes('Teacher')) {
+            staffTeacherList.push({
+              staffId: docSnap.id,
+              fullName: staffData.fullName || 'Unknown',
+              preferredName: staffData.preferredName || staffData.fullName || 'Unknown',
+              publicCode: staffData.publicCode || docSnap.id
+            });
+          }
+        });
+        
+        staffTeacherList.sort((a, b) => a.fullName.localeCompare(b.fullName));
+        populateTeacherDropdown();
+        
+      } catch (error) {
+        console.error('Error loading active teachers:', error);
+      }
+    }
+
+    // Populate Teacher Dropdown
+    function populateTeacherDropdown() {
+      const teacherSelect = document.getElementById('teacherSelect');
+      teacherSelect.innerHTML = '';
+      
+      if (!coursePrimaryTeacherId) {
+        const blankOption = document.createElement('option');
+        blankOption.value = '';
+        blankOption.textContent = 'Select teacher';
+        teacherSelect.appendChild(blankOption);
+      }
+      
+      staffTeacherList.forEach(teacher => {
+        const option = document.createElement('option');
+        option.value = teacher.staffId;
+        option.textContent = `${teacher.fullName} (${teacher.publicCode})`;
+        teacherSelect.appendChild(option);
+      });
+      
+      if (coursePrimaryTeacherId) {
+        teacherSelect.value = coursePrimaryTeacherId;
+      }
+    }
+
+    async function loadEnrolledStudents() {
+      try {
+        const enrollmentsQuery = query(
+          collection(db, 'course_enrollments'),
+          where('courseId', '==', courseId)
+        );
+        const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
+        
+        students = [];
+        
+        for (const enrollDoc of enrollmentsSnapshot.docs) {
+          const enrollData = enrollDoc.data();
+          const studentId = enrollData.studentId;
+          const enrollmentStatus = enrollData.status || 'active';
+          
+          const studentDoc = await getDoc(doc(db, 'students', studentId));
+          
+          if (studentDoc.exists()) {
+            const studentData = studentDoc.data();
+            const studentName = studentData.fullName || 'Unknown Student';
+            const publicCode = studentData.publicCode || studentId;
+            students.push({
+              studentId: studentId,
+              publicCode: publicCode,
+              name: studentName,
+              dropped: enrollmentStatus === 'dropped',
+              enrollmentStatus: enrollmentStatus
+            });
+          } else {
+            students.push({
+              studentId: studentId,
+              publicCode: studentId,
+              name: `Student ${studentId} (Missing Record)`,
+              dropped: enrollmentStatus === 'dropped',
+              enrollmentStatus: enrollmentStatus
+            });
+          }
+        }
+        
+        const activeStudents = students.filter(s => !s.dropped);
+        const droppedStudents = students.filter(s => s.dropped);
+        
+        if (sortBy === 'id') {
+          activeStudents.sort((a, b) => (a.publicCode || '').localeCompare(b.publicCode || ''));
+          droppedStudents.sort((a, b) => (a.publicCode || '').localeCompare(b.publicCode || ''));
+        } else {
+          activeStudents.sort((a, b) => a.name.localeCompare(b.name));
+          droppedStudents.sort((a, b) => a.name.localeCompare(b.name));
+        }
+        
+        students = [...activeStudents, ...droppedStudents];
+        
+      } catch (error) {
+        console.error('Error loading enrolled students:', error);
+      }
+    }
+
+    // Load Course Sessions
+    async function loadCourseSessions() {
+      try {
+        const sessionsQuery = query(
+          collection(db, 'course_sessions'),
+          where('courseId', '==', courseId),
+          orderBy('sessionDate', 'asc')
+        );
+        const sessionsSnapshot = await getDocs(sessionsQuery);
+        
+        sessions = [];
+        
+        sessionsSnapshot.forEach(docSnap => {
+          const sessionData = docSnap.data();
+          
+          let teacherDisplayName = sessionData.taughtByNameCache || '';
+          
+          if (!teacherDisplayName && sessionData.taughtByStaffId) {
+            const staffMatch = staffTeacherList.find(t => t.staffId === sessionData.taughtByStaffId);
+            if (staffMatch) {
+              teacherDisplayName = staffMatch.preferredName;
+            }
+          }
+          
+          sessions.push({
+            id: docSnap.id,
+            sessionId: docSnap.id,
+            date: sessionData.sessionDate,
+            day: getDayOfWeek(sessionData.sessionDate),
+            teacher: teacherDisplayName,
+            staffId: sessionData.taughtByStaffId || null,
+            topic: sessionData.lessonName || '',
+            attendance: {}
+          });
+        });
+        
+      } catch (error) {
+        console.error('Error loading course sessions:', error);
+      }
+    }
+
+    // Load Attendance Records
+    async function loadAttendanceForAllSessions() {
+      try {
+        for (const session of sessions) {
+          const attendanceQuery = query(
+            collection(db, 'attendance'),
+            where('sessionId', '==', session.sessionId)
+          );
+          const attendanceSnapshot = await getDocs(attendanceQuery);
+          
+          students.forEach(student => {
+            session.attendance[student.studentId] = { status: '-', note: '' };
+          });
+          
+          attendanceSnapshot.forEach(docSnap => {
+            const attData = docSnap.data();
+            const studentId = attData.studentId;
+            const status = attData.status || '-';
+            const note = attData.note || '';
+            
+            session.attendance[studentId] = { status, note };
+          });
+        }
+        
+      } catch (error) {
+        console.error('Error loading attendance records:', error);
+      }
+    }
+
+    // Save Attendance for Session
+    async function saveAttendanceForSession(session) {
+      try {
+        const batch = writeBatch(db);
+        const markedByStaffId = currentUserStaffId || coursePrimaryTeacherId || '';
+        
+        for (const studentId in session.attendance) {
+          const student = students.find(s => s.studentId === studentId);
+          
+          if (student && student.dropped) {
+            continue;
+          }
+          
+          const attData = session.attendance[studentId];
+          const attendanceId = `ATT_${session.sessionId}_${studentId}`;
+          const attRef = doc(db, 'attendance', attendanceId);
+          
+          if (attData.status === '-') {
+            batch.delete(attRef);
+          } else {
+            const recordData = {
+              sessionId: session.sessionId,
+              studentId: studentId,
+              status: attData.status,
+              note: attData.note || '',
+              markedAt: serverTimestamp(),
+              markedByStaffId: markedByStaffId
+            };
+            
+            batch.set(attRef, recordData, { merge: true });
+          }
+        }
+        
+        await batch.commit();
+        
+      } catch (error) {
+        console.error('Error saving attendance:', error);
+        throw error;
+      }
+    }
+
+    // Helper functions
+    function getDayOfWeek(dateStr) {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const date = new Date(dateStr + 'T00:00:00');
+      return days[date.getDay()];
+    }
+
+    function formatDate(dateStr) {
+      const [year, month, day] = dateStr.split('-');
+      const shortYear = year.slice(-2);
+      return `${day}-${month}-${shortYear}`;
+    }
+
+    function calculateSessionStats(session) {
+      let present = 0;
+      let absent = 0;
+      let total = 0;
+      students.forEach(student => {
+        const status = session.attendance[student.studentId]?.status || '-';
+        
+        // Only count records that have actual attendance data (not '-')
+        if (status !== '-') {
+          total++;
+          
+          // Present + Late counts as present
+          if (status === 'present' || status === 'late') present++;
+          
+          // Absent + Excused counts as absent
+          if (status === 'absent' || status === 'excused') absent++;
+        }
+      });
+      const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+      return { present, absent, percentage };
+    }
+
+    function sortStudents() {
+      const activeStudents = students.filter(s => !s.dropped);
+      const droppedStudents = students.filter(s => s.dropped);
+      
+      if (sortBy === 'id') {
+        activeStudents.sort((a, b) => (a.publicCode || '').localeCompare(b.publicCode || ''));
+        droppedStudents.sort((a, b) => (a.publicCode || '').localeCompare(b.publicCode || ''));
+      } else {
+        activeStudents.sort((a, b) => a.name.localeCompare(b.name));
+        droppedStudents.sort((a, b) => a.name.localeCompare(b.name));
+      }
+      
+      students = [...activeStudents, ...droppedStudents];
+      
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('attendanceTableBody');
+      tbody.innerHTML = '';
+
+      if (students.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 2 + sessions.length;
+        td.className = 'px-3 py-8 text-center text-sm text-gray-500';
+        td.textContent = 'No enrolled students found for this course.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        renderSessionHeaders();
+        return;
+      }
+
+      students.forEach(student => {
+        const tr = document.createElement('tr');
+        tr.className = student.dropped ? 'bg-gray-100' : '';
+
+        const tdId = document.createElement('td');
+        tdId.className = 'sticky left-0 z-20 bg-white px-3 py-2 text-xs text-gray-900 border-r border-gray-200 w-24 min-w-[96px] max-w-[96px]';
+        if (student.dropped) tdId.classList.add('bg-gray-100', 'text-gray-500');
+        tdId.textContent = student.publicCode || '';
+        tr.appendChild(tdId);
+
+        const tdName = document.createElement('td');
+        tdName.className = 'sticky left-24 z-20 bg-white px-3 py-2 text-xs text-gray-900 border-r border-gray-200 w-48 min-w-[192px] max-w-[192px]';
+        if (student.dropped) {
+          tdName.classList.add('bg-gray-100', 'text-gray-500');
+          tdName.textContent = student.name + ' (Dropped)';
+        } else {
+          tdName.textContent = student.name;
+        }
+        tr.appendChild(tdName);
+
+        sessions.forEach((session, idx) => {
+          const td = document.createElement('td');
+          td.className = 'p-0 text-center text-xs border-r border-gray-200';
+          
+          const attData = session.attendance[student.studentId] || { status: '-', note: '' };
+          const status = attData.status;
+          
+          const button = document.createElement('button');
+          button.className = 'w-full h-full px-2 py-2 font-medium';
+          
+          const displayLabel = {
+            'present': 'P',
+            'absent': 'A',
+            'late': 'L',
+            'excused': 'E',
+            '-': '-'
+          };
+          button.textContent = displayLabel[status] || '-';
+          
+          if (student.dropped) {
+            button.disabled = true;
+            button.className += ' bg-gray-200 text-gray-400 cursor-not-allowed';
+          } else {
+            if (status === 'present') {
+              button.className += ' bg-green-100 text-green-700 hover:bg-green-200';
+            } else if (status === 'absent') {
+              button.className += ' bg-red-100 text-red-700 hover:bg-red-200';
+            } else if (status === 'late') {
+              button.className += ' bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
+            } else if (status === 'excused') {
+              button.className += ' bg-blue-100 text-blue-700 hover:bg-blue-200';
+            } else {
+              button.className += ' bg-gray-100 text-gray-500 hover:bg-gray-200';
+            }
+            
+            button.addEventListener('click', () => {
+              openEditStudentModal(student, session);
+            });
+          }
+          
+          td.appendChild(button);
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      renderSessionHeaders();
+    }
+
+    function renderSessionHeaders() {
+      const thead = document.querySelector('thead tr');
+      const existingHeaders = thead.querySelectorAll('th:not(.sticky)');
+      existingHeaders.forEach(th => th.remove());
+
+      sessions.forEach((session, idx) => {
+        const th = document.createElement('th');
+        th.className = 'px-2 py-2 text-center text-xs border-r border-gray-200 min-w-[140px]';
+        
+        const stats = calculateSessionStats(session);
+        const formattedDate = formatDate(session.date);
+        
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'cursor-pointer hover:bg-gray-200 p-1.5 rounded transition-colors';
+        headerDiv.innerHTML = `
+          <div class="font-semibold text-gray-900 text-xs">${formattedDate} (${session.day})</div>
+          <div class="text-[10px] text-gray-600 mt-0.5 truncate" title="${session.topic}">${session.topic}</div>
+          <div class="text-[10px] text-gray-500 truncate" title="Teacher: ${session.teacher}">${session.teacher}</div>
+          <div class="text-[10px] font-medium text-gray-700 mt-0.5">
+            <span class="text-green-700">P: ${stats.present}</span> | 
+            <span class="text-red-700">A: ${stats.absent}</span> | 
+            <span class="text-blue-700">${stats.percentage}%</span>
+          </div>
+          <div class="flex items-center justify-center gap-2 mt-1">
+            <button class="edit-session-btn bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded text-xs font-medium" data-index="${idx}">Edit</button>
+            <button class="delete-session-btn bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded text-xs font-medium" data-index="${idx}">Delete</button>
+          </div>
+        `;
+        
+        headerDiv.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('edit-session-btn') && !e.target.classList.contains('delete-session-btn')) {
+            openManageSessionModal(session);
+          }
+        });
+        
+        th.appendChild(headerDiv);
+        thead.appendChild(th);
+      });
+
+      document.querySelectorAll('.edit-session-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.index);
+          openManageSessionModal(sessions[idx]);
+        });
+      });
+
+      document.querySelectorAll('.delete-session-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.index);
+          
+          const sessionToDelete = sessions[idx];
+          
+          const confirmDiv = document.createElement('div');
+          confirmDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] p-4';
+          confirmDiv.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h3 class="text-lg font-bold text-gray-900 mb-2">Delete Session?</h3>
+              <p class="text-sm text-gray-600 mb-4">This will permanently delete the session on ${sessionToDelete.date} and all attendance records for this session. This action cannot be undone.</p>
+              <div class="flex justify-end gap-2">
+                <button id="cancelDeleteBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium rounded px-4 py-2">Cancel</button>
+                <button id="confirmDeleteBtn" class="bg-red-600 hover:bg-red-700 text-white font-medium rounded px-4 py-2">Delete Session</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(confirmDiv);
+          
+          document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+            document.body.removeChild(confirmDiv);
+          });
+          
+          document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+            const deleteBtn = document.getElementById('confirmDeleteBtn');
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Deleting...';
+            
+            showLoadingOverlay('Deleting session...');
+            
+            try {
+              const batch = writeBatch(db);
+              
+              const sessionRef = doc(db, 'course_sessions', sessionToDelete.sessionId);
+              batch.delete(sessionRef);
+              
+              const attendanceQuery = query(
+                collection(db, 'attendance'),
+                where('sessionId', '==', sessionToDelete.sessionId)
+              );
+              const attendanceSnapshot = await getDocs(attendanceQuery);
+              
+              attendanceSnapshot.forEach(docSnap => {
+                batch.delete(docSnap.ref);
+              });
+              
+              await batch.commit();
+              
+              await loadCourseSessions();
+              await loadAttendanceForAllSessions();
+              renderTable();
+              
+              document.body.removeChild(confirmDiv);
+            } catch (error) {
+              console.error('Error deleting session:', error);
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-[80]';
+              errorDiv.textContent = 'Failed to delete session. Please try again.';
+              document.body.appendChild(errorDiv);
+              setTimeout(() => document.body.removeChild(errorDiv), 3000);
+              
+              deleteBtn.disabled = false;
+              deleteBtn.textContent = 'Delete Session';
+            } finally {
+              hideLoadingOverlay();
+            }
+          });
+        });
+      });
+    }
+
+    // Modal functions
+    function openEditStudentModal(student, session) {
+      currentEditStudent = student;
+      currentEditSession = session;
+      
+      document.getElementById('editStudentName').textContent = student.name;
+      document.getElementById('editStudentId').textContent = student.publicCode || '';
+      document.getElementById('editSessionDate').textContent = session.date;
+      document.getElementById('editSessionTeacher').textContent = session.teacher;
+      document.getElementById('editSessionLesson').textContent = session.topic;
+      
+      const attData = session.attendance[student.studentId] || { status: '-', note: '' };
+      const status = attData.status;
+      const note = attData.note;
+      
+      document.querySelector(`input[name="editStatus"][value="${status}"]`).checked = true;
+      document.getElementById('editStudentNotes').value = note;
+      
+      document.getElementById('editStudentModal').classList.remove('hidden');
+    }
+
+    function closeEditStudentModal() {
+      document.getElementById('editStudentModal').classList.add('hidden');
+      currentEditStudent = null;
+      currentEditSession = null;
+    }
+
+    async function saveEditStudent() {
+      if (currentEditStudent && currentEditSession) {
+        const status = document.querySelector('input[name="editStatus"]:checked')?.value || '-';
+        const note = document.getElementById('editStudentNotes').value;
+        
+        const saveBtn = document.getElementById('saveEditStudentBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        
+        showLoadingOverlay('Saving attendance...');
+        
+        try {
+          currentEditSession.attendance[currentEditStudent.studentId] = { status, note };
+          
+          await saveAttendanceForSession(currentEditSession);
+          
+          const attendanceQuery = query(
+            collection(db, 'attendance'),
+            where('sessionId', '==', currentEditSession.sessionId)
+          );
+          const attendanceSnapshot = await getDocs(attendanceQuery);
+          
+          students.forEach(student => {
+            currentEditSession.attendance[student.studentId] = { status: '-', note: '' };
+          });
+          
+          attendanceSnapshot.forEach(docSnap => {
+            const attData = docSnap.data();
+            const studentId = attData.studentId;
+            const status = attData.status || '-';
+            const note = attData.note || '';
+            
+            currentEditSession.attendance[studentId] = { status, note };
+          });
+          
+          renderTable();
+          closeEditStudentModal();
+        } catch (error) {
+          console.error('Error saving attendance:', error);
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-[80]';
+          errorDiv.textContent = 'Failed to save attendance. Please try again.';
+          document.body.appendChild(errorDiv);
+          setTimeout(() => document.body.removeChild(errorDiv), 3000);
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save';
+          hideLoadingOverlay();
+        }
+      }
+    }
+
+    function openManageSessionModal(session) {
+      currentManageSession = session;
+      currentEditSessionIndex = sessions.indexOf(session);
+      
+      const day = getDayOfWeek(session.date);
+      document.getElementById('manageSessionDate').textContent = `${session.date} (${day})`;
+      document.getElementById('manageSessionTeacher').textContent = session.teacher;
+      document.getElementById('manageSessionLesson').textContent = session.topic;
+      
+      const tbody = document.getElementById('manageSessionTableBody');
+      tbody.innerHTML = '';
+      
+      students.forEach(student => {
+        const isDropped = student.dropped;
+        const tr = document.createElement('tr');
+        tr.className = isDropped ? 'bg-gray-100' : '';
+        
+        const attData = session.attendance[student.studentId] || { status: '-', note: '' };
+        const status = attData.status;
+        const note = attData.note;
+        
+        tr.innerHTML = `
+          <td class="px-4 py-2 text-sm ${isDropped ? 'text-gray-500' : 'text-gray-900'}">${student.publicCode || ''}</td>
+          <td class="px-4 py-2 text-sm ${isDropped ? 'text-gray-500' : 'text-gray-900'}">${student.name}${isDropped ? ' (Dropped)' : ''}</td>
+          <td class="px-4 py-2">
+            <select class="manage-status-select border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium ${status === 'present' ? 'text-green-700' : status === 'absent' ? 'text-red-700' : status === 'late' ? 'text-yellow-700' : status === 'excused' ? 'text-blue-700' : 'text-gray-600'}" data-student-id="${student.studentId}" ${isDropped ? 'disabled' : ''}>
+              <option value="present" ${status === 'present' ? 'selected' : ''}>Present</option>
+              <option value="absent" ${status === 'absent' ? 'selected' : ''}>Absent</option>
+              <option value="late" ${status === 'late' ? 'selected' : ''}>Late</option>
+              <option value="excused" ${status === 'excused' ? 'selected' : ''}>Excused</option>
+              <option value="-" ${status === '-' ? 'selected' : ''}>No Record</option>
+            </select>
+          </td>
+          <td class="px-4 py-2">
+            <textarea class="manage-notes-input border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500" rows="1" data-student-id="${student.studentId}" ${isDropped ? 'disabled' : ''}>${note}</textarea>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      document.querySelectorAll('.manage-status-select').forEach(select => {
+        select.addEventListener('change', function() {
+          updateSelectColor(this);
+        });
+      });
+      
+      document.getElementById('manageSessionModal').classList.remove('hidden');
+    }
+
+    function closeManageSessionModal() {
+      document.getElementById('manageSessionModal').classList.add('hidden');
+      currentManageSession = null;
+      currentEditSessionIndex = null;
+    }
+
+    function openEditSessionModal() {
+      if (currentManageSession) {
+        document.getElementById('editSessionDateInput').value = currentManageSession.date;
+        document.getElementById('editSessionLessonInput').value = currentManageSession.topic;
+        
+        const teacherSelect = document.getElementById('editSessionTeacherSelect');
+        teacherSelect.innerHTML = '';
+        
+        if (!coursePrimaryTeacherId) {
+          const blankOption = document.createElement('option');
+          blankOption.value = '';
+          blankOption.textContent = 'Select teacher';
+          teacherSelect.appendChild(blankOption);
+        }
+        
+        staffTeacherList.forEach(teacher => {
+          const option = document.createElement('option');
+          option.value = teacher.staffId;
+          option.textContent = `${teacher.fullName} (${teacher.publicCode})`;
+          teacherSelect.appendChild(option);
+        });
+        
+        if (currentManageSession.staffId) {
+          teacherSelect.value = currentManageSession.staffId;
+        } else if (coursePrimaryTeacherId) {
+          teacherSelect.value = coursePrimaryTeacherId;
+        }
+        
+        document.getElementById('editSessionModal').classList.remove('hidden');
+      }
+    }
+
+    function closeEditSessionModal() {
+      document.getElementById('editSessionModal').classList.add('hidden');
+    }
+
+    async function saveEditSession() {
+      if (currentManageSession && currentEditSessionIndex !== null) {
+        const newDate = document.getElementById('editSessionDateInput').value;
+        const newStaffId = document.getElementById('editSessionTeacherSelect').value;
+        const newTopic = document.getElementById('editSessionLessonInput').value;
+        
+        if (newDate && newStaffId && newTopic) {
+          const saveBtn = document.getElementById('saveEditSessionBtn');
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Saving...';
+          
+          showLoadingOverlay('Updating session information...');
+          
+          try {
+            const staffMatch = staffTeacherList.find(t => t.staffId === newStaffId);
+            const newStaffNameCache = staffMatch ? staffMatch.preferredName : '';
+            
+            const oldSessionId = currentManageSession.sessionId;
+            
+            if (newDate !== currentManageSession.date) {
+              const batch = writeBatch(db);
+              
+              const dateFormatted = newDate.replace(/-/g, '');
+              const newSessionId = `SESSION_${courseId}_${dateFormatted}`;
+              
+              const newSessionRef = doc(db, 'course_sessions', newSessionId);
+              batch.set(newSessionRef, {
+                courseId,
+                sessionDate: newDate,
+                taughtByStaffId: newStaffId,
+                taughtByNameCache: newStaffNameCache,
+                lessonName: newTopic,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              });
+              
+              const attendanceQuery = query(
+                collection(db, 'attendance'),
+                where('sessionId', '==', oldSessionId)
+              );
+              const attendanceSnapshot = await getDocs(attendanceQuery);
+              
+              attendanceSnapshot.forEach(attDoc => {
+                const attData = attDoc.data();
+                const studentId = attData.studentId;
+                const newAttendanceId = `ATT_${newSessionId}_${studentId}`;
+                const newAttendanceRef = doc(db, 'attendance', newAttendanceId);
+                
+                batch.set(newAttendanceRef, {
+                  sessionId: newSessionId,
+                  studentId: studentId,
+                  status: attData.status,
+                  note: attData.note || '',
+                  markedAt: attData.markedAt || serverTimestamp(),
+                  markedByStaffId: attData.markedByStaffId || ''
+                });
+                
+                batch.delete(attDoc.ref);
+              });
+              
+              const oldSessionRef = doc(db, 'course_sessions', oldSessionId);
+              batch.delete(oldSessionRef);
+              
+              await batch.commit();
+              
+              currentManageSession.sessionId = newSessionId;
+              
+            } else {
+              const sessionRef = doc(db, 'course_sessions', oldSessionId);
+              await setDoc(sessionRef, {
+                taughtByStaffId: newStaffId,
+                taughtByNameCache: newStaffNameCache,
+                lessonName: newTopic,
+                updatedAt: serverTimestamp()
+              }, { merge: true });
+            }
+            
+            currentManageSession.date = newDate;
+            currentManageSession.day = getDayOfWeek(newDate);
+            currentManageSession.teacher = newStaffNameCache;
+            currentManageSession.staffId = newStaffId;
+            currentManageSession.topic = newTopic;
+            
+            document.getElementById('manageSessionDate').textContent = `${newDate} (${currentManageSession.day})`;
+            document.getElementById('manageSessionTeacher').textContent = newStaffNameCache;
+            document.getElementById('manageSessionLesson').textContent = newTopic;
+            
+            await loadCourseSessions();
+            await loadAttendanceForAllSessions();
+            renderTable();
+            closeEditSessionModal();
+            
+          } catch (error) {
+            console.error('Error editing session:', error);
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-[80]';
+            errorDiv.textContent = 'Failed to update session. Please try again.';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => document.body.removeChild(errorDiv), 3000);
+          } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+            hideLoadingOverlay();
+          }
+        }
+      }
+    }
+
+    function updateSelectColor(select) {
+      const value = select.value;
+      select.className = 'manage-status-select border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium';
+      if (value === 'present') {
+        select.className += ' text-green-700';
+      } else if (value === 'absent') {
+        select.className += ' text-red-700';
+      } else if (value === 'late') {
+        select.className += ' text-yellow-700';
+      } else if (value === 'excused') {
+        select.className += ' text-blue-700';
+      } else {
+        select.className += ' text-gray-600';
+      }
+    }
+
+    async function saveManageSession() {
+      if (currentManageSession) {
+        const saveBtn = document.getElementById('saveManageSessionBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        
+        showLoadingOverlay('Saving attendance records...');
+        
+        try {
+          document.querySelectorAll('.manage-status-select').forEach(select => {
+            const studentId = select.dataset.studentId;
+            const status = select.value;
+            const notesInput = document.querySelector(`.manage-notes-input[data-student-id="${studentId}"]`);
+            const note = notesInput ? notesInput.value : '';
+            
+            const student = students.find(s => s.studentId === studentId);
+            if (student && !student.dropped) {
+              currentManageSession.attendance[studentId] = { status, note };
+            }
+          });
+          
+          await saveAttendanceForSession(currentManageSession);
+          
+          const attendanceQuery = query(
+            collection(db, 'attendance'),
+            where('sessionId', '==', currentManageSession.sessionId)
+          );
+          const attendanceSnapshot = await getDocs(attendanceQuery);
+          
+          students.forEach(student => {
+            currentManageSession.attendance[student.studentId] = { status: '-', note: '' };
+          });
+          
+          attendanceSnapshot.forEach(docSnap => {
+            const attData = docSnap.data();
+            const studentId = attData.studentId;
+            const status = attData.status || '-';
+            const note = attData.note || '';
+            
+            currentManageSession.attendance[studentId] = { status, note };
+          });
+          
+          renderTable();
+          closeManageSessionModal();
+        } catch (error) {
+          console.error('Error saving attendance:', error);
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-[80]';
+          errorDiv.textContent = 'Failed to save attendance. Please try again.';
+          document.body.appendChild(errorDiv);
+          setTimeout(() => document.body.removeChild(errorDiv), 3000);
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save Changes';
+          hideLoadingOverlay();
+        }
+      }
+    }
+
+    function markAllPresent() {
+      document.querySelectorAll('.manage-status-select').forEach(select => {
+        if (!select.disabled) {
+          select.value = 'present';
+          updateSelectColor(select);
+        }
+      });
+    }
+
+    function clearAll() {
+      document.querySelectorAll('.manage-status-select').forEach(select => {
+        if (!select.disabled) {
+          select.value = '-';
+          updateSelectColor(select);
+        }
+      });
+      document.querySelectorAll('.manage-notes-input').forEach(textarea => {
+        if (!textarea.disabled) {
+          textarea.value = '';
+        }
+      });
+    }
+
+    // Event Listeners
+
+    document.getElementById('sortDropdown').addEventListener('change', (e) => {
+      sortBy = e.target.value;
+      sortStudents();
+    });
+
+    document.getElementById('addSessionBtn').addEventListener('click', async () => {
+      const date = document.getElementById('sessionDate').value;
+      const teacherStaffId = document.getElementById('teacherSelect').value;
+      const lesson = document.getElementById('lessonName').value;
+      
+      if (date && teacherStaffId && lesson) {
+        const addBtn = document.getElementById('addSessionBtn');
+        addBtn.disabled = true;
+        addBtn.textContent = 'Adding...';
+        
+        showLoadingOverlay('Creating new session...');
+        
+        try {
+          const staffMatch = staffTeacherList.find(t => t.staffId === teacherStaffId);
+          const teacherNameCache = staffMatch ? staffMatch.preferredName : '';
+          
+          const dateFormatted = date.replace(/-/g, '');
+          const sessionId = `SESSION_${courseId}_${dateFormatted}`;
+          
+          await setDoc(doc(db, 'course_sessions', sessionId), {
+            courseId,
+            sessionDate: date,
+            taughtByStaffId: teacherStaffId,
+            taughtByNameCache: teacherNameCache,
+            lessonName: lesson,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          
+          await loadCourseSessions();
+          await loadAttendanceForAllSessions();
+          renderTable();
+          
+          document.getElementById('sessionDate').value = '';
+          document.getElementById('teacherSelect').value = coursePrimaryTeacherId || '';
+          document.getElementById('lessonName').value = '';
+          
+        } catch (error) {
+          console.error('Error adding session:', error);
+          const errorDiv = document.createElement('div');
+          errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-[80]';
+          errorDiv.textContent = 'Failed to add session. Please try again.';
+          document.body.appendChild(errorDiv);
+          setTimeout(() => document.body.removeChild(errorDiv), 3000);
+        } finally {
+          addBtn.disabled = false;
+          addBtn.textContent = 'Add Session';
+          hideLoadingOverlay();
+        }
+      }
+    });
+
+    document.getElementById('cancelEditStudentBtn').addEventListener('click', closeEditStudentModal);
+    document.getElementById('saveEditStudentBtn').addEventListener('click', saveEditStudent);
+
+    document.getElementById('cancelManageSessionBtn').addEventListener('click', closeManageSessionModal);
+    document.getElementById('saveManageSessionBtn').addEventListener('click', saveManageSession);
+    document.getElementById('markAllPresentBtn').addEventListener('click', markAllPresent);
+    document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+    
+    document.getElementById('editSessionInfoBtn').addEventListener('click', openEditSessionModal);
+    document.getElementById('cancelEditSessionBtn').addEventListener('click', closeEditSessionModal);
+    document.getElementById('saveEditSessionBtn').addEventListener('click', saveEditSession);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initializeUI();
+    });
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b70d0e8255208ed',t:'MTc2NzI1NzkxOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

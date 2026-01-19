@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facility Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 p-3 rounded-lg mr-4">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900 mb-1 flex items-center">
+                            🏫 Facility Management System
+                        </h1>
+                        <p class="text-gray-600">Comprehensive school facility and resource management</p>
+                    </div>
+                </div>
+                <!-- Sync Status -->
+                <div id="syncIndicator" class="flex items-center px-3 py-2 rounded-lg text-xs border">
+                    <div id="syncIcon" class="w-2 h-2 rounded-full mr-2 bg-green-500"></div>
+                    <span id="syncText">Connected</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-white rounded-lg shadow-sm border mb-6">
+            <div class="flex border-b">
+                <button onclick="showModule('rooms')" class="tab-btn px-6 py-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 bg-blue-50" data-module="rooms">
+                    🏛️ Rooms & Amenities
+                </button>
+                <button onclick="showModule('scheduler')" class="tab-btn px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700" data-module="scheduler">
+                    📅 Scheduler
+                </button>
+                <button onclick="showModule('inventory')" class="tab-btn px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700" data-module="inventory">
+                    📦 Equipment & Inventory
+                </button>
+                <button onclick="showModule('accounts')" class="tab-btn px-6 py-4 text-sm font-medium text-gray-500 hover:text-gray-700" data-module="accounts">
+                    👥 Apps & Accounts
+                </button>
+            </div>
+        </div>
+
+        <!-- Rooms & Amenities Module -->
+        <div id="rooms-module" class="module-content">
+            <!-- Sub-navigation for Rooms module -->
+            <div class="bg-white rounded-lg shadow-sm border mb-6">
+                <div class="flex border-b">
+                    <button onclick="showRoomsTab('directory')" class="rooms-tab-btn px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 bg-blue-50" data-tab="directory">
+                        📋 Room Directory
+                    </button>
+                    <button onclick="showRoomsTab('maintenance')" class="rooms-tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="maintenance">
+                        🔧 Maintenance
+                    </button>
+                </div>
+            </div>
+
+            <!-- Room Directory Tab -->
+            <div id="rooms-directory-tab" class="rooms-tab-content">
+                <div class="space-y-6">
+                    <!-- Add Room Form -->
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <!-- Collapsible Header -->
+                        <div class="p-4 border-b cursor-pointer" onclick="toggleSection('room-form')">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold flex items-center">
+                                    🏛️ Add New Room
+                                </h3>
+                                <svg id="room-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <!-- Collapsible Content -->
+                        <div id="room-form-content" class="p-6">
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="text" id="roomName" placeholder="Room Name" class="px-3 py-2 border rounded-lg text-sm">
+                                    <input type="text" id="roomType" placeholder="Room Type (e.g., Classroom, Lab)" class="px-3 py-2 border rounded-lg text-sm">
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <input type="number" id="roomCapacity" placeholder="Capacity" class="px-3 py-2 border rounded-lg text-sm">
+                                    <input type="text" id="roomLocation" placeholder="Building/Floor" class="px-3 py-2 border rounded-lg text-sm">
+                                </div>
+                                <textarea id="roomAmenities" placeholder="Amenities (projector, whiteboard, AC, etc.)" class="w-full px-3 py-2 border rounded-lg text-sm h-20"></textarea>
+                                <button onclick="saveRoom()" id="roomSaveBtn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    Add Room
+                                </button>
+                                <button onclick="cancelRoomEdit()" id="roomCancelBtn" class="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors hidden">
+                                    Cancel Edit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room Directory List -->
+                    <div class="bg-white rounded-lg shadow-sm border p-6">
+                        <h3 class="text-lg font-semibold mb-4">Room Directory</h3>
+                        <div id="roomsList" class="space-y-3">
+                            <!-- Rooms will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Maintenance Tab -->
+            <div id="rooms-maintenance-tab" class="rooms-tab-content hidden">
+                <div class="space-y-6">
+                    <!-- Maintenance Form -->
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <!-- Collapsible Header -->
+                        <div class="p-4 border-b cursor-pointer" onclick="toggleSection('maintenance-form')">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold flex items-center">
+                                    🔧 Report Maintenance Issue
+                                </h3>
+                                <svg id="maintenance-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <!-- Collapsible Content -->
+                        <div id="maintenance-form-content" class="p-6">
+                            <div class="space-y-4">
+                                <select id="maintenanceRoom" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="">Select Room</option>
+                                </select>
+                                <input type="text" id="issueType" placeholder="Issue Type (e.g., Electrical, Plumbing)" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <textarea id="issueDescription" placeholder="Describe the issue..." class="w-full px-3 py-2 border rounded-lg text-sm h-20"></textarea>
+                                <select id="issuePriority" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="low">Low Priority</option>
+                                    <option value="medium">Medium Priority</option>
+                                    <option value="high">High Priority</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                                <div id="resolutionFields" class="space-y-4 hidden">
+                                    <textarea id="detailedSolution" placeholder="Detailed solution..." class="w-full px-3 py-2 border rounded-lg text-sm h-20"></textarea>
+                                </div>
+                                <button onclick="saveMaintenance()" id="maintenanceSaveBtn" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                    Report Issue
+                                </button>
+                                <button onclick="cancelMaintenanceEdit()" id="maintenanceCancelBtn" class="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors hidden">
+                                    Cancel Edit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Maintenance Issues with Status Tabs -->
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <div class="p-4 border-b">
+                            <h3 class="text-lg font-semibold mb-4">Maintenance Issues</h3>
+                            <div class="flex border-b -mb-4">
+                                <button onclick="showMaintenanceStatus('urgent')" class="maintenance-status-btn px-4 py-2 text-sm font-medium border-b-2 border-red-500 text-red-600 bg-red-50" data-status="urgent">
+                                    🚨 Urgent & High
+                                </button>
+                                <button onclick="showMaintenanceStatus('normal')" class="maintenance-status-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-status="normal">
+                                    📋 Medium & Low
+                                </button>
+                                <button onclick="showMaintenanceStatus('resolved')" class="maintenance-status-btn px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-status="resolved">
+                                    ✅ Resolved
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div id="maintenanceList" class="space-y-3">
+                                <!-- Maintenance issues will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduler Module -->
+        <div id="scheduler-module" class="module-content hidden">
+            <div class="flex gap-6">
+                <!-- Collapsible Schedule Form Sidebar -->
+                <div id="schedule-sidebar" class="w-80 bg-white rounded-lg shadow-sm border transition-all duration-300">
+                    <!-- Collapsible Header -->
+                    <div class="p-4 border-b cursor-pointer" onclick="toggleScheduleSidebar()">
+                        <div class="flex items-center justify-between">
+                            <h3 id="schedule-sidebar-title" class="text-lg font-semibold flex items-center">
+                                📅 Schedule Room
+                            </h3>
+                            <svg id="schedule-sidebar-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Collapsible Content -->
+                    <div id="schedule-sidebar-content" class="p-6">
+                        <div class="space-y-4">
+                            <select id="scheduleRoom" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">Select Room</option>
+                            </select>
+                            <input type="date" id="scheduleDate" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <div class="space-y-2">
+                                <label class="text-sm text-gray-600">From:</label>
+                                <input type="time" id="startTime" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <label class="text-sm text-gray-600">To:</label>
+                                <input type="time" id="endTime" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            </div>
+                            <div id="conflictWarning" class="hidden p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                    </svg>
+                                    <span class="text-red-700 text-sm font-medium">Schedule Conflict!</span>
+                                </div>
+                                <p id="conflictDetails" class="text-red-600 text-sm mt-1"></p>
+                            </div>
+                            <input type="text" id="eventTitle" placeholder="Event/Class Title" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <input type="text" id="instructor" placeholder="Instructor/Organizer" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <button onclick="saveSchedule()" id="scheduleSaveBtn" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                Schedule Room
+                            </button>
+                            <button onclick="cancelScheduleEdit()" id="scheduleCancelBtn" class="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors hidden">
+                                Cancel Edit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Calendar -->
+                <div class="flex-1 bg-white rounded-lg shadow-sm border">
+                    <div class="p-6 border-b">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold">Weekly Schedule</h3>
+                            <div class="flex items-center space-x-4">
+                                <button onclick="previousWeek()" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded">
+                                    ← Previous
+                                </button>
+                                <span id="currentWeekDisplay" class="text-sm font-medium"></span>
+                                <button onclick="nextWeek()" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded">
+                                    Next →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <!-- Calendar Grid -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th class="border p-2 bg-gray-50 text-center w-32 text-xs font-medium">Room</th>
+                                        <th class="border p-2 bg-gray-50 text-center min-w-32 text-xs font-medium" id="day-0">Mon</th>
+                                        <th class="border p-2 bg-gray-50 text-center min-w-32 text-xs font-medium" id="day-1">Tue</th>
+                                        <th class="border p-2 bg-gray-50 text-center min-w-32 text-xs font-medium" id="day-2">Wed</th>
+                                        <th class="border p-2 bg-gray-50 text-center min-w-32 text-xs font-medium" id="day-3">Thu</th>
+                                        <th class="border p-2 bg-gray-50 text-center min-w-32 text-xs font-medium" id="day-4">Fri</th>
+                                        <th class="border p-2 bg-gray-50 text-center min-w-32 text-xs font-medium" id="day-5">Sat</th>
+                                        <th class="border p-2 bg-gray-50 text-center min-w-32 text-xs font-medium" id="day-6">Sun</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calendarBody">
+                                    <!-- Calendar rows will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Module -->
+        <div id="inventory-module" class="module-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Add Equipment -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <!-- Collapsible Header -->
+                    <div class="p-4 border-b cursor-pointer" onclick="toggleSection('equipment-form')">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold flex items-center">
+                                📦 Add Equipment
+                            </h3>
+                            <svg id="equipment-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Collapsible Content -->
+                    <div id="equipment-form-content" class="p-6">
+                        <div class="space-y-4">
+                            <input type="text" id="equipmentName" placeholder="Equipment Name" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <select id="equipmentCategory" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">Category</option>
+                                <option value="technology">Technology</option>
+                                <option value="furniture">Furniture</option>
+                                <option value="sports">Sports</option>
+                                <option value="laboratory">Laboratory</option>
+                                <option value="maintenance">Maintenance</option>
+                            </select>
+                            <div class="grid grid-cols-2 gap-3">
+                                <input type="number" id="equipmentQuantity" placeholder="Quantity" class="px-3 py-2 border rounded-lg text-sm">
+                                <select id="equipmentCondition" class="px-3 py-2 border rounded-lg text-sm">
+                                    <option value="excellent">Excellent</option>
+                                    <option value="good">Good</option>
+                                    <option value="fair">Fair</option>
+                                    <option value="poor">Poor</option>
+                                </select>
+                            </div>
+                            <input type="text" id="equipmentLocation" placeholder="Current Location" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="managedIndividually" class="rounded">
+                                <label for="managedIndividually" class="text-sm text-gray-600">Manage items individually</label>
+                            </div>
+                            <div id="individualManagementFields" class="space-y-2 hidden">
+                                <input type="text" id="equipmentCodePrefix" placeholder="Code Prefix (e.g., COMP, LAB)" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <input type="text" id="equipmentGroup" placeholder="Group Name" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            </div>
+                            <button onclick="addEquipment()" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                Add Equipment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Equipment Assignment -->
+                <div class="bg-white rounded-lg shadow-sm border">
+                    <!-- Collapsible Header -->
+                    <div class="p-4 border-b cursor-pointer" onclick="toggleSection('assignment-form')">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold flex items-center">
+                                🎯 Equipment Assignment
+                            </h3>
+                            <svg id="assignment-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Collapsible Content -->
+                    <div id="assignment-form-content" class="p-6">
+                        <div class="space-y-4">
+                            <select id="assignEquipment" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">Select Equipment</option>
+                            </select>
+                            <select id="assignToRoom" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">Assign to Room</option>
+                            </select>
+                            <input type="text" id="assignedTo" placeholder="Assigned to (Person)" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <input type="date" id="assignmentDate" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <textarea id="assignmentNotes" placeholder="Assignment notes..." class="w-full px-3 py-2 border rounded-lg text-sm h-20"></textarea>
+                            <button onclick="assignEquipment()" class="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors">
+                                Assign Equipment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment List -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold mb-4">Equipment Inventory</h3>
+                <div id="equipmentList" class="space-y-3">
+                    <!-- Equipment will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Accounts Module -->
+        <div id="accounts-module" class="module-content hidden">
+            <!-- Sub-navigation for Accounts module -->
+            <div class="bg-white rounded-lg shadow-sm border mb-6">
+                <div class="flex border-b">
+                    <button onclick="showAccountsTab('teachers')" class="accounts-tab-btn px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 bg-blue-50" data-tab="teachers">
+                        👨‍🏫 Teacher Accounts
+                    </button>
+                    <button onclick="showAccountsTab('students')" class="accounts-tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="students">
+                        👨‍🎓 Student Accounts
+                    </button>
+                </div>
+            </div>
+
+            <!-- Teacher Accounts Tab -->
+            <div id="accounts-teachers-tab" class="accounts-tab-content">
+                <div class="space-y-6">
+                    <!-- Add Teacher Form -->
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <!-- Collapsible Header -->
+                        <div class="p-4 border-b cursor-pointer" onclick="toggleSection('teacher-form')">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold flex items-center">
+                                    👨‍🏫 Add Teacher
+                                </h3>
+                                <svg id="teacher-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <!-- Collapsible Content -->
+                        <div id="teacher-form-content" class="p-6">
+                            <div class="space-y-4">
+                                <input type="text" id="teacherName" placeholder="Teacher Name" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <input type="email" id="teacherEmail" placeholder="Email" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <input type="text" id="teacherDepartment" placeholder="Department" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <input type="text" id="teacherSubjects" placeholder="Subjects (comma separated)" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <button onclick="saveTeacher()" id="teacherSaveBtn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    Add Teacher
+                                </button>
+                                <button onclick="cancelTeacherEdit()" id="teacherCancelBtn" class="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors hidden">
+                                    Cancel Edit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Teachers List as Cards -->
+                    <div class="bg-white rounded-lg shadow-sm border p-6">
+                        <h3 class="text-lg font-semibold mb-4">Teachers</h3>
+                        <div id="teachersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <!-- Teachers will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Accounts Tab -->
+            <div id="accounts-students-tab" class="accounts-tab-content hidden">
+                <div class="space-y-6">
+                    <!-- Add Student Form -->
+                    <div class="bg-white rounded-lg shadow-sm border">
+                        <!-- Collapsible Header -->
+                        <div class="p-4 border-b cursor-pointer" onclick="toggleSection('student-form')">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold flex items-center">
+                                    👨‍🎓 Add Student
+                                </h3>
+                                <svg id="student-form-icon" class="w-5 h-5 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <!-- Collapsible Content -->
+                        <div id="student-form-content" class="p-6">
+                            <div class="space-y-4">
+                                <input type="text" id="studentName" placeholder="Student Name" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <input type="email" id="studentEmail" placeholder="Email" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <input type="text" id="studentId" placeholder="Student ID" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <select id="studentGrade" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="">Select Grade</option>
+                                    <option value="9">Grade 9</option>
+                                    <option value="10">Grade 10</option>
+                                    <option value="11">Grade 11</option>
+                                    <option value="12">Grade 12</option>
+                                </select>
+                                <button onclick="saveStudent()" id="studentSaveBtn" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                    Add Student
+                                </button>
+                                <button onclick="cancelStudentEdit()" id="studentCancelBtn" class="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors hidden">
+                                    Cancel Edit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Students List as Table -->
+                    <div class="bg-white rounded-lg shadow-sm border p-6">
+                        <h3 class="text-lg font-semibold mb-4">Students</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="border-b">
+                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Name</th>
+                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Email</th>
+                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Student ID</th>
+                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Grade</th>
+                                        <th class="text-left p-3 text-sm font-medium text-gray-600">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentsList">
+                                    <!-- Students will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDdx6QyXzCWz7BRZInLu16LGnYBKvFO1CM",
+            authDomain: "tnl-management-app.firebaseapp.com",
+            projectId: "tnl-management-app",
+            storageBucket: "tnl-management-app.firebasestorage.app",
+            messagingSenderId: "710843379828",
+            appId: "1:710843379828:web:76978490616ebe41bf2121",
+            measurementId: "G-8W29VX7WTP"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Global variables
+        let rooms = [];
+        let equipment = [];
+        let schedules = [];
+        let teachers = [];
+        let students = [];
+        let maintenanceIssues = [];
+        let currentWeekStart = new Date();
+        let editingRoomId = null;
+        let editingMaintenanceId = null;
+        let editingScheduleId = null;
+        let editingTeacherId = null;
+        let editingStudentId = null;
+        let currentMaintenanceStatus = 'urgent';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllData();
+            setTodayDate();
+            initializeWeekView();
+        });
+
+        // Collapsible sections
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const icon = document.getElementById(sectionId + '-icon');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.style.display = 'none';
+                icon.style.transform = 'rotate(-90deg)';
+            }
+        }
+
+        // Rooms module navigation
+        function showRoomsTab(tabName) {
+            // Hide all room tabs
+            document.querySelectorAll('.rooms-tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Show selected tab
+            document.getElementById('rooms-' + tabName + '-tab').classList.remove('hidden');
+            
+            // Update tab styles
+            document.querySelectorAll('.rooms-tab-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-600', 'bg-blue-50');
+                btn.classList.add('text-gray-500');
+            });
+            
+            const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+            activeTab.classList.add('border-blue-500', 'text-blue-600', 'bg-blue-50');
+            activeTab.classList.remove('text-gray-500');
+        }
+
+        // Accounts module navigation
+        function showAccountsTab(tabName) {
+            // Hide all account tabs
+            document.querySelectorAll('.accounts-tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Show selected tab
+            document.getElementById('accounts-' + tabName + '-tab').classList.remove('hidden');
+            
+            // Update tab styles
+            document.querySelectorAll('.accounts-tab-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-600', 'bg-blue-50');
+                btn.classList.add('text-gray-500');
+            });
+            
+            const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+            activeTab.classList.add('border-blue-500', 'text-blue-600', 'bg-blue-50');
+            activeTab.classList.remove('text-gray-500');
+        }
+
+        // Maintenance status navigation
+        function showMaintenanceStatus(status) {
+            currentMaintenanceStatus = status;
+            
+            // Update tab styles
+            document.querySelectorAll('.maintenance-status-btn').forEach(btn => {
+                btn.classList.remove('border-red-500', 'text-red-600', 'bg-red-50', 'border-blue-500', 'text-blue-600', 'bg-blue-50', 'border-green-500', 'text-green-600', 'bg-green-50');
+                btn.classList.add('text-gray-500');
+            });
+            
+            const activeTab = document.querySelector(`[data-status="${status}"]`);
+            if (status === 'urgent') {
+                activeTab.classList.add('border-red-500', 'text-red-600', 'bg-red-50');
+            } else if (status === 'resolved') {
+                activeTab.classList.add('border-green-500', 'text-green-600', 'bg-green-50');
+            } else {
+                activeTab.classList.add('border-blue-500', 'text-blue-600', 'bg-blue-50');
+            }
+            activeTab.classList.remove('text-gray-500');
+            
+            displayMaintenance();
+        }
+
+        // Schedule sidebar toggle
+        function toggleScheduleSidebar() {
+            const sidebar = document.getElementById('schedule-sidebar');
+            const content = document.getElementById('schedule-sidebar-content');
+            const icon = document.getElementById('schedule-sidebar-icon');
+            const title = document.getElementById('schedule-sidebar-title');
+            
+            if (sidebar.classList.contains('w-80')) {
+                sidebar.classList.remove('w-80');
+                sidebar.classList.add('w-12');
+                content.style.display = 'none';
+                title.innerHTML = '📅';
+                icon.style.transform = 'rotate(90deg)';
+            } else {
+                sidebar.classList.remove('w-12');
+                sidebar.classList.add('w-80');
+                content.style.display = 'block';
+                title.innerHTML = '📅 Schedule Room';
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Set today's date as default
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('scheduleDate');
+            if (dateInput) dateInput.value = today;
+            
+            const assignmentDate = document.getElementById('assignmentDate');
+            if (assignmentDate) assignmentDate.value = today;
+        }
+
+        // Module navigation
+        function showModule(moduleName) {
+            // Hide all modules
+            document.querySelectorAll('.module-content').forEach(module => {
+                module.classList.add('hidden');
+            });
+            
+            // Show selected module
+            document.getElementById(moduleName + '-module').classList.remove('hidden');
+            
+            // Update tab styles
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-600', 'bg-blue-50');
+                btn.classList.add('text-gray-500');
+            });
+            
+            const activeTab = document.querySelector(`[data-module="${moduleName}"]`);
+            activeTab.classList.add('border-blue-500', 'text-blue-600', 'bg-blue-50');
+            activeTab.classList.remove('text-gray-500');
+        }
+
+        // Sync status management
+        function updateSyncStatus(status, message) {
+            const icon = document.getElementById('syncIcon');
+            const text = document.getElementById('syncText');
+            
+            if (status === 'connected') {
+                icon.className = 'w-2 h-2 rounded-full mr-2 bg-green-500';
+                text.textContent = message || 'Connected';
+            } else if (status === 'syncing') {
+                icon.className = 'w-2 h-2 rounded-full mr-2 bg-yellow-500 animate-pulse';
+                text.textContent = message || 'Syncing...';
+            } else {
+                icon.className = 'w-2 h-2 rounded-full mr-2 bg-red-500';
+                text.textContent = message || 'Disconnected';
+            }
+        }
+
+        // Room Management Functions
+        async function saveRoom() {
+            const name = document.getElementById('roomName').value;
+            const type = document.getElementById('roomType').value;
+            const capacity = document.getElementById('roomCapacity').value;
+            const location = document.getElementById('roomLocation').value;
+            const amenities = document.getElementById('roomAmenities').value;
+
+            if (!name || !type) {
+                alert('Please fill in room name and type');
+                return;
+            }
+
+            updateSyncStatus('syncing', editingRoomId ? 'Updating room...' : 'Adding room...');
+
+            try {
+                const roomData = {
+                    name,
+                    type,
+                    capacity: parseInt(capacity) || 0,
+                    location,
+                    amenities,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (editingRoomId) {
+                    await db.collection('rooms').doc(editingRoomId).update(roomData);
+                    updateSyncStatus('connected', 'Room updated');
+                } else {
+                    roomData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('rooms').add(roomData);
+                    updateSyncStatus('connected', 'Room added');
+                }
+                
+                clearRoomForm();
+                loadRooms();
+            } catch (error) {
+                console.error('Error saving room:', error);
+                updateSyncStatus('error', 'Failed to save room');
+            }
+        }
+
+        function editRoom(roomId) {
+            const room = rooms.find(r => r.id === roomId);
+            if (!room) return;
+
+            editingRoomId = roomId;
+            
+            document.getElementById('roomName').value = room.name;
+            document.getElementById('roomType').value = room.type;
+            document.getElementById('roomCapacity').value = room.capacity || '';
+            document.getElementById('roomLocation').value = room.location || '';
+            document.getElementById('roomAmenities').value = room.amenities || '';
+            
+            document.getElementById('roomSaveBtn').textContent = 'Update Room';
+            document.getElementById('roomCancelBtn').classList.remove('hidden');
+            
+            // Switch to management tab and expand form
+            showRoomsTab('management');
+            const content = document.getElementById('room-form-content');
+            if (content.style.display === 'none') {
+                toggleSection('room-form');
+            }
+        }
+
+        function cancelRoomEdit() {
+            clearRoomForm();
+        }
+
+        function clearRoomForm() {
+            editingRoomId = null;
+            document.getElementById('roomName').value = '';
+            document.getElementById('roomType').value = '';
+            document.getElementById('roomCapacity').value = '';
+            document.getElementById('roomLocation').value = '';
+            document.getElementById('roomAmenities').value = '';
+            
+            document.getElementById('roomSaveBtn').textContent = 'Add Room';
+            document.getElementById('roomCancelBtn').classList.add('hidden');
+        }
+
+        async function loadRooms() {
+            try {
+                const snapshot = await db.collection('rooms').orderBy('name').get();
+                rooms = [];
+                snapshot.forEach(doc => {
+                    rooms.push({ id: doc.id, ...doc.data() });
+                });
+                
+                displayRooms();
+                updateRoomSelects();
+            } catch (error) {
+                console.error('Error loading rooms:', error);
+            }
+        }
+
+        function displayRooms() {
+            const roomsList = document.getElementById('roomsList');
+            if (!roomsList) return;
+
+            roomsList.innerHTML = rooms.map(room => `
+                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-2">
+                            <span class="font-medium text-gray-900">${room.name}</span>
+                            <span class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${room.type}</span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            📍 ${room.location || 'No location'} • 👥 ${room.capacity || 0} capacity
+                        </div>
+                        ${room.amenities ? `<div class="text-sm text-gray-500 mt-1">🏢 ${room.amenities}</div>` : ''}
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="editRoom('${room.id}')" class="text-blue-600 hover:text-blue-800">
+                            ✏️
+                        </button>
+                        <button onclick="deleteRoom('${room.id}')" class="text-red-600 hover:text-red-800">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateRoomSelects() {
+            const selects = ['maintenanceRoom', 'scheduleRoom', 'assignToRoom'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">Select Room</option>' + 
+                        rooms.map(room => `<option value="${room.id}">${room.name}</option>`).join('');
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        async function deleteRoom(roomId) {
+            if (confirm('Are you sure you want to delete this room?')) {
+                updateSyncStatus('syncing', 'Deleting room...');
+                try {
+                    await db.collection('rooms').doc(roomId).delete();
+                    loadRooms();
+                    updateSyncStatus('connected', 'Room deleted');
+                } catch (error) {
+                    console.error('Error deleting room:', error);
+                    updateSyncStatus('error', 'Failed to delete room');
+                }
+            }
+        }
+
+        // Maintenance Functions
+        async function saveMaintenance() {
+            const roomId = document.getElementById('maintenanceRoom').value;
+            const type = document.getElementById('issueType').value;
+            const description = document.getElementById('issueDescription').value;
+            const priority = document.getElementById('issuePriority').value;
+
+            if (!roomId || !type || !description) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            updateSyncStatus('syncing', editingMaintenanceId ? 'Updating issue...' : 'Reporting issue...');
+
+            try {
+                const issueData = {
+                    roomId,
+                    type,
+                    description,
+                    priority,
+                    status: editingMaintenanceId ? undefined : 'open',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (editingMaintenanceId) {
+                    await db.collection('maintenance').doc(editingMaintenanceId).update(issueData);
+                    updateSyncStatus('connected', 'Issue updated');
+                } else {
+                    issueData.reportedAt = firebase.firestore.FieldValue.serverTimestamp();
+                    issueData.status = 'open';
+                    await db.collection('maintenance').add(issueData);
+                    updateSyncStatus('connected', 'Issue reported');
+                }
+                
+                clearMaintenanceForm();
+                loadMaintenance();
+            } catch (error) {
+                console.error('Error saving maintenance issue:', error);
+                updateSyncStatus('error', 'Failed to save issue');
+            }
+        }
+
+        function editMaintenance(maintenanceId) {
+            const issue = maintenanceIssues.find(m => m.id === maintenanceId);
+            if (!issue) return;
+
+            editingMaintenanceId = maintenanceId;
+            
+            document.getElementById('maintenanceRoom').value = issue.roomId;
+            document.getElementById('issueType').value = issue.type;
+            document.getElementById('issueDescription').value = issue.description;
+            document.getElementById('issuePriority').value = issue.priority;
+            
+            document.getElementById('maintenanceSaveBtn').textContent = 'Update Issue';
+            document.getElementById('maintenanceCancelBtn').classList.remove('hidden');
+            
+            // Expand form if collapsed
+            const content = document.getElementById('maintenance-form-content');
+            if (content.style.display === 'none') {
+                toggleSection('maintenance-form');
+            }
+        }
+
+        function cancelMaintenanceEdit() {
+            clearMaintenanceForm();
+        }
+
+        function clearMaintenanceForm() {
+            editingMaintenanceId = null;
+            document.getElementById('maintenanceRoom').value = '';
+            document.getElementById('issueType').value = '';
+            document.getElementById('issueDescription').value = '';
+            document.getElementById('issuePriority').value = 'low';
+            
+            document.getElementById('maintenanceSaveBtn').textContent = 'Report Issue';
+            document.getElementById('maintenanceCancelBtn').classList.add('hidden');
+        }
+
+        async function loadMaintenance() {
+            try {
+                const snapshot = await db.collection('maintenance').orderBy('reportedAt', 'desc').get();
+                maintenanceIssues = [];
+                snapshot.forEach(doc => {
+                    maintenanceIssues.push({ id: doc.id, ...doc.data() });
+                });
+                
+                displayMaintenance();
+            } catch (error) {
+                console.error('Error loading maintenance issues:', error);
+            }
+        }
+
+        function displayMaintenance() {
+            const maintenanceList = document.getElementById('maintenanceList');
+            if (!maintenanceList) return;
+
+            // Filter issues based on current status
+            let filteredIssues = [];
+            if (currentMaintenanceStatus === 'urgent') {
+                filteredIssues = maintenanceIssues.filter(issue => 
+                    issue.priority === 'urgent' || issue.priority === 'high'
+                );
+            } else if (currentMaintenanceStatus === 'normal') {
+                filteredIssues = maintenanceIssues.filter(issue => 
+                    issue.priority === 'medium' || issue.priority === 'low'
+                );
+            } else if (currentMaintenanceStatus === 'resolved') {
+                filteredIssues = maintenanceIssues.filter(issue => 
+                    issue.status === 'resolved'
+                );
+            }
+
+            if (filteredIssues.length === 0) {
+                maintenanceList.innerHTML = '<div class="text-gray-500 text-center py-8">No maintenance issues in this category</div>';
+                return;
+            }
+
+            maintenanceList.innerHTML = filteredIssues.map(issue => {
+                const room = rooms.find(r => r.id === issue.roomId);
+                const priorityColors = {
+                    low: 'bg-green-100 text-green-800',
+                    medium: 'bg-yellow-100 text-yellow-800',
+                    high: 'bg-orange-100 text-orange-800',
+                    urgent: 'bg-red-100 text-red-800'
+                };
+                
+                return `
+                    <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <span class="font-medium text-gray-900">${issue.type}</span>
+                                <span class="ml-2 px-2 py-1 text-xs ${priorityColors[issue.priority]} rounded">${issue.priority}</span>
+                                <span class="ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded">${issue.status}</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mb-1">
+                                🏛️ ${room ? room.name : 'Unknown Room'}
+                            </div>
+                            <div class="text-sm text-gray-500">${issue.description}</div>
+                            ${issue.solution ? `<div class="text-sm text-green-600 mt-1">✅ Solution: ${issue.solution}</div>` : ''}
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${issue.status !== 'resolved' ? `
+                                <button onclick="resolveIssue('${issue.id}')" class="text-green-600 hover:text-green-800" title="Mark as Resolved">
+                                    ✅
+                                </button>
+                            ` : ''}
+                            <button onclick="editMaintenance('${issue.id}')" class="text-blue-600 hover:text-blue-800">
+                                ✏️
+                            </button>
+                            <button onclick="deleteMaintenance('${issue.id}')" class="text-red-600 hover:text-red-800">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function resolveIssue(maintenanceId) {
+            const solution = prompt('Enter the detailed solution:');
+            if (!solution) return;
+
+            updateSyncStatus('syncing', 'Resolving issue...');
+            try {
+                await db.collection('maintenance').doc(maintenanceId).update({
+                    status: 'resolved',
+                    solution: solution,
+                    resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                loadMaintenance();
+                updateSyncStatus('connected', 'Issue resolved');
+            } catch (error) {
+                console.error('Error resolving maintenance issue:', error);
+                updateSyncStatus('error', 'Failed to resolve issue');
+            }
+        }
+
+        async function deleteMaintenance(maintenanceId) {
+            if (confirm('Are you sure you want to delete this maintenance issue?')) {
+                updateSyncStatus('syncing', 'Deleting issue...');
+                try {
+                    await db.collection('maintenance').doc(maintenanceId).delete();
+                    loadMaintenance();
+                    updateSyncStatus('connected', 'Issue deleted');
+                } catch (error) {
+                    console.error('Error deleting maintenance issue:', error);
+                    updateSyncStatus('error', 'Failed to delete issue');
+                }
+            }
+        }
+
+        // Check for schedule conflicts
+        function checkScheduleConflict() {
+            const roomId = document.getElementById('scheduleRoom').value;
+            const date = document.getElementById('scheduleDate').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const conflictWarning = document.getElementById('conflictWarning');
+            const conflictDetails = document.getElementById('conflictDetails');
+
+            if (!roomId || !date || !startTime || !endTime) {
+                conflictWarning.classList.add('hidden');
+                return;
+            }
+
+            // Find conflicts
+            const conflicts = schedules.filter(schedule => {
+                if (editingScheduleId && schedule.id === editingScheduleId) return false;
+                if (schedule.roomId !== roomId || schedule.date !== date) return false;
+                
+                const scheduleStart = schedule.startTime;
+                const scheduleEnd = schedule.endTime;
+                
+                return (startTime < scheduleEnd && endTime > scheduleStart);
+            });
+
+            if (conflicts.length > 0) {
+                const conflictTitles = conflicts.map(c => `${c.title} (${c.startTime}-${c.endTime})`).join(', ');
+                conflictDetails.textContent = `Conflicts with: ${conflictTitles}`;
+                conflictWarning.classList.remove('hidden');
+            } else {
+                conflictWarning.classList.add('hidden');
+            }
+        }
+
+        // Scheduler Functions
+        async function saveSchedule() {
+            const roomId = document.getElementById('scheduleRoom').value;
+            const date = document.getElementById('scheduleDate').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const title = document.getElementById('eventTitle').value;
+            const instructor = document.getElementById('instructor').value;
+
+            if (!roomId || !date || !startTime || !endTime || !title) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            updateSyncStatus('syncing', editingScheduleId ? 'Updating schedule...' : 'Scheduling room...');
+
+            try {
+                const scheduleData = {
+                    roomId,
+                    date,
+                    startTime,
+                    endTime,
+                    title,
+                    instructor,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (editingScheduleId) {
+                    await db.collection('schedules').doc(editingScheduleId).update(scheduleData);
+                    updateSyncStatus('connected', 'Schedule updated');
+                } else {
+                    scheduleData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('schedules').add(scheduleData);
+                    updateSyncStatus('connected', 'Room scheduled');
+                }
+                
+                clearScheduleForm();
+                loadSchedules();
+            } catch (error) {
+                console.error('Error saving schedule:', error);
+                updateSyncStatus('error', 'Failed to save schedule');
+            }
+        }
+
+        function editSchedule(scheduleId) {
+            const schedule = schedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+
+            editingScheduleId = scheduleId;
+            
+            document.getElementById('scheduleRoom').value = schedule.roomId;
+            document.getElementById('scheduleDate').value = schedule.date;
+            document.getElementById('startTime').value = schedule.startTime;
+            document.getElementById('endTime').value = schedule.endTime;
+            document.getElementById('eventTitle').value = schedule.title;
+            document.getElementById('instructor').value = schedule.instructor || '';
+            
+            document.getElementById('scheduleSaveBtn').textContent = 'Update Schedule';
+            document.getElementById('scheduleCancelBtn').classList.remove('hidden');
+            
+            // Expand sidebar if collapsed
+            const sidebar = document.getElementById('schedule-sidebar');
+            if (sidebar.classList.contains('w-12')) {
+                toggleScheduleSidebar();
+            }
+        }
+
+        function cancelScheduleEdit() {
+            clearScheduleForm();
+        }
+
+        function clearScheduleForm() {
+            editingScheduleId = null;
+            document.getElementById('scheduleRoom').value = '';
+            document.getElementById('startTime').value = '';
+            document.getElementById('endTime').value = '';
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('instructor').value = '';
+            
+            document.getElementById('scheduleSaveBtn').textContent = 'Schedule Room';
+            document.getElementById('scheduleCancelBtn').classList.add('hidden');
+        }
+
+        // Weekly calendar functions
+        function initializeWeekView() {
+            const today = new Date();
+            currentWeekStart = getWeekStart(today);
+            updateWeekDisplay();
+            updateCalendarHeaders();
+        }
+
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+            return new Date(d.setDate(diff));
+        }
+
+        function updateWeekDisplay() {
+            const weekEnd = new Date(currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            
+            const options = { month: 'short', day: 'numeric' };
+            const startStr = currentWeekStart.toLocaleDateString('en-US', options);
+            const endStr = weekEnd.toLocaleDateString('en-US', options);
+            
+            document.getElementById('currentWeekDisplay').textContent = `${startStr} - ${endStr}`;
+        }
+
+        function updateCalendarHeaders() {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(date.getDate() + i);
+                const dayElement = document.getElementById(`day-${i}`);
+                if (dayElement) {
+                    dayElement.textContent = `${days[i]} ${date.getDate()}`;
+                }
+            }
+        }
+
+        function previousWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            updateWeekDisplay();
+            updateCalendarHeaders();
+            loadSchedules();
+        }
+
+        function nextWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            updateWeekDisplay();
+            updateCalendarHeaders();
+            loadSchedules();
+        }
+
+        async function loadSchedules() {
+            try {
+                // Load schedules for the current week
+                const weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                
+                const startDate = currentWeekStart.toISOString().split('T')[0];
+                const endDate = weekEnd.toISOString().split('T')[0];
+                
+                const snapshot = await db.collection('schedules')
+                    .where('date', '>=', startDate)
+                    .where('date', '<=', endDate)
+                    .get();
+                
+                schedules = [];
+                snapshot.forEach(doc => {
+                    schedules.push({ id: doc.id, ...doc.data() });
+                });
+                
+                displayWeeklyCalendar();
+            } catch (error) {
+                console.error('Error loading schedules:', error);
+            }
+        }
+
+        function displayWeeklyCalendar() {
+            const calendarBody = document.getElementById('calendarBody');
+            if (!calendarBody) return;
+
+            // Create calendar grid
+            let calendarHTML = '';
+            
+            rooms.forEach(room => {
+                calendarHTML += `<tr>`;
+                calendarHTML += `<td class="border p-2 text-xs font-medium bg-gray-50 text-center">${room.name}</td>`;
+                
+                // For each day of the week
+                for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+                    const currentDate = new Date(currentWeekStart);
+                    currentDate.setDate(currentDate.getDate() + dayOffset);
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    
+                    // Find schedules for this room and date
+                    const daySchedules = schedules.filter(s => 
+                        s.roomId === room.id && s.date === dateStr
+                    ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+                    
+                    calendarHTML += `<td class="border p-1 align-top min-h-24 w-32">`;
+                    
+                    daySchedules.forEach(schedule => {
+                        calendarHTML += `
+                            <div class="bg-blue-100 text-blue-800 text-xs p-1 mb-1 rounded cursor-pointer hover:bg-blue-200" 
+                                 onclick="editSchedule('${schedule.id}')" title="${schedule.title}">
+                                <div class="font-medium truncate text-xs">${schedule.title}</div>
+                                <div class="text-xs">${schedule.startTime}-${schedule.endTime}</div>
+                                ${schedule.instructor ? `<div class="text-xs truncate">${schedule.instructor}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    calendarHTML += `</td>`;
+                }
+                
+                calendarHTML += `</tr>`;
+            });
+            
+            calendarBody.innerHTML = calendarHTML;
+        }
+
+        async function deleteSchedule(scheduleId) {
+            if (confirm('Are you sure you want to delete this schedule?')) {
+                updateSyncStatus('syncing', 'Deleting schedule...');
+                try {
+                    await db.collection('schedules').doc(scheduleId).delete();
+                    loadSchedules();
+                    updateSyncStatus('connected', 'Schedule deleted');
+                } catch (error) {
+                    console.error('Error deleting schedule:', error);
+                    updateSyncStatus('error', 'Failed to delete schedule');
+                }
+            }
+        }
+
+        // Equipment Functions
+        async function addEquipment() {
+            const name = document.getElementById('equipmentName').value;
+            const category = document.getElementById('equipmentCategory').value;
+            const quantity = document.getElementById('equipmentQuantity').value;
+            const condition = document.getElementById('equipmentCondition').value;
+            const location = document.getElementById('equipmentLocation').value;
+
+            if (!name || !category || !quantity) {
+                alert('Please fill in required fields');
+                return;
+            }
+
+            updateSyncStatus('syncing', 'Adding equipment...');
+
+            try {
+                const equipmentData = {
+                    name,
+                    category,
+                    quantity: parseInt(quantity),
+                    condition,
+                    location,
+                    available: parseInt(quantity),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('equipment').add(equipmentData);
+                
+                // Clear form
+                document.getElementById('equipmentName').value = '';
+                document.getElementById('equipmentCategory').value = '';
+                document.getElementById('equipmentQuantity').value = '';
+                document.getElementById('equipmentCondition').value = 'excellent';
+                document.getElementById('equipmentLocation').value = '';
+
+                loadEquipment();
+                updateSyncStatus('connected', 'Equipment added');
+            } catch (error) {
+                console.error('Error adding equipment:', error);
+                updateSyncStatus('error', 'Failed to add equipment');
+            }
+        }
+
+        async function loadEquipment() {
+            try {
+                const snapshot = await db.collection('equipment').orderBy('name').get();
+                equipment = [];
+                snapshot.forEach(doc => {
+                    equipment.push({ id: doc.id, ...doc.data() });
+                });
+                
+                displayEquipment();
+                updateEquipmentSelect();
+            } catch (error) {
+                console.error('Error loading equipment:', error);
+            }
+        }
+
+        function displayEquipment() {
+            const equipmentList = document.getElementById('equipmentList');
+            if (!equipmentList) return;
+
+            equipmentList.innerHTML = equipment.map(item => `
+                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-2">
+                            <span class="font-medium text-gray-900">${item.name}</span>
+                            <span class="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">${item.category}</span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            📦 ${item.available}/${item.quantity} available • 
+                            📍 ${item.location || 'No location'} • 
+                            ⭐ ${item.condition}
+                        </div>
+                    </div>
+                    <button onclick="deleteEquipment('${item.id}')" class="text-red-600 hover:text-red-800 ml-4">
+                        🗑️
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function updateEquipmentSelect() {
+            const select = document.getElementById('assignEquipment');
+            if (select) {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Select Equipment</option>' + 
+                    equipment.filter(item => item.available > 0)
+                        .map(item => `<option value="${item.id}">${item.name} (${item.available} available)</option>`).join('');
+                select.value = currentValue;
+            }
+        }
+
+        async function assignEquipment() {
+            const equipmentId = document.getElementById('assignEquipment').value;
+            const roomId = document.getElementById('assignToRoom').value;
+            const assignedTo = document.getElementById('assignedTo').value;
+            const date = document.getElementById('assignmentDate').value;
+            const notes = document.getElementById('assignmentNotes').value;
+
+            if (!equipmentId || !assignedTo) {
+                alert('Please select equipment and specify who it\'s assigned to');
+                return;
+            }
+
+            updateSyncStatus('syncing', 'Assigning equipment...');
+
+            try {
+                const assignmentData = {
+                    equipmentId,
+                    roomId,
+                    assignedTo,
+                    date,
+                    notes,
+                    status: 'active',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('assignments').add(assignmentData);
+                
+                // Update equipment availability
+                const equipmentItem = equipment.find(item => item.id === equipmentId);
+                if (equipmentItem && equipmentItem.available > 0) {
+                    await db.collection('equipment').doc(equipmentId).update({
+                        available: equipmentItem.available - 1
+                    });
+                }
+                
+                // Clear form
+                document.getElementById('assignEquipment').value = '';
+                document.getElementById('assignToRoom').value = '';
+                document.getElementById('assignedTo').value = '';
+                document.getElementById('assignmentNotes').value = '';
+
+                loadEquipment();
+                updateSyncStatus('connected', 'Equipment assigned');
+            } catch (error) {
+                console.error('Error assigning equipment:', error);
+                updateSyncStatus('error', 'Failed to assign equipment');
+            }
+        }
+
+        async function deleteEquipment(equipmentId) {
+            if (confirm('Are you sure you want to delete this equipment?')) {
+                updateSyncStatus('syncing', 'Deleting equipment...');
+                try {
+                    await db.collection('equipment').doc(equipmentId).delete();
+                    loadEquipment();
+                    updateSyncStatus('connected', 'Equipment deleted');
+                } catch (error) {
+                    console.error('Error deleting equipment:', error);
+                    updateSyncStatus('error', 'Failed to delete equipment');
+                }
+            }
+        }
+
+        // Account Management Functions
+        async function saveTeacher() {
+            const name = document.getElementById('teacherName').value;
+            const email = document.getElementById('teacherEmail').value;
+            const department = document.getElementById('teacherDepartment').value;
+            const subjects = document.getElementById('teacherSubjects').value;
+
+            if (!name || !email) {
+                alert('Please fill in name and email');
+                return;
+            }
+
+            updateSyncStatus('syncing', editingTeacherId ? 'Updating teacher...' : 'Adding teacher...');
+
+            try {
+                const teacherData = {
+                    name,
+                    email,
+                    department,
+                    subjects: subjects.split(',').map(s => s.trim()).filter(s => s),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (editingTeacherId) {
+                    await db.collection('teachers').doc(editingTeacherId).update(teacherData);
+                    updateSyncStatus('connected', 'Teacher updated');
+                } else {
+                    teacherData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('teachers').add(teacherData);
+                    updateSyncStatus('connected', 'Teacher added');
+                }
+                
+                clearTeacherForm();
+                loadTeachers();
+            } catch (error) {
+                console.error('Error saving teacher:', error);
+                updateSyncStatus('error', 'Failed to save teacher');
+            }
+        }
+
+        function editTeacher(teacherId) {
+            const teacher = teachers.find(t => t.id === teacherId);
+            if (!teacher) return;
+
+            editingTeacherId = teacherId;
+            
+            document.getElementById('teacherName').value = teacher.name;
+            document.getElementById('teacherEmail').value = teacher.email;
+            document.getElementById('teacherDepartment').value = teacher.department || '';
+            document.getElementById('teacherSubjects').value = teacher.subjects ? teacher.subjects.join(', ') : '';
+            
+            document.getElementById('teacherSaveBtn').textContent = 'Update Teacher';
+            document.getElementById('teacherCancelBtn').classList.remove('hidden');
+            
+            // Expand form if collapsed
+            const content = document.getElementById('teacher-form-content');
+            if (content.style.display === 'none') {
+                toggleSection('teacher-form');
+            }
+        }
+
+        function cancelTeacherEdit() {
+            clearTeacherForm();
+        }
+
+        function clearTeacherForm() {
+            editingTeacherId = null;
+            document.getElementById('teacherName').value = '';
+            document.getElementById('teacherEmail').value = '';
+            document.getElementById('teacherDepartment').value = '';
+            document.getElementById('teacherSubjects').value = '';
+            
+            document.getElementById('teacherSaveBtn').textContent = 'Add Teacher';
+            document.getElementById('teacherCancelBtn').classList.add('hidden');
+        }
+
+        async function loadTeachers() {
+            try {
+                const snapshot = await db.collection('teachers').orderBy('name').get();
+                teachers = [];
+                snapshot.forEach(doc => {
+                    teachers.push({ id: doc.id, ...doc.data() });
+                });
+                
+                displayTeachers();
+            } catch (error) {
+                console.error('Error loading teachers:', error);
+            }
+        }
+
+        function displayTeachers() {
+            const teachersList = document.getElementById('teachersList');
+            if (!teachersList) return;
+
+            if (teachers.length === 0) {
+                teachersList.innerHTML = '<div class="col-span-full text-gray-500 text-center py-8">No teachers added yet</div>';
+                return;
+            }
+
+            teachersList.innerHTML = teachers.map(teacher => `
+                <div class="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900 mb-1">${teacher.name}</h4>
+                            <p class="text-sm text-gray-600">${teacher.email}</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="editTeacher('${teacher.id}')" class="text-blue-600 hover:text-blue-800">
+                                ✏️
+                            </button>
+                            <button onclick="deleteTeacher('${teacher.id}')" class="text-red-600 hover:text-red-800">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    ${teacher.department ? `
+                        <div class="mb-2">
+                            <span class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">${teacher.department}</span>
+                        </div>
+                    ` : ''}
+                    ${teacher.subjects && teacher.subjects.length > 0 ? `
+                        <div class="text-sm text-gray-500">
+                            <strong>Subjects:</strong> ${teacher.subjects.join(', ')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function deleteTeacher(teacherId) {
+            if (confirm('Are you sure you want to delete this teacher?')) {
+                updateSyncStatus('syncing', 'Deleting teacher...');
+                try {
+                    await db.collection('teachers').doc(teacherId).delete();
+                    loadTeachers();
+                    updateSyncStatus('connected', 'Teacher deleted');
+                } catch (error) {
+                    console.error('Error deleting teacher:', error);
+                    updateSyncStatus('error', 'Failed to delete teacher');
+                }
+            }
+        }
+
+        async function saveStudent() {
+            const name = document.getElementById('studentName').value;
+            const email = document.getElementById('studentEmail').value;
+            const studentId = document.getElementById('studentId').value;
+            const grade = document.getElementById('studentGrade').value;
+
+            if (!name || !email || !studentId) {
+                alert('Please fill in name, email, and student ID');
+                return;
+            }
+
+            updateSyncStatus('syncing', editingStudentId ? 'Updating student...' : 'Adding student...');
+
+            try {
+                const studentData = {
+                    name,
+                    email,
+                    studentId,
+                    grade,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (editingStudentId) {
+                    await db.collection('students').doc(editingStudentId).update(studentData);
+                    updateSyncStatus('connected', 'Student updated');
+                } else {
+                    studentData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('students').add(studentData);
+                    updateSyncStatus('connected', 'Student added');
+                }
+                
+                clearStudentForm();
+                loadStudents();
+            } catch (error) {
+                console.error('Error saving student:', error);
+                updateSyncStatus('error', 'Failed to save student');
+            }
+        }
+
+        function editStudent(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            editingStudentId = studentId;
+            
+            document.getElementById('studentName').value = student.name;
+            document.getElementById('studentEmail').value = student.email;
+            document.getElementById('studentId').value = student.studentId;
+            document.getElementById('studentGrade').value = student.grade || '';
+            
+            document.getElementById('studentSaveBtn').textContent = 'Update Student';
+            document.getElementById('studentCancelBtn').classList.remove('hidden');
+            
+            // Expand form if collapsed
+            const content = document.getElementById('student-form-content');
+            if (content.style.display === 'none') {
+                toggleSection('student-form');
+            }
+        }
+
+        function cancelStudentEdit() {
+            clearStudentForm();
+        }
+
+        function clearStudentForm() {
+            editingStudentId = null;
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentEmail').value = '';
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentGrade').value = '';
+            
+            document.getElementById('studentSaveBtn').textContent = 'Add Student';
+            document.getElementById('studentCancelBtn').classList.add('hidden');
+        }
+
+        async function loadStudents() {
+            try {
+                const snapshot = await db.collection('students').orderBy('name').get();
+                students = [];
+                snapshot.forEach(doc => {
+                    students.push({ id: doc.id, ...doc.data() });
+                });
+                
+                displayStudents();
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+
+        function displayStudents() {
+            const studentsList = document.getElementById('studentsList');
+            if (!studentsList) return;
+
+            studentsList.innerHTML = students.map(student => `
+                <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-900">${student.name}</div>
+                        <div class="text-sm text-gray-600">${student.email}</div>
+                        <div class="text-sm text-gray-500">ID: ${student.studentId} ${student.grade ? `• Grade ${student.grade}` : ''}</div>
+                    </div>
+                    <button onclick="deleteStudent('${student.id}')" class="text-red-600 hover:text-red-800 ml-4">
+                        🗑️
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function deleteStudent(studentId) {
+            if (confirm('Are you sure you want to delete this student?')) {
+                updateSyncStatus('syncing', 'Deleting student...');
+                try {
+                    await db.collection('students').doc(studentId).delete();
+                    loadStudents();
+                    updateSyncStatus('connected', 'Student deleted');
+                } catch (error) {
+                    console.error('Error deleting student:', error);
+                    updateSyncStatus('error', 'Failed to delete student');
+                }
+            }
+        }
+
+        // Load all data
+        async function loadAllData() {
+            updateSyncStatus('syncing', 'Loading data...');
+            try {
+                await Promise.all([
+                    loadRooms(),
+                    loadEquipment(),
+                    loadSchedules(),
+                    loadTeachers(),
+                    loadStudents(),
+                    loadMaintenance()
+                ]);
+                updateSyncStatus('connected', 'Data loaded');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                updateSyncStatus('error', 'Failed to load data');
+            }
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'973f98b8e642e2f6',t:'MTc1NjAwNDM5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
