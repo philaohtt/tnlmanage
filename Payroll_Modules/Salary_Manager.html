@@ -45,12 +45,19 @@
     let allTimesheets = []; // All timesheets across all periods
     let allSalaries = []; // All salaries across all periods
     let allSalaryRuns = []; // All salary runs
+    let recurringRules = []; // Extra pay recurring rules
+    let oneTimePayments = []; // Extra pay one-time payments
     let selectedStaff = null;
     let isLoading = false;
     let unsubscribers = [];
     let tempAdjustments = {}; // Store temporary adjustments before generating salaries
     let selectedPeriod = null; // { year, month } for filtering when needed
-    let activeTab = 'salaries'; // 'salaries' or 'banking'
+    let activeTab = 'salaries'; // 'salaries', 'banking', or 'extrapay'
+    let extraPayTab = 'recurring'; // 'recurring' or 'onetime'
+    let extraPayFilterYear = new Date().getFullYear();
+    let extraPayFilterMonth = new Date().getMonth() + 1;
+    let editingRule = null;
+    let editingPayment = null;
 
     const defaultConfig = {
       module_title: 'Salary Manager',
@@ -200,6 +207,32 @@
           });
         unsubscribers.push(salUnsub);
 
+        // Load recurring extra pay rules
+        const recurringUnsub = db.collection('staffExtraPayRules')
+          .where('active', '==', true)
+          .onSnapshot(snap => {
+            recurringRules = snap.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            console.log(`[Recurring Rules] Loaded ${recurringRules.length} active rules`);
+            render();
+          });
+        unsubscribers.push(recurringUnsub);
+
+        // Load one-time extra pays
+        const oneTimeUnsub = db.collection('extraPays')
+          .where('status', '==', 'approved')
+          .onSnapshot(snap => {
+            oneTimePayments = snap.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            console.log(`[One-Time Pays] Loaded ${oneTimePayments.length} approved payments`);
+            render();
+          });
+        unsubscribers.push(oneTimeUnsub);
+
         showToast('Data loaded successfully', 'success');
         
         // Auto-generate salaries for all periods
@@ -257,15 +290,19 @@
           });
         }
 
-        // Generate salary for each active staff
+        // Generate salary for each active staff - NO AUTO ADJUSTMENTS
         for (const s of staff) {
           const ts = allTimesheets.find(t => t.staffId === s.id && t.year === year && t.month === month);
           const gross = ts?.totalPay || 0;
           const salDocId = `SAL_${s.id}_${year}_${String(month).padStart(2, '0')}`;
           const existing = allSalaries.find(sal => sal.id === salDocId);
           
-          // Use temporary adjustments if they exist, otherwise use existing
-          const adjustments = tempAdjustments[`${s.id}_${year}_${month}`] || existing?.adjustments || [];
+          // Get manual adjustments only
+          const manualAdjustments = (existing?.adjustments || []);
+          
+          // Apply temporary adjustments if they exist
+          const tempKey = `${s.id}_${year}_${month}`;
+          const finalAdjustments = tempAdjustments[tempKey] || manualAdjustments;
 
           const salaryData = {
             staffId: s.id,
@@ -273,7 +310,7 @@
             month: month,
             timesheetId: ts?.id || null,
             gross: gross,
-            adjustments: adjustments,
+            adjustments: finalAdjustments,
             bonusTotal: 0,
             deductionTotal: 0,
             net: gross,
@@ -533,25 +570,27 @@
         `;
       }
 
-      return adjustments.map((adj, i) => `
-        <div class="p-4 rounded-lg border space-y-3 ${adj.type === 'bonus' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
-          <div class="flex items-center gap-2">
-            <select data-index="${i}" data-field="type" class="px-3 py-2 border rounded-lg text-sm font-medium flex-1 bg-white" style="border-color: #E5E7EB;" ${!canEdit ? 'disabled' : ''}>
-              <option value="bonus" ${adj.type === 'bonus' ? 'selected' : ''}>+ Bonus</option>
-              <option value="deduction" ${adj.type === 'deduction' ? 'selected' : ''}>− Deduction</option>
-            </select>
-            <button onclick="removeAdjustment(${i})" class="w-8 h-8 rounded-lg border text-sm font-medium hover:bg-white" style="border-color: #E5E7EB; color: ${config.text_color};" ${!canEdit ? 'disabled' : ''}>✕</button>
+      return `
+        ${adjustments.map((adj, i) => `
+          <div class="p-4 rounded-lg border space-y-3 ${adj.type === 'bonus' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+            <div class="flex items-center gap-2">
+              <select data-index="${i}" data-field="type" class="px-3 py-2 border rounded-lg text-sm font-medium flex-1 bg-white" style="border-color: #E5E7EB;" ${!canEdit ? 'disabled' : ''}>
+                <option value="bonus" ${adj.type === 'bonus' ? 'selected' : ''}>+ Bonus</option>
+                <option value="deduction" ${adj.type === 'deduction' ? 'selected' : ''}>− Deduction</option>
+              </select>
+              <button onclick="removeAdjustment(${i})" class="w-8 h-8 rounded-lg border text-sm font-medium hover:bg-white" style="border-color: #E5E7EB; color: ${config.text_color};" ${!canEdit ? 'disabled' : ''}>✕</button>
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1" style="color: ${config.text_color};">Description</label>
+              <input type="text" data-index="${i}" data-field="label" value="${adj.label || ''}" placeholder="e.g., Performance bonus, Late penalty" class="w-full px-3 py-2 border rounded-lg text-sm" style="border-color: #E5E7EB;" ${!canEdit ? 'disabled' : ''}>
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1" style="color: ${config.text_color};">Amount (VND)</label>
+              <input type="number" data-index="${i}" data-field="amount" value="${adj.amount || 0}" step="1000" placeholder="0" class="w-full px-3 py-2 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;" ${!canEdit ? 'disabled' : ''}>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-medium mb-1" style="color: ${config.text_color};">Description</label>
-            <input type="text" data-index="${i}" data-field="label" value="${adj.label || ''}" placeholder="e.g., Performance bonus, Late penalty" class="w-full px-3 py-2 border rounded-lg text-sm" style="border-color: #E5E7EB;" ${!canEdit ? 'disabled' : ''}>
-          </div>
-          <div>
-            <label class="block text-xs font-medium mb-1" style="color: ${config.text_color};">Amount (VND)</label>
-            <input type="number" data-index="${i}" data-field="amount" value="${adj.amount || 0}" step="1000" placeholder="0" class="w-full px-3 py-2 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;" ${!canEdit ? 'disabled' : ''}>
-          </div>
-        </div>
-      `).join('');
+        `).join('')}
+      `;
     }
 
     // Helper to update salary summary values
@@ -603,17 +642,24 @@
                 <button onclick="switchTab('banking')" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'banking' ? 'text-white' : ''}" style="background: ${activeTab === 'banking' ? config.primary_color : 'transparent'}; color: ${activeTab === 'banking' ? '#FFFFFF' : config.text_color};">
                   Banking Details
                 </button>
+                <button onclick="switchTab('extrapay')" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'extrapay' ? 'text-white' : ''}" style="background: ${activeTab === 'extrapay' ? config.primary_color : 'transparent'}; color: ${activeTab === 'extrapay' ? '#FFFFFF' : config.text_color};">
+                  Extra Pay
+                </button>
               </div>
             </div>
           </div>
 
           <!-- Main Content -->
           <div class="px-6 py-6">
-            ${activeTab === 'salaries' ? renderAllPeriods(config) : renderBankingTab(config)}
+            ${activeTab === 'salaries' ? renderAllPeriods(config) : activeTab === 'banking' ? renderBankingTab(config) : renderExtraPayTab(config)}
           </div>
 
           <!-- Side Panel -->
           ${selectedStaff && selectedPeriod ? renderSidePanel(config) : ''}
+          
+          <!-- Modals -->
+          ${editingRule ? renderRuleModal(config) : ''}
+          ${editingPayment ? renderPaymentModal(config) : ''}
         </div>
       `;
 
@@ -680,6 +726,424 @@
                   </div>
                 `;
               }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderExtraPayTab(config) {
+      return `
+        <div>
+          <!-- Sub-tabs -->
+          <div class="mb-6 flex gap-2">
+            <button onclick="switchExtraPayTab('recurring')" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors ${extraPayTab === 'recurring' ? 'bg-blue-600 text-white' : 'bg-white border'}" style="border-color: #E5E7EB;">
+              Recurring Allowances
+            </button>
+            <button onclick="switchExtraPayTab('onetime')" class="px-4 py-2 rounded-lg font-medium text-sm transition-colors ${extraPayTab === 'onetime' ? 'bg-blue-600 text-white' : 'bg-white border'}" style="border-color: #E5E7EB;">
+              One-Time Extra Pay
+            </button>
+          </div>
+
+          ${extraPayTab === 'recurring' ? renderRecurringRulesTab(config) : renderOneTimePayTab(config)}
+        </div>
+      `;
+    }
+
+    function renderRecurringRulesTab(config) {
+      const activeRules = recurringRules.filter(r => r.active);
+      const inactiveRules = recurringRules.filter(r => !r.active);
+
+      return `
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-xl font-semibold" style="color: ${config.text_color};">Recurring Monthly Allowances</h2>
+              <p class="text-sm mt-1" style="color: ${config.text_color}; opacity: 0.5;">Automatic monthly bonuses applied to staff salaries</p>
+            </div>
+            <button onclick="openRuleModal()" class="px-4 py-2.5 rounded-lg font-semibold text-white text-sm shadow-lg hover:shadow-xl transition-all" style="background: ${config.primary_color};">
+              + New Recurring Rule
+            </button>
+          </div>
+
+          ${activeRules.length === 0 && inactiveRules.length === 0 ? `
+            <div class="bg-white rounded-xl border p-12 text-center" style="border-color: #E5E7EB;">
+              <div class="text-4xl mb-4">📋</div>
+              <p class="text-base font-medium mb-2" style="color: ${config.text_color};">No recurring rules yet</p>
+              <p class="text-sm" style="color: ${config.text_color}; opacity: 0.5;">Create your first recurring allowance rule</p>
+            </div>
+          ` : `
+            <div class="space-y-6">
+              ${activeRules.length > 0 ? `
+                <div class="bg-white rounded-xl border shadow-sm overflow-hidden" style="border-color: #E5E7EB;">
+                  <div class="px-5 py-4 border-b" style="border-color: #E5E7EB; background: linear-gradient(to right, #F0FDF4, #DCFCE7);">
+                    <h3 class="font-semibold text-sm" style="color: ${config.text_color};">Active Rules (${activeRules.length})</h3>
+                  </div>
+                  <div class="divide-y" style="border-color: #E5E7EB;">
+                    ${activeRules.map(rule => renderRuleRow(rule, config)).join('')}
+                  </div>
+                </div>
+              ` : ''}
+
+              ${inactiveRules.length > 0 ? `
+                <div class="bg-white rounded-xl border shadow-sm overflow-hidden" style="border-color: #E5E7EB;">
+                  <div class="px-5 py-4 border-b" style="border-color: #E5E7EB; background: linear-gradient(to right, #FEF2F2, #FEE2E2);">
+                    <h3 class="font-semibold text-sm" style="color: ${config.text_color};">Inactive Rules (${inactiveRules.length})</h3>
+                  </div>
+                  <div class="divide-y" style="border-color: #E5E7EB;">
+                    ${inactiveRules.map(rule => renderRuleRow(rule, config)).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function renderRuleRow(rule, config) {
+      const staffMember = staff.find(s => s.id === rule.staffId);
+      const staffName = staffMember ? (staffMember.fullName || staffMember.preferredName || 'Unknown') : rule.staffId;
+
+      return `
+        <div class="px-5 py-4 hover:bg-gray-50 transition-colors">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="px-3 py-1 rounded-lg text-xs font-bold ${rule.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                  ${rule.active ? '✓ ACTIVE' : '✕ INACTIVE'}
+                </span>
+                <h4 class="font-semibold text-base" style="color: ${config.text_color};">${rule.label}</h4>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div class="flex items-center gap-2">
+                  <span style="color: ${config.text_color}; opacity: 0.5;">Staff:</span>
+                  <span class="font-medium">${staffName}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span style="color: ${config.text_color}; opacity: 0.5;">Amount:</span>
+                  <span class="font-semibold" style="color: ${config.accent_color};">${formatCurrency(rule.amount)} VND</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span style="color: ${config.text_color}; opacity: 0.5;">Period:</span>
+                  <span class="font-medium">${rule.startMonth}/${rule.startYear} ${rule.endMonth ? `- ${rule.endMonth}/${rule.endYear}` : '(ongoing)'}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span style="color: ${config.text_color}; opacity: 0.5;">Frequency:</span>
+                  <span class="font-medium capitalize">${rule.frequency}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-2 ml-4">
+              <button onclick='editRule(${JSON.stringify(rule)})' class="px-3 py-2 rounded-lg text-xs font-medium border hover:bg-white transition-colors" style="border-color: #E5E7EB; color: ${config.text_color};">
+                Edit
+              </button>
+              <button onclick="confirmDeleteRule('${rule.id}')" class="px-3 py-2 rounded-lg text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderOneTimePayTab(config) {
+      const filteredPayments = oneTimePayments.filter(p => p.year === extraPayFilterYear && p.month === extraPayFilterMonth);
+      const draftPayments = filteredPayments.filter(p => p.status === 'draft');
+      const approvedPayments = filteredPayments.filter(p => p.status === 'approved');
+
+      return `
+        <div>
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-xl font-semibold" style="color: ${config.text_color};">One-Time Extra Payments</h2>
+              <p class="text-sm mt-1" style="color: ${config.text_color}; opacity: 0.5;">Additional bonuses for specific periods</p>
+            </div>
+            <button onclick="openPaymentModal()" class="px-4 py-2.5 rounded-lg font-semibold text-white text-sm shadow-lg hover:shadow-xl transition-all" style="background: ${config.primary_color};">
+              + New One-Time Payment
+            </button>
+          </div>
+
+          <!-- Filters -->
+          <div class="bg-white rounded-xl border p-5 mb-6 shadow-sm" style="border-color: #E5E7EB;">
+            <div class="flex items-center gap-4">
+              <label class="text-sm font-medium" style="color: ${config.text_color};">Filter by Period:</label>
+              <select id="filterYear" class="px-3 py-2 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;" onchange="updateExtraPayYear(this.value)">
+                ${[2024, 2025, 2026].map(y => `<option value="${y}" ${y === extraPayFilterYear ? 'selected' : ''}>${y}</option>`).join('')}
+              </select>
+              <select id="filterMonth" class="px-3 py-2 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;" onchange="updateExtraPayMonth(this.value)">
+                ${Array.from({length: 12}, (_, i) => i + 1).map(m => `<option value="${m}" ${m === extraPayFilterMonth ? 'selected' : ''}>${String(m).padStart(2, '0')}</option>`).join('')}
+              </select>
+              <span class="text-sm ml-auto" style="color: ${config.text_color}; opacity: 0.5;">${filteredPayments.length} payments found</span>
+            </div>
+          </div>
+
+          ${filteredPayments.length === 0 ? `
+            <div class="bg-white rounded-xl border p-12 text-center" style="border-color: #E5E7EB;">
+              <div class="text-4xl mb-4">💰</div>
+              <p class="text-base font-medium mb-2" style="color: ${config.text_color};">No payments for ${String(extraPayFilterMonth).padStart(2, '0')}/${extraPayFilterYear}</p>
+              <p class="text-sm" style="color: ${config.text_color}; opacity: 0.5;">Create a new one-time payment for this period</p>
+            </div>
+          ` : `
+            <div class="space-y-6">
+              ${draftPayments.length > 0 ? `
+                <div class="bg-white rounded-xl border shadow-sm overflow-hidden" style="border-color: #E5E7EB;">
+                  <div class="px-5 py-4 border-b" style="border-color: #E5E7EB; background: linear-gradient(to right, #FEF3C7, #FDE68A);">
+                    <h3 class="font-semibold text-sm" style="color: ${config.text_color};">Draft Payments (${draftPayments.length})</h3>
+                  </div>
+                  <div class="divide-y" style="border-color: #E5E7EB;">
+                    ${draftPayments.map(payment => renderPaymentRow(payment, config)).join('')}
+                  </div>
+                </div>
+              ` : ''}
+
+              ${approvedPayments.length > 0 ? `
+                <div class="bg-white rounded-xl border shadow-sm overflow-hidden" style="border-color: #E5E7EB;">
+                  <div class="px-5 py-4 border-b" style="border-color: #E5E7EB; background: linear-gradient(to right, #DBEAFE, #BFDBFE);">
+                    <h3 class="font-semibold text-sm" style="color: ${config.text_color};">Approved Payments (${approvedPayments.length})</h3>
+                  </div>
+                  <div class="divide-y" style="border-color: #E5E7EB;">
+                    ${approvedPayments.map(payment => renderPaymentRow(payment, config)).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function renderPaymentRow(payment, config) {
+      const staffMember = staff.find(s => s.id === payment.staffId);
+      const staffName = staffMember ? (staffMember.fullName || staffMember.preferredName || 'Unknown') : payment.staffId;
+      const hasQR = payment.qr && payment.qr.payload;
+
+      return `
+        <div class="px-5 py-4 hover:bg-gray-50 transition-colors">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="px-3 py-1 rounded-lg text-xs font-bold ${payment.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}">
+                  ${payment.status.toUpperCase()}
+                </span>
+                <h4 class="font-semibold text-base" style="color: ${config.text_color};">${payment.label}</h4>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div class="flex items-center gap-2">
+                  <span style="color: ${config.text_color}; opacity: 0.5;">Staff:</span>
+                  <span class="font-medium">${staffName}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span style="color: ${config.text_color}; opacity: 0.5;">Amount:</span>
+                  <span class="font-semibold" style="color: ${config.accent_color};">${formatCurrency(payment.amount)} VND</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span style="color: ${config.text_color}; opacity: 0.5;">Period:</span>
+                  <span class="font-medium">${String(payment.month).padStart(2, '0')}/${payment.year}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span style="color: ${config.text_color}; opacity: 0.5;">Type:</span>
+                  <span class="font-medium capitalize">${payment.type}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-2 ml-4">
+              ${hasQR ? `
+                <button onclick="viewExtraPayQR('${payment.id}')" class="px-3 py-2 rounded-lg text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                  View QR
+                </button>
+              ` : `
+                <button onclick="generateExtraPayQR('${payment.id}')" class="px-3 py-2 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-700 transition-colors">
+                  Generate QR
+                </button>
+              `}
+              <button onclick='editPayment(${JSON.stringify(payment)})' class="px-3 py-2 rounded-lg text-xs font-medium border hover:bg-white transition-colors" style="border-color: #E5E7EB; color: ${config.text_color};">
+                Edit
+              </button>
+              <button onclick="confirmDeletePayment('${payment.id}')" class="px-3 py-2 rounded-lg text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRuleModal(config) {
+      const rule = editingRule || {
+        staffId: '',
+        label: '',
+        amount: 0,
+        type: 'bonus',
+        frequency: 'monthly',
+        active: true,
+        startYear: new Date().getFullYear(),
+        startMonth: new Date().getMonth() + 1,
+        endYear: null,
+        endMonth: null
+      };
+
+      return `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white px-6 py-5 border-b z-10" style="border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold" style="color: ${config.primary_color};">${rule.id ? 'Edit' : 'New'} Recurring Rule</h3>
+                <button onclick="closeRuleModal()" class="w-9 h-9 rounded-lg hover:bg-gray-100 font-bold text-lg transition-colors">✕</button>
+              </div>
+            </div>
+
+            <div class="p-6 space-y-5">
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Staff Member *</label>
+                <select id="ruleStaffId" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                  <option value="">Select staff...</option>
+                  ${staff.map(s => `
+                    <option value="${s.id}" ${rule.staffId === s.id ? 'selected' : ''}>
+                      ${s.fullName || s.preferredName} (${s.id})
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Label / Description *</label>
+                <input type="text" id="ruleLabel" value="${rule.label}" placeholder="e.g., Housing Allowance, Transport Allowance" class="w-full px-4 py-3 border rounded-lg text-sm" style="border-color: #E5E7EB;">
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Amount (VND) *</label>
+                  <input type="number" id="ruleAmount" value="${rule.amount}" step="10000" placeholder="0" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Frequency</label>
+                  <select id="ruleFrequency" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                    <option value="monthly" ${rule.frequency === 'monthly' ? 'selected' : ''}>Monthly</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Start Year *</label>
+                  <input type="number" id="ruleStartYear" value="${rule.startYear}" min="2020" max="2030" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Start Month *</label>
+                  <input type="number" id="ruleStartMonth" value="${rule.startMonth}" min="1" max="12" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">End Year (optional)</label>
+                  <input type="number" id="ruleEndYear" value="${rule.endYear || ''}" min="2020" max="2030" placeholder="Leave empty for ongoing" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">End Month (optional)</label>
+                  <input type="number" id="ruleEndMonth" value="${rule.endMonth || ''}" min="1" max="12" placeholder="Leave empty for ongoing" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <input type="checkbox" id="ruleActive" ${rule.active ? 'checked' : ''} class="w-5 h-5 cursor-pointer">
+                <label for="ruleActive" class="text-sm font-semibold cursor-pointer" style="color: ${config.text_color};">Active (apply to salary generation)</label>
+              </div>
+            </div>
+
+            <div class="sticky bottom-0 bg-white px-6 py-5 border-t flex gap-3" style="border-color: #E5E7EB;">
+              <button onclick="closeRuleModal()" class="flex-1 px-4 py-3 rounded-lg font-semibold text-sm border hover:bg-gray-50 transition-colors" style="border-color: #E5E7EB; color: ${config.text_color};">
+                Cancel
+              </button>
+              <button onclick="saveRuleClick()" class="flex-1 px-4 py-3 rounded-lg font-semibold text-white text-sm shadow-lg hover:shadow-xl transition-all" style="background: ${config.primary_color};">
+                ${rule.id ? 'Update' : 'Create'} Rule
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPaymentModal(config) {
+      const payment = editingPayment || {
+        staffId: '',
+        label: '',
+        amount: 0,
+        type: 'bonus',
+        year: extraPayFilterYear,
+        month: extraPayFilterMonth,
+        status: 'draft'
+      };
+
+      return `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white px-6 py-5 border-b z-10" style="border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold" style="color: ${config.primary_color};">${payment.id ? 'Edit' : 'New'} One-Time Payment</h3>
+                <button onclick="closePaymentModal()" class="w-9 h-9 rounded-lg hover:bg-gray-100 font-bold text-lg transition-colors">✕</button>
+              </div>
+            </div>
+
+            <div class="p-6 space-y-5">
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Staff Member *</label>
+                <select id="paymentStaffId" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                  <option value="">Select staff...</option>
+                  ${staff.map(s => `
+                    <option value="${s.id}" ${payment.staffId === s.id ? 'selected' : ''}>
+                      ${s.fullName || s.preferredName} (${s.id})
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Label / Description *</label>
+                <input type="text" id="paymentLabel" value="${payment.label}" placeholder="e.g., Performance Bonus, Project Completion Bonus" class="w-full px-4 py-3 border rounded-lg text-sm" style="border-color: #E5E7EB;">
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Amount (VND) *</label>
+                <input type="number" id="paymentAmount" value="${payment.amount}" step="10000" placeholder="0" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Year *</label>
+                  <input type="number" id="paymentYear" value="${payment.year}" min="2020" max="2030" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Month *</label>
+                  <input type="number" id="paymentMonth" value="${payment.month}" min="1" max="12" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color: ${config.text_color};">Status *</label>
+                <select id="paymentStatus" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
+                  <option value="draft" ${payment.status === 'draft' ? 'selected' : ''}>Draft (not applied yet)</option>
+                  <option value="approved" ${payment.status === 'approved' ? 'selected' : ''}>Approved (apply to salary)</option>
+                </select>
+              </div>
+
+              <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-xs" style="color: ${config.text_color};">💡 Only <strong>approved</strong> payments will be automatically added to salary generation. Draft payments can be edited before approval.</p>
+              </div>
+            </div>
+
+            <div class="sticky bottom-0 bg-white px-6 py-5 border-t flex gap-3" style="border-color: #E5E7EB;">
+              <button onclick="closePaymentModal()" class="flex-1 px-4 py-3 rounded-lg font-semibold text-sm border hover:bg-gray-50 transition-colors" style="border-color: #E5E7EB; color: ${config.text_color};">
+                Cancel
+              </button>
+              <button onclick="savePaymentClick()" class="flex-1 px-4 py-3 rounded-lg font-semibold text-white text-sm shadow-lg hover:shadow-xl transition-all" style="background: ${config.primary_color};">
+                ${payment.id ? 'Update' : 'Create'} Payment
+              </button>
             </div>
           </div>
         </div>
@@ -1154,6 +1618,288 @@
       render();
     };
 
+    window.switchExtraPayTab = function(tab) {
+      extraPayTab = tab;
+      render();
+    };
+
+    window.updateExtraPayYear = function(year) {
+      extraPayFilterYear = parseInt(year);
+      render();
+    };
+
+    window.updateExtraPayMonth = function(month) {
+      extraPayFilterMonth = parseInt(month);
+      render();
+    };
+
+    window.openRuleModal = function() {
+      editingRule = {};
+      render();
+    };
+
+    window.closeRuleModal = function() {
+      editingRule = null;
+      render();
+    };
+
+    window.editRule = function(rule) {
+      editingRule = rule;
+      render();
+    };
+
+    window.saveRuleClick = async function() {
+      const staffId = document.getElementById('ruleStaffId').value;
+      const label = document.getElementById('ruleLabel').value.trim();
+      const amount = parseFloat(document.getElementById('ruleAmount').value) || 0;
+      const frequency = document.getElementById('ruleFrequency').value;
+      const startYear = parseInt(document.getElementById('ruleStartYear').value);
+      const startMonth = parseInt(document.getElementById('ruleStartMonth').value);
+      const endYear = document.getElementById('ruleEndYear').value ? parseInt(document.getElementById('ruleEndYear').value) : null;
+      const endMonth = document.getElementById('ruleEndMonth').value ? parseInt(document.getElementById('ruleEndMonth').value) : null;
+      const active = document.getElementById('ruleActive').checked;
+
+      if (!staffId || !label || amount <= 0) {
+        showToast('Please fill all required fields', 'error');
+        return;
+      }
+
+      isLoading = true;
+      render();
+
+      try {
+        const ruleData = {
+          staffId,
+          label,
+          amount,
+          type: 'bonus',
+          frequency,
+          active,
+          startYear,
+          startMonth,
+          endYear,
+          endMonth
+        };
+
+        if (editingRule?.id) {
+          await db.collection('staffExtraPayRules').doc(editingRule.id).update({
+            ...ruleData,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          showToast('Rule updated', 'success');
+        } else {
+          await db.collection('staffExtraPayRules').add({
+            ...ruleData,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          showToast('Rule created', 'success');
+        }
+        
+        editingRule = null;
+      } catch (error) {
+        console.error('[Rule Error]', error);
+        showToast('Failed to save rule: ' + error.message, 'error');
+      } finally {
+        isLoading = false;
+        render();
+      }
+    };
+
+    window.confirmDeleteRule = function(ruleId) {
+      const confirmDiv = document.createElement('div');
+      confirmDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+      confirmDiv.innerHTML = `
+        <div class="bg-white rounded-xl p-6 max-w-sm mx-4 shadow-2xl">
+          <h3 class="text-lg font-bold mb-3">Delete Recurring Rule?</h3>
+          <p class="text-sm mb-6" style="opacity: 0.7;">This will remove the rule and regenerate affected salaries.</p>
+          <div class="flex gap-3">
+            <button onclick="this.closest('.fixed').remove()" class="flex-1 px-4 py-2 rounded-lg border font-medium text-sm">Cancel</button>
+            <button onclick="deleteRule('${ruleId}'); this.closest('.fixed').remove()" class="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-medium text-sm">Delete</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(confirmDiv);
+    };
+
+    window.deleteRule = async function(ruleId) {
+      isLoading = true;
+      render();
+
+      try {
+        await db.collection('staffExtraPayRules').doc(ruleId).delete();
+        showToast('Rule deleted', 'success');
+      } catch (error) {
+        console.error('[Delete Rule Error]', error);
+        showToast('Failed to delete rule: ' + error.message, 'error');
+      } finally {
+        isLoading = false;
+      }
+    };
+
+    window.openPaymentModal = function() {
+      editingPayment = {};
+      render();
+    };
+
+    window.closePaymentModal = function() {
+      editingPayment = null;
+      render();
+    };
+
+    window.editPayment = function(payment) {
+      editingPayment = payment;
+      render();
+    };
+
+    window.savePaymentClick = async function() {
+      const staffId = document.getElementById('paymentStaffId').value;
+      const label = document.getElementById('paymentLabel').value.trim();
+      const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+      const year = parseInt(document.getElementById('paymentYear').value);
+      const month = parseInt(document.getElementById('paymentMonth').value);
+      const status = document.getElementById('paymentStatus').value;
+
+      if (!staffId || !label || amount <= 0) {
+        showToast('Please fill all required fields', 'error');
+        return;
+      }
+
+      isLoading = true;
+      render();
+
+      try {
+        const paymentData = {
+          staffId,
+          label,
+          amount,
+          type: 'bonus',
+          year,
+          month,
+          status
+        };
+
+        if (editingPayment?.id) {
+          await db.collection('extraPays').doc(editingPayment.id).update({
+            ...paymentData,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          showToast('Payment updated', 'success');
+        } else {
+          await db.collection('extraPays').add({
+            ...paymentData,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          showToast('Payment created', 'success');
+        }
+        
+        editingPayment = null;
+      } catch (error) {
+        console.error('[Payment Error]', error);
+        showToast('Failed to save payment: ' + error.message, 'error');
+      } finally {
+        isLoading = false;
+        render();
+      }
+    };
+
+    window.confirmDeletePayment = function(paymentId) {
+      const confirmDiv = document.createElement('div');
+      confirmDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+      confirmDiv.innerHTML = `
+        <div class="bg-white rounded-xl p-6 max-w-sm mx-4 shadow-2xl">
+          <h3 class="text-lg font-bold mb-3">Delete One-Time Payment?</h3>
+          <p class="text-sm mb-6" style="opacity: 0.7;">This will remove the payment and regenerate the salary.</p>
+          <div class="flex gap-3">
+            <button onclick="this.closest('.fixed').remove()" class="flex-1 px-4 py-2 rounded-lg border font-medium text-sm">Cancel</button>
+            <button onclick="deletePayment('${paymentId}'); this.closest('.fixed').remove()" class="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white font-medium text-sm">Delete</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(confirmDiv);
+    };
+
+    window.deletePayment = async function(paymentId) {
+      isLoading = true;
+      render();
+
+      try {
+        await db.collection('extraPays').doc(paymentId).delete();
+        showToast('Payment deleted', 'success');
+      } catch (error) {
+        console.error('[Delete Payment Error]', error);
+        showToast('Failed to delete payment: ' + error.message, 'error');
+      } finally {
+        isLoading = false;
+      }
+    };
+
+    window.generateExtraPayQR = async function(paymentId) {
+      const payment = oneTimePayments.find(p => p.id === paymentId);
+      if (!payment) return;
+
+      const staffMember = staff.find(s => s.id === payment.staffId);
+      if (!staffMember || !staffMember.banking?.bankCode || !staffMember.banking?.accountNumber) {
+        showToast('Banking details missing for this staff member', 'error');
+        return;
+      }
+
+      isLoading = true;
+      render();
+
+      try {
+        const vietqrPayload = generateVietQRPayload(
+          staffMember.banking.bankCode,
+          staffMember.banking.accountNumber,
+          payment.amount,
+          `Extra Pay: ${payment.label}`
+        );
+
+        await db.collection('extraPays').doc(paymentId).update({
+          qr: {
+            format: 'vietqr',
+            payload: vietqrPayload
+          },
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showToast('QR code generated', 'success');
+      } catch (error) {
+        console.error('[Generate QR Error]', error);
+        showToast('Failed to generate QR: ' + error.message, 'error');
+      } finally {
+        isLoading = false;
+      }
+    };
+
+    window.viewExtraPayQR = function(paymentId) {
+      const payment = oneTimePayments.find(p => p.id === paymentId);
+      if (!payment?.qr?.payload) return;
+
+      const staffMember = staff.find(s => s.id === payment.staffId);
+      const staffName = staffMember ? (staffMember.fullName || staffMember.preferredName || 'Unknown') : payment.staffId;
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+      modal.innerHTML = `
+        <div class="bg-white rounded-xl p-6 max-w-md border shadow-2xl" style="border-color: #E5E7EB;">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Extra Payment QR Code</h3>
+            <button onclick="this.closest('.fixed').remove()" class="w-8 h-8 rounded-lg hover:bg-gray-100 text-sm font-medium">✕</button>
+          </div>
+          <img src="${payment.qr.payload}" alt="VietQR" class="w-full rounded-lg border mb-4" style="border-color: #E5E7EB;" onerror="this.src=''; this.alt='QR Code failed to load'; this.style.display='none';">
+          <div class="text-center space-y-2">
+            <p class="font-semibold text-base">${formatCurrency(payment.amount)} VND</p>
+            <p class="text-sm font-medium">${staffName}</p>
+            <p class="text-xs" style="opacity: 0.6;">${payment.label}</p>
+            <p class="text-xs" style="opacity: 0.5;">${String(payment.month).padStart(2, '0')}/${payment.year}</p>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    };
+
     window.toggleYear = function(year) {
       const content = document.getElementById(`yearContent${year}`);
       const icon = document.getElementById(`yearIcon${year}`);
@@ -1249,6 +1995,13 @@
       const tempAdj = tempAdjustments[tempKey];
       
       const currentAdjustments = [...(sal?.adjustments || tempAdj || [])];
+      
+      // Don't allow removing locked adjustments
+      if (currentAdjustments[index]?.locked) {
+        showToast('Cannot remove automatic extra pay', 'error');
+        return;
+      }
+      
       currentAdjustments.splice(index, 1);
 
       if (sal) {
@@ -1415,6 +2168,8 @@
 
     // Initialize
     async function init() {
+      console.log('[Init] Starting system...');
+      
       if (window.elementSdk) {
         window.elementSdk.init({
           defaultConfig,
@@ -1423,12 +2178,23 @@
           mapToEditPanelValues
         });
       }
+      
+      // Show initial UI
       render();
-      // Auto-load data on init
-      loadData();
+      
+      // Wait a moment for Firebase to initialize
+      setTimeout(() => {
+        console.log('[Init] Loading data...');
+        loadData();
+      }, 100);
     }
 
-    init();
+    // Wait for DOM and Firebase to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c1745c3568f9354',t:'MTc2OTAwMzM0My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c1d63e637cc36f1',t:'MTc2OTA2NzQ5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
