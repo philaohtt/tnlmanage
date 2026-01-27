@@ -224,6 +224,37 @@
       font-size: 14px;
     }
 
+    .date-filter {
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border: 2px solid #e5e7eb;
+    }
+
+    .date-filter label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .date-filter select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 15px;
+      background: white;
+      transition: border-color 0.2s;
+    }
+
+    .date-filter select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
     .form-group label .required {
       color: #dc2626;
     }
@@ -635,6 +666,143 @@
       transform: translateY(-1px);
     }
 
+    .date-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      background: #f9fafb;
+      margin-bottom: 16px;
+      scrollbar-width: thin;
+    }
+
+    .date-strip::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .date-strip::-webkit-scrollbar-track {
+      background: #f3f4f6;
+      border-radius: 3px;
+    }
+
+    .date-strip::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+
+    .date-pill {
+      flex-shrink: 0;
+      padding: 10px 18px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .date-pill:hover:not(:disabled) {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .date-pill.selected {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .date-pill:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #f3f4f6;
+    }
+
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+      margin-bottom: 20px;
+    }
+
+    .slot-card {
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      background: white;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .slot-card:hover:not(:disabled) {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .slot-card.selected {
+      border-color: #667eea;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    }
+
+    .slot-card:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: #f9fafb;
+    }
+
+    .slot-time {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 6px;
+    }
+
+    .slot-room {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .slot-availability {
+      font-size: 13px;
+      font-weight: 600;
+      color: #10b981;
+    }
+
+    .slot-card:disabled .slot-availability {
+      color: #9ca3af;
+    }
+
+    .slot-status-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+
+    .slot-status-badge.full {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .slot-status-badge.closed {
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
     @media (max-width: 768px) {
       .container {
         padding: 10px;
@@ -659,6 +827,15 @@
       .modal-btn {
         width: 100%;
       }
+
+      .slot-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+
+      .date-pill {
+        padding: 8px 14px;
+        font-size: 13px;
+      }
     }
   </style>
   <style>@view-transition { navigation: auto; }</style>
@@ -675,7 +852,7 @@
    <div id="eventLoader" class="event-loader"><label>Event ID</label> <input type="text" id="eventIdInput" placeholder="Enter event ID"> <button onclick="loadEvent()">Load Event</button>
    </div>
    <div id="eventBrowser" class="event-browser hidden">
-    <h2>📅 Browse Open Events</h2>
+    <h2>📋 Browse Open Events</h2>
     <div id="eventList">
      <div class="loading">
       <div class="spinner"></div>
@@ -686,9 +863,13 @@
    <div id="registrationSection" class="registration-section hidden">
     <h2>Registration</h2>
     <div id="eventInfo" class="event-info"></div>
-    <form id="registrationForm">
-     <div class="form-group"><label>Select Time Slot <span class="required">*</span></label> <select id="slotSelect" required> <option value="">Choose a time slot...</option> </select>
+    <form id="registrationForm"><label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 14px;">📅 Select Date &amp; Time <span style="color: #dc2626;">*</span></label>
+     <div class="date-strip" id="dateStrip">
+      <div style="text-align: center; padding: 20px; color: #6b7280; width: 100%;">
+       Loading dates...
+      </div>
      </div>
+     <div class="slot-grid" id="slotGrid"></div><input type="hidden" id="selectedSlotId" required>
      <div class="form-group"><label>Full Name <span class="required">*</span></label> <input type="text" id="fullName" required>
      </div>
      <div class="form-group"><label>Phone Number <span class="required">*</span></label> <input type="tel" id="phone" required>
@@ -716,7 +897,7 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
     import {
       getFirestore, collection, doc, getDoc, getDocs,
-      query, where, orderBy, addDoc, updateDoc,
+      query, where, orderBy, setDoc, updateDoc,
       serverTimestamp, Timestamp
     } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
@@ -733,11 +914,30 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Helper functions for timestamp-based IDs
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function pad3(n) { return String(n).padStart(3, '0'); }
+    function tsId(prefix) {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = pad2(d.getMonth() + 1);
+      const day = pad2(d.getDate());
+      const hh = pad2(d.getHours());
+      const mm = pad2(d.getMinutes());
+      const ss = pad2(d.getSeconds());
+      const ms = pad3(d.getMilliseconds());
+      const rnd = Math.floor(Math.random() * 1000);
+      return `${prefix}_${y}${m}${day}_${hh}${mm}${ss}_${ms}_${pad3(rnd)}`;
+    }
+
     let currentEvent = null;
     let currentType = null;
     let allSlots = [];
     let allTypes = {};
     let isSubmitting = false;
+    let slotOccupancyMap = {}; // Map of slotId -> occupiedCount
+    let currentSelectedDateKey = '';
+    let currentSelectedSlotId = '';
 
     function showToast(message, type = 'success') {
       const toast = document.createElement('div');
@@ -841,18 +1041,19 @@
       await loadEvent();
     };
 
-    async function getOccupiedCount(eventId, slotId) {
+    async function getOccupancyMapForEvent(eventId) {
       try {
+        // Query pending registrations
         const pendingQuery = query(
           collection(db, 'mockTestRegistrations'),
           where('eventId', '==', eventId),
-          where('slotId', '==', slotId),
           where('status', '==', 'pending')
         );
+        
+        // Query confirmed registrations
         const confirmedQuery = query(
           collection(db, 'mockTestRegistrations'),
           where('eventId', '==', eventId),
-          where('slotId', '==', slotId),
           where('status', '==', 'confirmed')
         );
         
@@ -861,10 +1062,26 @@
           getDocs(confirmedQuery)
         ]);
         
-        return pendingSnapshot.size + confirmedSnapshot.size;
+        const occupancyMap = {};
+        
+        // Count pending registrations
+        pendingSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const slotId = data.slotId;
+          occupancyMap[slotId] = (occupancyMap[slotId] || 0) + 1;
+        });
+        
+        // Count confirmed registrations
+        confirmedSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const slotId = data.slotId;
+          occupancyMap[slotId] = (occupancyMap[slotId] || 0) + 1;
+        });
+        
+        return occupancyMap;
       } catch (error) {
-        console.error('Error getting occupied count:', error);
-        return 0;
+        console.error('Error getting occupancy map:', error);
+        return {};
       }
     }
 
@@ -908,6 +1125,123 @@
       }
     };
 
+    function renderDateStrip(sortedDates, defaultDateKey) {
+      const dateStrip = document.getElementById('dateStrip');
+      dateStrip.innerHTML = '';
+
+      if (sortedDates.length === 0) {
+        dateStrip.innerHTML = '<div style="text-align: center; padding: 20px; color: #6b7280; width: 100%;">No dates available</div>';
+        return;
+      }
+
+      sortedDates.forEach(([dateKey, dateInfo]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'date-pill';
+        button.textContent = dateKey;
+        button.disabled = !dateInfo.hasAvailability;
+        
+        if (dateKey === defaultDateKey) {
+          button.classList.add('selected');
+          currentSelectedDateKey = dateKey;
+        }
+
+        button.onclick = () => {
+          if (button.disabled) return;
+          
+          // Update selected state
+          document.querySelectorAll('.date-pill').forEach(pill => pill.classList.remove('selected'));
+          button.classList.add('selected');
+          currentSelectedDateKey = dateKey;
+          currentSelectedSlotId = '';
+          document.getElementById('selectedSlotId').value = '';
+          
+          // Re-render slot grid
+          renderSlotGrid(dateKey);
+        };
+
+        dateStrip.appendChild(button);
+      });
+    }
+
+    function renderSlotGrid(dateKey) {
+      const slotGrid = document.getElementById('slotGrid');
+      slotGrid.innerHTML = '';
+
+      if (!dateKey) {
+        return;
+      }
+
+      // Filter slots for selected date
+      const filteredSlots = allSlots.filter(slot => {
+        const slotDate = slot.startAt?.toDate ? slot.startAt.toDate() : new Date(slot.startAt);
+        const slotDateKey = slotDate.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+        return slotDateKey === dateKey;
+      });
+
+      // Sort by time ascending
+      filteredSlots.sort((a, b) => {
+        const dateA = a.startAt?.toDate ? a.startAt.toDate() : new Date(a.startAt);
+        const dateB = b.startAt?.toDate ? b.startAt.toDate() : new Date(b.startAt);
+        return dateA - dateB;
+      });
+
+      // Render slot cards
+      filteredSlots.forEach(slot => {
+        const occupiedCount = slotOccupancyMap[slot.id] || 0;
+        const availableLeft = Math.max(0, slot.capacity - occupiedCount);
+        const isClosed = slot.status === 'closed';
+        const isSelectable = slot.status !== 'closed' && availableLeft > 0;
+
+        const slotDate = slot.startAt?.toDate ? slot.startAt.toDate() : new Date(slot.startAt);
+        const timeString = slotDate.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'slot-card';
+        button.disabled = !isSelectable;
+        
+        if (slot.id === currentSelectedSlotId) {
+          button.classList.add('selected');
+        }
+
+        let statusBadge = '';
+        if (!isSelectable) {
+          if (isClosed) {
+            statusBadge = '<span class="slot-status-badge closed">CLOSED</span>';
+          } else if (availableLeft <= 0) {
+            statusBadge = '<span class="slot-status-badge full">FULL</span>';
+          }
+        }
+
+        button.innerHTML = `
+          <div class="slot-time">${escapeHtml(timeString)}</div>
+          <div class="slot-room">${escapeHtml(slot.room)}</div>
+          <div class="slot-availability">Available: ${availableLeft}${statusBadge}</div>
+        `;
+
+        button.onclick = () => {
+          if (button.disabled) return;
+          
+          // Update selected state
+          document.querySelectorAll('.slot-card').forEach(card => card.classList.remove('selected'));
+          button.classList.add('selected');
+          currentSelectedSlotId = slot.id;
+          document.getElementById('selectedSlotId').value = slot.id;
+        };
+
+        slotGrid.appendChild(button);
+      });
+    }
+
     async function displayEvent() {
       const now = new Date();
       const regOpenAt = currentEvent.regOpenAt?.toDate ? currentEvent.regOpenAt.toDate() : new Date(currentEvent.regOpenAt);
@@ -939,21 +1273,50 @@
 
       document.getElementById('eventInfo').innerHTML = eventInfoHtml;
 
-      const slotSelect = document.getElementById('slotSelect');
-      slotSelect.innerHTML = '<option value="">Choose a time slot...</option>';
+      // Load occupancy map once for all slots
+      slotOccupancyMap = await getOccupancyMapForEvent(currentEvent.id);
 
-      for (const slot of allSlots) {
-        const occupiedCount = await getOccupiedCount(currentEvent.id, slot.id);
+      // Build date list from slots with available capacity
+      const dateMap = new Map();
+      allSlots.forEach(slot => {
+        const occupiedCount = slotOccupancyMap[slot.id] || 0;
         const availableLeft = Math.max(0, slot.capacity - occupiedCount);
-        const isFull = availableLeft <= 0;
-        const isClosed = slot.status === 'closed';
-        const isDisabled = isFull || isClosed;
+        const isSelectable = slot.status !== 'closed' && availableLeft > 0;
 
-        const option = document.createElement('option');
-        option.value = slot.id;
-        option.textContent = `${formatDate(slot.startAt)} - ${escapeHtml(slot.room)} (Available: ${availableLeft})${isFull ? ' - FULL' : ''}${isClosed ? ' - CLOSED' : ''}`;
-        option.disabled = isDisabled;
-        slotSelect.appendChild(option);
+        const slotDate = slot.startAt?.toDate ? slot.startAt.toDate() : new Date(slot.startAt);
+        const dateKey = slotDate.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+        
+        if (!dateMap.has(dateKey)) {
+          dateMap.set(dateKey, { 
+            date: slotDate, 
+            hasAvailability: isSelectable 
+          });
+        } else if (isSelectable) {
+          dateMap.get(dateKey).hasAvailability = true;
+        }
+      });
+
+      // Sort dates chronologically
+      const sortedDates = Array.from(dateMap.entries())
+        .sort((a, b) => a[1].date - b[1].date);
+
+      // Find default date (earliest with availability)
+      let defaultDateKey = '';
+      for (const [dateKey, dateInfo] of sortedDates) {
+        if (dateInfo.hasAvailability) {
+          defaultDateKey = dateKey;
+          break;
+        }
+      }
+
+      // Render date strip and slot grid
+      renderDateStrip(sortedDates, defaultDateKey);
+      if (defaultDateKey) {
+        renderSlotGrid(defaultDateKey);
       }
 
       // Disable submit button if registration window is closed
@@ -974,7 +1337,7 @@
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting...';
 
-      const slotId = document.getElementById('slotSelect').value;
+      const slotId = document.getElementById('selectedSlotId').value;
       const fullName = document.getElementById('fullName').value.trim();
       const phone = document.getElementById('phone').value.trim();
       const email = document.getElementById('email').value.trim();
@@ -988,13 +1351,38 @@
         return;
       }
 
+      // Re-check availability before submission (pending + confirmed)
       const slot = allSlots.find(s => s.id === slotId);
-      const occupiedCount = await getOccupiedCount(currentEvent.id, slotId);
-      const availableLeft = Math.max(0, slot.capacity - occupiedCount);
+      
+      // Query pending registrations for this slot
+      const pendingQuery = query(
+        collection(db, 'mockTestRegistrations'),
+        where('eventId', '==', currentEvent.id),
+        where('slotId', '==', slotId),
+        where('status', '==', 'pending')
+      );
+      
+      // Query confirmed registrations for this slot
+      const confirmedQuery = query(
+        collection(db, 'mockTestRegistrations'),
+        where('eventId', '==', currentEvent.id),
+        where('slotId', '==', slotId),
+        where('status', '==', 'confirmed')
+      );
+      
+      const [pendingSnapshot, confirmedSnapshot] = await Promise.all([
+        getDocs(pendingQuery),
+        getDocs(confirmedQuery)
+      ]);
+      
+      const currentOccupied = pendingSnapshot.size + confirmedSnapshot.size;
+      const currentAvailable = Math.max(0, slot.capacity - currentOccupied);
 
-      if (availableLeft <= 0) {
+      if (currentAvailable <= 0) {
         showToast('This slot is now full. Please choose another slot.', 'error');
-        await displayEvent();
+        // Refresh occupancy map and update display
+        slotOccupancyMap = await getOccupancyMapForEvent(currentEvent.id);
+        renderSlotGrid(currentSelectedDateKey);
         isSubmitting = false;
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
@@ -1002,6 +1390,8 @@
       }
 
       try {
+        const regId = tsId('REG');
+
         const registration = {
           eventId: currentEvent.id,
           slotId: slotId,
@@ -1022,7 +1412,7 @@
           confirmedAt: null
         };
 
-        const docRef = await addDoc(collection(db, 'mockTestRegistrations'), registration);
+        await setDoc(doc(db, 'mockTestRegistrations', regId), registration);
 
         const regUrl = new URL(window.location.href);
         regUrl.searchParams.set('eventId', currentEvent.id);
@@ -1031,10 +1421,10 @@
         let regMessage = currentType?.templates?.regMessage || 'Thank you for registering! Your registration ID is: {REG_ID}';
         regMessage = regMessage.replace('{EVENT_TITLE}', currentEvent.title);
         regMessage = regMessage.replace('{REG_LINK}', regLink);
-        regMessage = regMessage.replace('{REG_ID}', docRef.id);
+        regMessage = regMessage.replace('{REG_ID}', regId);
 
         // Show modal with registration details
-        document.getElementById('modalRegId').textContent = docRef.id;
+        document.getElementById('modalRegId').textContent = regId;
         document.getElementById('modalRegMessage').value = regMessage;
         document.getElementById('confirmOverlay').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
@@ -1086,5 +1476,5 @@
       loadOpenEvents();
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c3f298d83b586e2',t:'MTc2OTQyMTYxNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c486044d2bfdd8b',t:'MTc2OTUxODIyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

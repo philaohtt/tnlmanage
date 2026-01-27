@@ -352,7 +352,9 @@
         
         // Status badge color
         let statusBadge = '';
-        if (reg.status === 'confirmed') {
+        if (reg.status === 'results_available') {
+          statusBadge = '<span class="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">Results Available</span>';
+        } else if (reg.status === 'confirmed') {
           statusBadge = '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Confirmed</span>';
         } else if (reg.status === 'rejected') {
           statusBadge = '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Rejected</span>';
@@ -360,8 +362,15 @@
           statusBadge = '<span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Pending</span>';
         }
 
+        // Calculate occupied count (pending + confirmed)
+        const occupiedCount = allRegistrations.filter(r => 
+          r.eventId === reg.eventId && 
+          r.slotId === reg.slotId && 
+          (r.status === 'pending' || r.status === 'confirmed')
+        ).length;
+
         // Capacity display
-        const capacityClass = confirmedCount >= capacity ? 'text-red-600 font-semibold' : 'text-gray-900';
+        const capacityClass = occupiedCount >= capacity ? 'text-red-600 font-semibold' : 'text-gray-900';
 
         tr.innerHTML = `
           <td class="px-4 py-3 text-sm text-gray-900">${formatDateShort(reg.createdAt)}</td>
@@ -376,12 +385,14 @@
             <div class="text-xs text-gray-500">${escapeHtml(slot.room)}</div>
           </td>
           <td class="px-4 py-3">${statusBadge}</td>
-          <td class="px-4 py-3 text-sm ${capacityClass}">${confirmedCount}/${capacity}</td>
+          <td class="px-4 py-3 text-sm ${capacityClass}">${occupiedCount}/${capacity}</td>
           <td class="px-4 py-3">
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap">
               <button class="view-btn px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded" data-id="${reg.id}">View</button>
               ${reg.status === 'pending' ? `<button class="confirm-btn px-3 py-1 text-xs font-medium text-green-600 hover:bg-green-50 rounded" data-id="${reg.id}">Confirm</button>` : ''}
               ${reg.status === 'pending' ? `<button class="reject-btn px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded" data-id="${reg.id}">Reject</button>` : ''}
+              ${reg.status === 'confirmed' ? `<button class="mark-results-btn px-3 py-1 text-xs font-medium text-purple-600 hover:bg-purple-50 rounded" data-id="${reg.id}">Mark Results Available</button>` : ''}
+              ${reg.status === 'results_available' ? `<button class="results-btn px-3 py-1 text-xs font-medium text-purple-600 hover:bg-purple-50 rounded" data-id="${reg.id}" data-event="${reg.eventId}" data-slot="${reg.slotId}">Open Results</button>` : ''}
             </div>
           </td>
         `;
@@ -401,6 +412,19 @@
       document.querySelectorAll('.reject-btn').forEach(btn => {
         btn.addEventListener('click', (e) => rejectRegistration(btn.dataset.id, false, e.currentTarget));
       });
+
+      document.querySelectorAll('.mark-results-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => markResultsAvailable(btn.dataset.id, false, e.currentTarget));
+      });
+
+      document.querySelectorAll('.results-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const regId = btn.dataset.id;
+          const eventId = btn.dataset.event;
+          const slotId = btn.dataset.slot;
+          window.open(`Test_Results.html?regId=${regId}&eventId=${eventId}&slotId=${slotId}`, '_blank', 'noopener,noreferrer');
+        });
+      });
     }
 
     // Open drawer
@@ -415,9 +439,18 @@
       const admin = reg.admin || {};
       const confirmedCount = getConfirmedCount(reg.eventId, reg.slotId);
       const capacity = slot.capacity || 0;
+      
+      // Calculate occupied count (pending + confirmed)
+      const occupiedCount = allRegistrations.filter(r => 
+        r.eventId === reg.eventId && 
+        r.slotId === reg.slotId && 
+        (r.status === 'pending' || r.status === 'confirmed')
+      ).length;
 
       let statusBadge = '';
-      if (reg.status === 'confirmed') {
+      if (reg.status === 'results_available') {
+        statusBadge = '<span class="px-3 py-1 text-sm font-medium rounded-full bg-purple-100 text-purple-800">Results Available</span>';
+      } else if (reg.status === 'confirmed') {
         statusBadge = '<span class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Confirmed</span>';
       } else if (reg.status === 'rejected') {
         statusBadge = '<span class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">Rejected</span>';
@@ -497,7 +530,7 @@
               </div>
               <div>
                 <span class="text-sm font-medium text-gray-500">Capacity:</span>
-                <p class="text-sm text-gray-900 ${confirmedCount >= capacity ? 'text-red-600 font-semibold' : ''}">${confirmedCount}/${capacity} confirmed</p>
+                <p class="text-sm text-gray-900 ${occupiedCount >= capacity ? 'text-red-600 font-semibold' : ''}">${occupiedCount}/${capacity} occupied</p>
               </div>
               <div>
                 <span class="text-sm font-medium text-gray-500">Slot Status:</span>
@@ -529,12 +562,20 @@
           </div>
 
           <!-- Action Buttons -->
-          <div class="border-t pt-4 flex gap-3">
+          <div class="border-t pt-4 flex gap-3 flex-wrap">
             ${reg.status === 'pending' ? `
               <button id="drawerConfirmBtn" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium">Confirm</button>
               <button id="drawerRejectBtn" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium">Reject</button>
             ` : ''}
-            ${reg.status !== 'pending' ? `
+            ${reg.status === 'confirmed' ? `
+              <button id="drawerMarkResultsBtn" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-medium">Mark Results Available</button>
+              <button id="drawerPendingBtn" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium">Set to Pending</button>
+            ` : ''}
+            ${reg.status === 'results_available' ? `
+              <button id="drawerOpenResultsBtn" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 font-medium">Open Results</button>
+              <button id="drawerPendingBtn" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium">Set to Pending</button>
+            ` : ''}
+            ${reg.status === 'rejected' ? `
               <button id="drawerPendingBtn" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium">Set to Pending</button>
             ` : ''}
           </div>
@@ -549,6 +590,8 @@
       const confirmBtn = document.getElementById('drawerConfirmBtn');
       const rejectBtn = document.getElementById('drawerRejectBtn');
       const pendingBtn = document.getElementById('drawerPendingBtn');
+      const markResultsBtn = document.getElementById('drawerMarkResultsBtn');
+      const openResultsBtn = document.getElementById('drawerOpenResultsBtn');
 
       if (confirmBtn) {
         confirmBtn.addEventListener('click', () => confirmRegistration(regId, true));
@@ -558,6 +601,14 @@
       }
       if (pendingBtn) {
         pendingBtn.addEventListener('click', () => setToPending(regId));
+      }
+      if (markResultsBtn) {
+        markResultsBtn.addEventListener('click', () => markResultsAvailable(regId, true));
+      }
+      if (openResultsBtn) {
+        openResultsBtn.addEventListener('click', () => {
+          window.open(`Test_Results.html?regId=${regId}&eventId=${reg.eventId}&slotId=${reg.slotId}`, '_blank', 'noopener,noreferrer');
+        });
       }
     }
 
@@ -776,6 +827,47 @@
       }
     }
 
+    // Mark results available
+    async function markResultsAvailable(regId, fromDrawer = false, btnEl = null) {
+      const btn = fromDrawer ? document.getElementById('drawerMarkResultsBtn') : btnEl;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+      }
+
+      try {
+        // Update document - only change status and updatedAt
+        const docRef = doc(db, 'mockTestRegistrations', regId);
+        await updateDoc(docRef, {
+          status: 'results_available',
+          updatedAt: serverTimestamp()
+        });
+
+        // Update local state
+        const index = allRegistrations.findIndex(r => r.id === regId);
+        if (index !== -1) {
+          allRegistrations[index].status = 'results_available';
+          allRegistrations[index].updatedAt = Timestamp.now();
+        }
+
+        renderTable();
+        
+        showToast('Results marked as available!');
+        
+        if (fromDrawer) {
+          closeDrawer();
+        }
+      } catch (error) {
+        console.error('Error marking results available:', error);
+        showToast('Failed to update registration: ' + error.message, 'error');
+        
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Mark Results Available';
+        }
+      }
+    }
+
     // Event listeners
     document.getElementById('statusFilter').addEventListener('change', renderTable);
     document.getElementById('dateFrom').addEventListener('change', renderTable);
@@ -788,5 +880,5 @@
     // Initialize
     loadData();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c3f1c3df6ab4fc8',t:'MTc2OTQyMTA3MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c471aa47794dd8b',t:'MTc2OTUwNDg5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

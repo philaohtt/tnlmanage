@@ -7,8 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body {
@@ -27,7 +25,7 @@
       <h1 class="text-2xl font-bold text-slate-900">Mock Test Results</h1>
       <p class="text-sm text-slate-600 mt-1">Enter results, feedback, and export reports</p>
      </div>
-     <div class="flex gap-2"><button onclick="exportFiltered('pdf')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors text-sm"> Export PDF </button> <button onclick="exportFiltered('docx')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"> Export DOCX </button> <button onclick="exportFiltered('excel')" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm"> Export Excel </button>
+     <div class="flex gap-2"><button onclick="exportFiltered('pdf')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors text-sm"> Export PDF </button> <button onclick="exportFiltered('excel')" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm"> Export Excel </button> <button onclick="exportFiltered('doc')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"> Export Word (DOC) </button>
      </div>
     </div>
    </header><!-- Filter Bar -->
@@ -69,7 +67,7 @@
      <h2 class="text-xl font-bold text-slate-900">Edit Test Result</h2>
      <div class="flex items-center gap-3">
       <div class="relative"><button onclick="toggleExportMenu()" class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors"> Export ▾ </button>
-       <div id="exportMenuEditor" class="hidden absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 z-50"><button onclick="exportSingle(currentEditingRegId, 'pdf')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">PDF</button> <button onclick="exportSingle(currentEditingRegId, 'docx')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">DOCX</button> <button onclick="exportSingle(currentEditingRegId, 'excel')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Excel</button>
+       <div id="exportMenuEditor" class="hidden absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 z-50"><button onclick="exportSingle(currentEditingRegId, 'pdf')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">PDF</button> <button onclick="exportSingle(currentEditingRegId, 'excel')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Excel</button> <button onclick="exportSingle(currentEditingRegId, 'doc')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Word (DOC)</button>
        </div>
       </div><button onclick="closeEditor()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">×</button>
      </div>
@@ -308,8 +306,8 @@
                 <button onclick="toggleRowExport('${row.regId}')" class="px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">⋮</button>
                 <div id="export-${row.regId}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
                   <button onclick="exportSingle('${row.regId}', 'pdf')" class="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50">PDF</button>
-                  <button onclick="exportSingle('${row.regId}', 'docx')" class="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50">DOCX</button>
                   <button onclick="exportSingle('${row.regId}', 'excel')" class="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50">Excel</button>
+                  <button onclick="exportSingle('${row.regId}', 'doc')" class="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50">Word (DOC)</button>
                 </div>
               </div>
             </div>
@@ -566,8 +564,8 @@
       document.querySelectorAll('[id^="export-"]').forEach(m => m.classList.add('hidden'));
       
       if (format === 'pdf') exportPDFSingle(row);
-      else if (format === 'docx') exportDOCXSingle(row);
       else if (format === 'excel') exportExcelSingle(row);
+      else if (format === 'doc') exportDOCSingle(row);
     };
 
     window.exportFiltered = function(format) {
@@ -578,8 +576,8 @@
       }
       
       if (format === 'pdf') exportPDFBulk(rowsWithResults);
-      else if (format === 'docx') exportDOCXBulk(rowsWithResults);
       else if (format === 'excel') exportExcelBulk(rowsWithResults);
+      else if (format === 'doc') exportDOCBulk(rowsWithResults);
     };
 
     function exportPDFSingle(row) {
@@ -708,280 +706,6 @@
       showToast(`${rows.length} results exported to PDF`);
     }
 
-    function exportDOCXSingle(row) {
-      const { Document, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, Packer } = docx;
-      
-      const candidate = row.registration.candidate || {};
-      const result = row.result;
-      const scores = result.scores || {};
-      
-      const children = [
-        new Paragraph({
-          text: 'Mock Test Result',
-          heading: 'Heading1',
-          alignment: AlignmentType.CENTER
-        }),
-        new Paragraph({ text: '' }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Event: ', bold: true }),
-            new TextRun(row.event.title || 'Unknown')
-          ]
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Date & Time: ', bold: true }),
-            new TextRun(formatDateTimeFull(row.slot.startAt))
-          ]
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Room: ', bold: true }),
-            new TextRun(row.slot.room || 'Unknown')
-          ]
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Type: ', bold: true }),
-            new TextRun(row.type.name || 'Unknown')
-          ]
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Candidate: ', bold: true }),
-            new TextRun(candidate.fullName || 'N/A')
-          ]
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Phone: ', bold: true }),
-            new TextRun(candidate.phone || 'N/A')
-          ]
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Email: ', bold: true }),
-            new TextRun(candidate.email || 'N/A')
-          ]
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: 'Registration ID: ', bold: true }),
-            new TextRun(row.regId)
-          ]
-        }),
-        new Paragraph({ text: '' }),
-        new Paragraph({
-          text: 'Scores',
-          heading: 'Heading2'
-        })
-      ];
-      
-      const tableRows = [
-        new TableRow({
-          children: [
-            new TableCell({ children: [new Paragraph({ text: 'Component', bold: true })] }),
-            new TableCell({ children: [new Paragraph({ text: 'Score', bold: true })] })
-          ]
-        })
-      ];
-      
-      Object.keys(scores).forEach(comp => {
-        tableRows.push(
-          new TableRow({
-            children: [
-              new TableCell({ children: [new Paragraph(comp)] }),
-              new TableCell({ children: [new Paragraph(String(scores[comp]))] })
-            ]
-          })
-        );
-      });
-      
-      if (result.overall) {
-        tableRows.push(
-          new TableRow({
-            children: [
-              new TableCell({ children: [new Paragraph({ text: 'Overall', bold: true })] }),
-              new TableCell({ children: [new Paragraph(String(result.overall))] })
-            ]
-          })
-        );
-      }
-      
-      children.push(
-        new Table({
-          rows: tableRows,
-          width: { size: 100, type: WidthType.PERCENTAGE }
-        })
-      );
-      
-      if (result.feedback) {
-        children.push(
-          new Paragraph({ text: '' }),
-          new Paragraph({ text: 'Feedback', heading: 'Heading2' }),
-          new Paragraph(result.feedback)
-        );
-      }
-      
-      children.push(
-        new Paragraph({ text: '' }),
-        new Paragraph({
-          text: `Generated at: ${new Date().toLocaleString('en-US')}`,
-          alignment: AlignmentType.RIGHT
-        })
-      );
-      
-      const doc = new Document({
-        sections: [{ children }]
-      });
-      
-      Packer.toBlob(doc).then(blob => {
-        saveAs(blob, `result_${row.regId}.docx`);
-        showToast('DOCX exported successfully');
-      });
-    }
-
-    function exportDOCXBulk(rows) {
-      const { Document, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, PageBreak, Packer } = docx;
-      
-      const children = [];
-      
-      rows.forEach((row, index) => {
-        if (index > 0) {
-          children.push(new Paragraph({ children: [new PageBreak()] }));
-        }
-        
-        const candidate = row.registration.candidate || {};
-        const result = row.result;
-        const scores = result.scores || {};
-        
-        children.push(
-          new Paragraph({
-            text: 'Mock Test Result',
-            heading: 'Heading1',
-            alignment: AlignmentType.CENTER
-          }),
-          new Paragraph({ text: '' }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Event: ', bold: true }),
-              new TextRun(row.event.title || 'Unknown')
-            ]
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Date & Time: ', bold: true }),
-              new TextRun(formatDateTimeFull(row.slot.startAt))
-            ]
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Room: ', bold: true }),
-              new TextRun(row.slot.room || 'Unknown')
-            ]
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Type: ', bold: true }),
-              new TextRun(row.type.name || 'Unknown')
-            ]
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Candidate: ', bold: true }),
-              new TextRun(candidate.fullName || 'N/A')
-            ]
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Phone: ', bold: true }),
-              new TextRun(candidate.phone || 'N/A')
-            ]
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Email: ', bold: true }),
-              new TextRun(candidate.email || 'N/A')
-            ]
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Registration ID: ', bold: true }),
-              new TextRun(row.regId)
-            ]
-          }),
-          new Paragraph({ text: '' }),
-          new Paragraph({
-            text: 'Scores',
-            heading: 'Heading2'
-          })
-        );
-        
-        const tableRows = [
-          new TableRow({
-            children: [
-              new TableCell({ children: [new Paragraph({ text: 'Component', bold: true })] }),
-              new TableCell({ children: [new Paragraph({ text: 'Score', bold: true })] })
-            ]
-          })
-        ];
-        
-        Object.keys(scores).forEach(comp => {
-          tableRows.push(
-            new TableRow({
-              children: [
-                new TableCell({ children: [new Paragraph(comp)] }),
-                new TableCell({ children: [new Paragraph(String(scores[comp]))] })
-              ]
-            })
-          );
-        });
-        
-        if (result.overall) {
-          tableRows.push(
-            new TableRow({
-              children: [
-                new TableCell({ children: [new Paragraph({ text: 'Overall', bold: true })] }),
-                new TableCell({ children: [new Paragraph(String(result.overall))] })
-              ]
-            })
-          );
-        }
-        
-        children.push(
-          new Table({
-            rows: tableRows,
-            width: { size: 100, type: WidthType.PERCENTAGE }
-          })
-        );
-        
-        if (result.feedback) {
-          children.push(
-            new Paragraph({ text: '' }),
-            new Paragraph({ text: 'Feedback', heading: 'Heading2' }),
-            new Paragraph(result.feedback)
-          );
-        }
-      });
-      
-      children.push(
-        new Paragraph({ text: '' }),
-        new Paragraph({
-          text: `Generated at: ${new Date().toLocaleString('en-US')}`,
-          alignment: AlignmentType.RIGHT
-        })
-      );
-      
-      const doc = new Document({
-        sections: [{ children }]
-      });
-      
-      Packer.toBlob(doc).then(blob => {
-        saveAs(blob, `results_bulk_${new Date().getTime()}.docx`);
-        showToast(`${rows.length} results exported to DOCX`);
-      });
-    }
-
     function exportExcelSingle(row) {
       const candidate = row.registration.candidate || {};
       const result = row.result;
@@ -1088,6 +812,245 @@
       showToast(`${rows.length} results exported to Excel`);
     }
 
+    function escapeHtmlForDoc(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function exportDOCSingle(row) {
+      try {
+        const candidate = row.registration.candidate || {};
+        const result = row.result;
+        const scores = result.scores || {};
+        
+        let html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mock Test Result - ${escapeHtmlForDoc(row.regId)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+    .info-section { margin: 20px 0; }
+    .info-row { margin: 8px 0; }
+    .label { font-weight: bold; display: inline-block; width: 150px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #3498db; color: white; font-weight: bold; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .feedback-section { margin: 20px 0; padding: 15px; background-color: #f0f8ff; border-left: 4px solid #3498db; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 0.9em; color: #666; text-align: right; }
+  </style>
+</head>
+<body>
+  <h1>Mock Test Result</h1>
+  
+  <div class="info-section">
+    <h2>Event Information</h2>
+    <div class="info-row"><span class="label">Event:</span> ${escapeHtmlForDoc(row.event.title || 'Unknown')}</div>
+    <div class="info-row"><span class="label">Date & Time:</span> ${escapeHtmlForDoc(formatDateTimeFull(row.slot.startAt))}</div>
+    <div class="info-row"><span class="label">Room:</span> ${escapeHtmlForDoc(row.slot.room || 'Unknown')}</div>
+    <div class="info-row"><span class="label">Type:</span> ${escapeHtmlForDoc(row.type.name || 'Unknown')}</div>
+  </div>
+  
+  <div class="info-section">
+    <h2>Candidate Information</h2>
+    <div class="info-row"><span class="label">Name:</span> ${escapeHtmlForDoc(candidate.fullName || 'N/A')}</div>
+    <div class="info-row"><span class="label">Phone:</span> ${escapeHtmlForDoc(candidate.phone || 'N/A')}</div>
+    <div class="info-row"><span class="label">Email:</span> ${escapeHtmlForDoc(candidate.email || 'N/A')}</div>
+    <div class="info-row"><span class="label">Registration ID:</span> ${escapeHtmlForDoc(row.regId)}</div>
+  </div>
+  
+  <div class="info-section">
+    <h2>Test Scores</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody>`;
+        
+        Object.keys(scores).forEach(comp => {
+          html += `
+        <tr>
+          <td>${escapeHtmlForDoc(comp)}</td>
+          <td>${escapeHtmlForDoc(scores[comp] || '')}</td>
+        </tr>`;
+        });
+        
+        if (result.overall) {
+          html += `
+        <tr style="font-weight: bold; background-color: #e8f4f8;">
+          <td>Overall</td>
+          <td>${escapeHtmlForDoc(result.overall)}</td>
+        </tr>`;
+        }
+        
+        html += `
+      </tbody>
+    </table>
+  </div>`;
+        
+        if (result.feedback) {
+          html += `
+  <div class="feedback-section">
+    <h2>Feedback for Student</h2>
+    <p>${escapeHtmlForDoc(result.feedback).replace(/\n/g, '<br>')}</p>
+  </div>`;
+        }
+        
+        html += `
+  <div class="footer">
+    Generated at: ${escapeHtmlForDoc(new Date().toLocaleString('en-US'))}
+  </div>
+</body>
+</html>`;
+        
+        const blob = new Blob([html], { type: 'application/msword' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `result_${row.regId}.doc`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        
+        showToast('Word document exported successfully');
+      } catch (error) {
+        console.error('DOC export error:', error);
+        showToast('DOC export failed', 'error');
+      }
+    }
+
+    function exportDOCBulk(rows) {
+      try {
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        
+        let html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Mock Test Results - Bulk Export</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+    h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+    .result-item { page-break-after: always; margin-bottom: 40px; }
+    .result-item:last-child { page-break-after: auto; }
+    .info-section { margin: 20px 0; }
+    .info-row { margin: 8px 0; }
+    .label { font-weight: bold; display: inline-block; width: 150px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #3498db; color: white; font-weight: bold; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .feedback-section { margin: 20px 0; padding: 15px; background-color: #f0f8ff; border-left: 4px solid #3498db; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 0.9em; color: #666; text-align: right; }
+    hr { margin: 30px 0; border: none; border-top: 2px solid #ddd; }
+  </style>
+</head>
+<body>`;
+        
+        rows.forEach((row, index) => {
+          const candidate = row.registration.candidate || {};
+          const result = row.result;
+          const scores = result.scores || {};
+          
+          html += `
+  <div class="result-item">
+    <h1>Mock Test Result ${index + 1} of ${rows.length}</h1>
+    
+    <div class="info-section">
+      <h2>Event Information</h2>
+      <div class="info-row"><span class="label">Event:</span> ${escapeHtmlForDoc(row.event.title || 'Unknown')}</div>
+      <div class="info-row"><span class="label">Date & Time:</span> ${escapeHtmlForDoc(formatDateTimeFull(row.slot.startAt))}</div>
+      <div class="info-row"><span class="label">Room:</span> ${escapeHtmlForDoc(row.slot.room || 'Unknown')}</div>
+      <div class="info-row"><span class="label">Type:</span> ${escapeHtmlForDoc(row.type.name || 'Unknown')}</div>
+    </div>
+    
+    <div class="info-section">
+      <h2>Candidate Information</h2>
+      <div class="info-row"><span class="label">Name:</span> ${escapeHtmlForDoc(candidate.fullName || 'N/A')}</div>
+      <div class="info-row"><span class="label">Phone:</span> ${escapeHtmlForDoc(candidate.phone || 'N/A')}</div>
+      <div class="info-row"><span class="label">Email:</span> ${escapeHtmlForDoc(candidate.email || 'N/A')}</div>
+      <div class="info-row"><span class="label">Registration ID:</span> ${escapeHtmlForDoc(row.regId)}</div>
+    </div>
+    
+    <div class="info-section">
+      <h2>Test Scores</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody>`;
+          
+          Object.keys(scores).forEach(comp => {
+            html += `
+          <tr>
+            <td>${escapeHtmlForDoc(comp)}</td>
+            <td>${escapeHtmlForDoc(scores[comp] || '')}</td>
+          </tr>`;
+          });
+          
+          if (result.overall) {
+            html += `
+          <tr style="font-weight: bold; background-color: #e8f4f8;">
+            <td>Overall</td>
+            <td>${escapeHtmlForDoc(result.overall)}</td>
+          </tr>`;
+          }
+          
+          html += `
+        </tbody>
+      </table>
+    </div>`;
+          
+          if (result.feedback) {
+            html += `
+    <div class="feedback-section">
+      <h2>Feedback for Student</h2>
+      <p>${escapeHtmlForDoc(result.feedback).replace(/\n/g, '<br>')}</p>
+    </div>`;
+          }
+          
+          if (index < rows.length - 1) {
+            html += `
+    <hr>`;
+          }
+          
+          html += `
+  </div>`;
+        });
+        
+        html += `
+  <div class="footer">
+    Bulk export of ${rows.length} results | Generated at: ${escapeHtmlForDoc(new Date().toLocaleString('en-US'))}
+  </div>
+</body>
+</html>`;
+        
+        const blob = new Blob([html], { type: 'application/msword' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `results_bulk_${timestamp}.doc`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        
+        showToast(`${rows.length} results exported to Word document`);
+      } catch (error) {
+        console.error('DOC bulk export error:', error);
+        showToast('DOC bulk export failed', 'error');
+      }
+    }
+
     // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('[onclick^="toggleRowExport"]') && !e.target.closest('[id^="export-"]')) {
@@ -1100,5 +1063,5 @@
 
     init();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c41247515238106',t:'MTc2OTQ0MjM3OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c4839f572461114',t:'MTc2OTUxNjY2MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
