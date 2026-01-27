@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event Registration</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100%;
+      padding: 12px;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    .header h1 {
+      color: #1a202c;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .event-loader {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+
+    .event-loader label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .event-loader input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+
+    .event-loader button {
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .event-loader button:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+
+    .event-browser {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    .event-browser h2 {
+      color: #1a202c;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .event-card {
+      background: #f9fafb;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .event-card:hover {
+      border-color: #667eea;
+      background: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .event-card h3 {
+      color: #1a202c;
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .event-card p {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .event-card .event-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .event-card .meta-item {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .no-events {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+
+    .no-events p {
+      margin-bottom: 16px;
+    }
+
+    .registration-section {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    .registration-section h2 {
+      color: #1a202c;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .event-info {
+      background: #f9fafb;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border-left: 3px solid #667eea;
+    }
+
+    .event-info h3 {
+      color: #1a202c;
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .event-info p {
+      color: #6b7280;
+      margin-bottom: 6px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .status-badge.open {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge.closed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-badge.upcoming {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .form-group label .required {
+      color: #dc2626;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .submit-btn {
+      background: #667eea;
+      color: white;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .submit-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .success-message {
+      background: #d1fae5;
+      border: 2px solid #10b981;
+      padding: 24px;
+      border-radius: 12px;
+      margin-top: 24px;
+    }
+
+    .success-message h3 {
+      color: #065f46;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .success-message p {
+      color: #047857;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .success-message .reg-id {
+      background: white;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 14px;
+      margin: 12px 0;
+    }
+
+    .copy-box {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #10b981;
+      margin-top: 16px;
+      position: relative;
+    }
+
+    .copy-box textarea {
+      width: 100%;
+      border: none;
+      padding: 8px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .copy-btn {
+      background: #10b981;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .copy-btn:hover {
+      background: #059669;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1f2937;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .toast.success {
+      background: #10b981;
+    }
+
+    .toast.error {
+      background: #ef4444;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+
+    .spinner {
+      border: 3px solid #e5e7eb;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1f2937;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .toast.success {
+      background: #10b981;
+    }
+
+    .toast.error {
+      background: #ef4444;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+
+    .spinner {
+      border: 3px solid #e5e7eb;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1f2937;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .toast.success {
+      background: #10b981;
+    }
+
+    .toast.error {
+      background: #ef4444;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+
+    .spinner {
+      border: 3px solid #e5e7eb;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .confirm-modal {
+      background: white;
+      border-radius: 16px;
+      max-width: 600px;
+      width: 100%;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        transform: translateY(-30px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .confirm-modal h3 {
+      color: #065f46;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .confirm-modal p {
+      color: #047857;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .confirm-modal .reg-id {
+      background: #f3f4f6;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      margin: 16px 0;
+      word-break: break-all;
+      border: 2px solid #d1fae5;
+    }
+
+    .confirm-modal .message-box {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 8px;
+      border: 2px solid #d1fae5;
+      margin: 16px 0;
+    }
+
+    .confirm-modal .message-box textarea {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 8px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 100px;
+      font-family: inherit;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    .modal-btn {
+      flex: 1;
+      min-width: 140px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-btn.primary {
+      background: #10b981;
+      color: white;
+    }
+
+    .modal-btn.primary:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+
+    .modal-btn.secondary {
+      background: #667eea;
+      color: white;
+    }
+
+    .modal-btn.secondary:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+
+    .modal-btn.tertiary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .modal-btn.tertiary:hover {
+      background: #d1d5db;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .registration-section {
+        padding: 20px;
+      }
+
+      .confirm-modal {
+        padding: 24px;
+      }
+
+      .modal-buttons {
+        flex-direction: column;
+      }
+
+      .modal-btn {
+        width: 100%;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="container">
+   <div class="header">
+    <h1>🎯 Event Registration</h1>
+    <p style="color: #6b7280; margin-top: 8px;">Register for an event slot</p>
+   </div>
+   <div id="eventLoader" class="event-loader"><label>Event ID</label> <input type="text" id="eventIdInput" placeholder="Enter event ID"> <button onclick="loadEvent()">Load Event</button>
+   </div>
+   <div id="eventBrowser" class="event-browser hidden">
+    <h2>📅 Browse Open Events</h2>
+    <div id="eventList">
+     <div class="loading">
+      <div class="spinner"></div>
+      <p>Loading available events...</p>
+     </div>
+    </div>
+   </div>
+   <div id="registrationSection" class="registration-section hidden">
+    <h2>Registration</h2>
+    <div id="eventInfo" class="event-info"></div>
+    <form id="registrationForm">
+     <div class="form-group"><label>Select Time Slot <span class="required">*</span></label> <select id="slotSelect" required> <option value="">Choose a time slot...</option> </select>
+     </div>
+     <div class="form-group"><label>Full Name <span class="required">*</span></label> <input type="text" id="fullName" required>
+     </div>
+     <div class="form-group"><label>Phone Number <span class="required">*</span></label> <input type="tel" id="phone" required>
+     </div>
+     <div class="form-group"><label>Email</label> <input type="email" id="email">
+     </div>
+     <div class="form-group"><label>Additional Notes</label> <textarea id="notes" placeholder="Any special requirements or notes..."></textarea>
+     </div><button type="submit" class="submit-btn">Submit Registration</button>
+    </form>
+   </div>
+  </div><!-- Full-screen confirmation modal -->
+  <div id="confirmOverlay" class="confirm-overlay hidden">
+   <div class="confirm-modal">
+    <h3>✅ Registration Submitted!</h3>
+    <p>Your registration has been submitted and is pending confirmation.</p>
+    <p><strong>Registration ID:</strong></p>
+    <div class="reg-id" id="modalRegId"></div>
+    <div class="message-box"><textarea readonly id="modalRegMessage"></textarea>
+    </div>
+    <div class="modal-buttons"><button class="modal-btn primary" onclick="copyModalMessage()">📋 Copy Message</button> <button class="modal-btn secondary" onclick="window.location.reload()">🔄 Refresh Page</button> <button class="modal-btn tertiary" onclick="window.location.reload()">✕ Close</button>
+    </div>
+   </div>
+  </div>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import {
+      getFirestore, collection, doc, getDoc, getDocs,
+      query, where, orderBy, addDoc, updateDoc,
+      serverTimestamp, Timestamp
+    } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentEvent = null;
+    let currentType = null;
+    let allSlots = [];
+    let allTypes = {};
+    let isSubmitting = false;
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    async function loadMockTestTypes() {
+      try {
+        const typesSnapshot = await getDocs(collection(db, 'mockTestTypes'));
+        typesSnapshot.docs.forEach(doc => {
+          allTypes[doc.id] = { id: doc.id, ...doc.data() };
+        });
+      } catch (error) {
+        console.error('Error loading types:', error);
+      }
+    }
+
+    async function loadOpenEvents() {
+      try {
+        await loadMockTestTypes();
+
+        const now = Timestamp.now();
+        const eventsSnapshot = await getDocs(collection(db, 'mockTestEvents'));
+        
+        const openEvents = eventsSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(event => {
+            const regOpenAt = event.regOpenAt;
+            const regCloseAt = event.regCloseAt;
+            return regOpenAt && regCloseAt && 
+                   now.toMillis() >= regOpenAt.toMillis() && 
+                   now.toMillis() <= regCloseAt.toMillis();
+          })
+          .sort((a, b) => a.regOpenAt.toMillis() - b.regOpenAt.toMillis());
+
+        displayOpenEvents(openEvents);
+      } catch (error) {
+        console.error('Error loading open events:', error);
+        document.getElementById('eventList').innerHTML = `
+          <div class="no-events">
+            <p style="color: #ef4444;">Error loading events: ${escapeHtml(error.message)}</p>
+          </div>
+        `;
+      }
+    }
+
+    function displayOpenEvents(events) {
+      const eventList = document.getElementById('eventList');
+
+      if (events.length === 0) {
+        eventList.innerHTML = `
+          <div class="no-events">
+            <p>🔍 No events are currently open for registration.</p>
+            <p style="font-size: 14px;">Check back later or enter an event ID manually above.</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      events.forEach(event => {
+        const typeName = allTypes[event.typeId]?.name || 'Unknown Type';
+        html += `
+          <div class="event-card" onclick="selectEvent('${event.id}')">
+            <h3>${escapeHtml(event.title)}</h3>
+            <p><strong>📋 Type:</strong> ${escapeHtml(typeName)}</p>
+            <p><strong>📍 Location:</strong> ${escapeHtml(event.location)}</p>
+            <div class="event-meta">
+              <span class="meta-item">🕐 Opens: ${formatDate(event.regOpenAt)}</span>
+              <span class="meta-item">🕐 Closes: ${formatDate(event.regCloseAt)}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      eventList.innerHTML = html;
+    }
+
+    window.selectEvent = async function(eventId) {
+      document.getElementById('eventIdInput').value = eventId;
+      await loadEvent();
+    };
+
+    async function getOccupiedCount(eventId, slotId) {
+      try {
+        const pendingQuery = query(
+          collection(db, 'mockTestRegistrations'),
+          where('eventId', '==', eventId),
+          where('slotId', '==', slotId),
+          where('status', '==', 'pending')
+        );
+        const confirmedQuery = query(
+          collection(db, 'mockTestRegistrations'),
+          where('eventId', '==', eventId),
+          where('slotId', '==', slotId),
+          where('status', '==', 'confirmed')
+        );
+        
+        const [pendingSnapshot, confirmedSnapshot] = await Promise.all([
+          getDocs(pendingQuery),
+          getDocs(confirmedQuery)
+        ]);
+        
+        return pendingSnapshot.size + confirmedSnapshot.size;
+      } catch (error) {
+        console.error('Error getting occupied count:', error);
+        return 0;
+      }
+    }
+
+    window.loadEvent = async function() {
+      const eventId = document.getElementById('eventIdInput').value.trim();
+      if (!eventId) {
+        showToast('Please enter an event ID', 'error');
+        return;
+      }
+
+      try {
+        const eventDoc = await getDoc(doc(db, 'mockTestEvents', eventId));
+        if (!eventDoc.exists()) {
+          showToast('Event not found', 'error');
+          return;
+        }
+
+        currentEvent = { id: eventDoc.id, ...eventDoc.data() };
+
+        const typeDoc = await getDoc(doc(db, 'mockTestTypes', currentEvent.typeId));
+        if (typeDoc.exists()) {
+          currentType = { id: typeDoc.id, ...typeDoc.data() };
+        }
+
+        const slotsQuery = query(
+          collection(db, 'mockTestSlots'),
+          where('eventId', '==', eventId),
+          orderBy('startAt', 'asc')
+        );
+        const slotsSnapshot = await getDocs(slotsQuery);
+        allSlots = slotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        await displayEvent();
+
+        document.getElementById('eventLoader').classList.add('hidden');
+        document.getElementById('eventBrowser').classList.add('hidden');
+        document.getElementById('registrationSection').classList.remove('hidden');
+      } catch (error) {
+        console.error('Error loading event:', error);
+        showToast('Error loading event: ' + error.message, 'error');
+      }
+    };
+
+    async function displayEvent() {
+      const now = new Date();
+      const regOpenAt = currentEvent.regOpenAt?.toDate ? currentEvent.regOpenAt.toDate() : new Date(currentEvent.regOpenAt);
+      const regCloseAt = currentEvent.regCloseAt?.toDate ? currentEvent.regCloseAt.toDate() : new Date(currentEvent.regCloseAt);
+
+      const isOpen = now >= regOpenAt && now <= regCloseAt;
+
+      let statusBadge = '';
+      let statusMessage = '';
+      if (now < regOpenAt) {
+        statusBadge = '<span class="status-badge upcoming">Opens ' + formatDate(regOpenAt) + '</span>';
+        statusMessage = '<p style="color: #92400e; font-weight: 600; margin-top: 12px;">⏰ Registration has not opened yet</p>';
+      } else if (now > regCloseAt) {
+        statusBadge = '<span class="status-badge closed">Registration Closed</span>';
+        statusMessage = '<p style="color: #991b1b; font-weight: 600; margin-top: 12px;">🔒 Registration window has closed</p>';
+      } else {
+        statusBadge = '<span class="status-badge open">Registration Open</span>';
+      }
+
+      const eventInfoHtml = `
+        <h3>${escapeHtml(currentEvent.title)}</h3>
+        <p><strong>Type:</strong> ${escapeHtml(currentType?.name || 'Unknown')}</p>
+        <p><strong>Location:</strong> ${escapeHtml(currentEvent.location)}</p>
+        ${currentEvent.notes ? `<p><strong>Notes:</strong> ${escapeHtml(currentEvent.notes)}</p>` : ''}
+        <p><strong>Registration Window:</strong> ${formatDate(regOpenAt)} - ${formatDate(regCloseAt)}</p>
+        ${statusBadge}
+        ${statusMessage}
+      `;
+
+      document.getElementById('eventInfo').innerHTML = eventInfoHtml;
+
+      const slotSelect = document.getElementById('slotSelect');
+      slotSelect.innerHTML = '<option value="">Choose a time slot...</option>';
+
+      for (const slot of allSlots) {
+        const occupiedCount = await getOccupiedCount(currentEvent.id, slot.id);
+        const availableLeft = Math.max(0, slot.capacity - occupiedCount);
+        const isFull = availableLeft <= 0;
+        const isClosed = slot.status === 'closed';
+        const isDisabled = isFull || isClosed;
+
+        const option = document.createElement('option');
+        option.value = slot.id;
+        option.textContent = `${formatDate(slot.startAt)} - ${escapeHtml(slot.room)} (Available: ${availableLeft})${isFull ? ' - FULL' : ''}${isClosed ? ' - CLOSED' : ''}`;
+        option.disabled = isDisabled;
+        slotSelect.appendChild(option);
+      }
+
+      // Disable submit button if registration window is closed
+      const submitBtn = document.querySelector('.submit-btn');
+      submitBtn.disabled = !isOpen;
+    }
+
+    document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (isSubmitting) {
+        return;
+      }
+
+      isSubmitting = true;
+      const submitBtn = document.querySelector('.submit-btn');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      const slotId = document.getElementById('slotSelect').value;
+      const fullName = document.getElementById('fullName').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+
+      if (!slotId) {
+        showToast('Please select a time slot', 'error');
+        isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return;
+      }
+
+      const slot = allSlots.find(s => s.id === slotId);
+      const occupiedCount = await getOccupiedCount(currentEvent.id, slotId);
+      const availableLeft = Math.max(0, slot.capacity - occupiedCount);
+
+      if (availableLeft <= 0) {
+        showToast('This slot is now full. Please choose another slot.', 'error');
+        await displayEvent();
+        isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return;
+      }
+
+      try {
+        const registration = {
+          eventId: currentEvent.id,
+          slotId: slotId,
+          typeId: currentEvent.typeId,
+          status: 'pending',
+          candidate: {
+            fullName: fullName,
+            phone: phone,
+            email: email,
+            notes: notes
+          },
+          admin: {
+            note: '',
+            confirmedBy: ''
+          },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          confirmedAt: null
+        };
+
+        const docRef = await addDoc(collection(db, 'mockTestRegistrations'), registration);
+
+        const regUrl = new URL(window.location.href);
+        regUrl.searchParams.set('eventId', currentEvent.id);
+        const regLink = regUrl.toString();
+
+        let regMessage = currentType?.templates?.regMessage || 'Thank you for registering! Your registration ID is: {REG_ID}';
+        regMessage = regMessage.replace('{EVENT_TITLE}', currentEvent.title);
+        regMessage = regMessage.replace('{REG_LINK}', regLink);
+        regMessage = regMessage.replace('{REG_ID}', docRef.id);
+
+        // Show modal with registration details
+        document.getElementById('modalRegId').textContent = docRef.id;
+        document.getElementById('modalRegMessage').value = regMessage;
+        document.getElementById('confirmOverlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        showToast('Registration submitted successfully!');
+      } catch (error) {
+        console.error('Error submitting registration:', error);
+        showToast('Error submitting registration: ' + error.message, 'error');
+        isSubmitting = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+
+    window.copyModalMessage = async function() {
+      const textarea = document.getElementById('modalRegMessage');
+      const message = textarea.value;
+      
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(message);
+          showToast('Message copied to clipboard!');
+        } else {
+          // Fallback for older browsers
+          textarea.select();
+          document.execCommand('copy');
+          showToast('Message copied to clipboard!');
+        }
+      } catch (error) {
+        // Final fallback
+        textarea.select();
+        try {
+          document.execCommand('copy');
+          showToast('Message copied to clipboard!');
+        } catch (err) {
+          showToast('Failed to copy. Please select and copy manually.', 'error');
+        }
+      }
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get('eventId');
+    if (eventId) {
+      document.getElementById('eventIdInput').value = eventId;
+      window.loadEvent();
+    } else {
+      // No eventId in URL, show event browser
+      document.getElementById('eventBrowser').classList.remove('hidden');
+      loadOpenEvents();
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c3f298d83b586e2',t:'MTc2OTQyMTYxNi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

@@ -1,0 +1,792 @@
+<!doctype doctype>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Registration Confirmation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    .toast {
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    .drawer {
+      transform: translateX(100%);
+      transition: transform 0.3s ease-out;
+    }
+    .drawer.open {
+      transform: translateX(0);
+    }
+    .loader {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="bg-gray-50 h-full overflow-auto">
+  <div class="w-full h-full"><!-- Header -->
+   <div class="bg-white border-b border-gray-200 px-6 py-4">
+    <h1 class="text-2xl font-bold text-gray-900">Mock Test Registration Confirmation</h1>
+    <p class="text-sm text-gray-600 mt-1">Review and manage candidate registrations</p>
+   </div><!-- Filters -->
+   <div class="bg-white border-b border-gray-200 px-6 py-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"><!-- Status Filter -->
+     <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label> <select id="statusFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="pending">Pending</option> <option value="confirmed">Confirmed</option> <option value="rejected">Rejected</option> <option value="all">All</option> </select>
+     </div><!-- Date From -->
+     <div><label class="block text-sm font-medium text-gray-700 mb-1">Slot Date From</label> <input type="date" id="dateFrom" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+     </div><!-- Date To -->
+     <div><label class="block text-sm font-medium text-gray-700 mb-1">Slot Date To</label> <input type="date" id="dateTo" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+     </div><!-- Event Filter -->
+     <div><label class="block text-sm font-medium text-gray-700 mb-1">Event</label> <select id="eventFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="all">All Events</option> </select>
+     </div>
+    </div><!-- Search -->
+    <div class="mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Search Candidate</label> <input type="text" id="searchInput" placeholder="Search by name, phone, or email..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+   </div><!-- Loading State -->
+   <div id="loadingState" class="flex items-center justify-center py-12">
+    <div class="text-center">
+     <div class="loader mx-auto"></div>
+     <p class="text-gray-600 mt-4">Loading registrations...</p>
+    </div>
+   </div><!-- Table -->
+   <div id="tableContainer" class="px-6 py-4 hidden">
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+     <div class="overflow-x-auto">
+      <table class="w-full">
+       <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+         <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Created</th>
+         <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Candidate</th>
+         <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Event</th>
+         <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Slot</th>
+         <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
+         <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Capacity</th>
+         <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+        </tr>
+       </thead>
+       <tbody id="tableBody" class="divide-y divide-gray-200">
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div id="emptyState" class="text-center py-12 hidden">
+     <p class="text-gray-500">No registrations found matching your filters.</p>
+    </div>
+   </div><!-- Detail Drawer -->
+   <div id="drawer" class="drawer fixed top-0 right-0 h-full w-full md:w-2/3 lg:w-1/2 bg-white shadow-2xl z-50 overflow-y-auto">
+    <div class="p-6">
+     <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl font-bold text-gray-900">Registration Details</h2><button id="closeDrawer" class="text-gray-500 hover:text-gray-700">
+       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+       </svg></button>
+     </div>
+     <div id="drawerContent"></div>
+    </div>
+   </div><!-- Overlay -->
+   <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div><!-- Toast Container -->
+   <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+  </div>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js';
+    import { getFirestore, collection, query, orderBy, getDocs, doc, updateDoc, serverTimestamp, Timestamp, where } from 'https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js';
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // State
+    let allRegistrations = [];
+    let typesMap = {};
+    let eventsMap = {};
+    let slotsMap = {};
+    let confirmedCountsCache = {};
+    let currentDetailId = null;
+
+    // Utility: Escape HTML
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+
+    // Utility: Show toast
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast px-6 py-3 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+      toast.textContent = message;
+      document.getElementById('toastContainer').appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Utility: Format date
+    function formatDate(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+
+    function formatDateShort(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    }
+
+    // Load data
+    async function loadData() {
+      try {
+        // Load types
+        const typesSnap = await getDocs(collection(db, 'mockTestTypes'));
+        typesSnap.forEach(doc => {
+          typesMap[doc.id] = { id: doc.id, ...doc.data() };
+        });
+
+        // Load events
+        const eventsSnap = await getDocs(collection(db, 'mockTestEvents'));
+        eventsSnap.forEach(doc => {
+          eventsMap[doc.id] = { id: doc.id, ...doc.data() };
+        });
+
+        // Populate event filter
+        const eventFilter = document.getElementById('eventFilter');
+        Object.values(eventsMap).forEach(event => {
+          const option = document.createElement('option');
+          option.value = event.id;
+          option.textContent = event.title || 'Untitled Event';
+          eventFilter.appendChild(option);
+        });
+
+        // Load slots
+        const slotsSnap = await getDocs(collection(db, 'mockTestSlots'));
+        slotsSnap.forEach(doc => {
+          slotsMap[doc.id] = { id: doc.id, ...doc.data() };
+        });
+
+        // Load registrations
+        const regsQuery = query(
+          collection(db, 'mockTestRegistrations'),
+          orderBy('createdAt', 'desc')
+        );
+        const regsSnap = await getDocs(regsQuery);
+        allRegistrations = [];
+        regsSnap.forEach(doc => {
+          allRegistrations.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Calculate confirmed counts
+        await calculateConfirmedCounts();
+
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('tableContainer').classList.remove('hidden');
+        
+        renderTable();
+      } catch (error) {
+        console.error('Error loading data:', error);
+        showToast('Failed to load data: ' + error.message, 'error');
+      }
+    }
+
+    // Calculate confirmed counts per slot
+    async function calculateConfirmedCounts() {
+      confirmedCountsCache = {};
+      allRegistrations.forEach(reg => {
+        if (reg.status === 'confirmed') {
+          const key = `${reg.eventId}_${reg.slotId}`;
+          confirmedCountsCache[key] = (confirmedCountsCache[key] || 0) + 1;
+        }
+      });
+    }
+
+    // Get confirmed count for a slot
+    function getConfirmedCount(eventId, slotId) {
+      const key = `${eventId}_${slotId}`;
+      return confirmedCountsCache[key] || 0;
+    }
+
+    // Recalculate confirmed count for a specific slot (live check)
+    async function recalculateConfirmedCount(eventId, slotId) {
+      const q = query(
+        collection(db, 'mockTestRegistrations'),
+        where('eventId', '==', eventId),
+        where('slotId', '==', slotId),
+        where('status', '==', 'confirmed')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.size;
+    }
+
+    // Recalculate occupied count (pending + confirmed) for a specific slot
+    async function recalculateOccupiedCount(eventId, slotId) {
+      const pendingQuery = query(
+        collection(db, 'mockTestRegistrations'),
+        where('eventId', '==', eventId),
+        where('slotId', '==', slotId),
+        where('status', '==', 'pending')
+      );
+      const confirmedQuery = query(
+        collection(db, 'mockTestRegistrations'),
+        where('eventId', '==', eventId),
+        where('slotId', '==', slotId),
+        where('status', '==', 'confirmed')
+      );
+      
+      const [pendingSnap, confirmedSnap] = await Promise.all([
+        getDocs(pendingQuery),
+        getDocs(confirmedQuery)
+      ]);
+      
+      return pendingSnap.size + confirmedSnap.size;
+    }
+
+    // Filter registrations
+    function getFilteredRegistrations() {
+      const statusFilter = document.getElementById('statusFilter').value;
+      const dateFrom = document.getElementById('dateFrom').value;
+      const dateTo = document.getElementById('dateTo').value;
+      const eventFilter = document.getElementById('eventFilter').value;
+      const searchInput = document.getElementById('searchInput').value.toLowerCase();
+
+      return allRegistrations.filter(reg => {
+        // Status filter
+        if (statusFilter !== 'all' && reg.status !== statusFilter) return false;
+
+        // Date filter (based on slot startAt)
+        const slot = slotsMap[reg.slotId];
+        if (slot && slot.startAt) {
+          const slotDate = slot.startAt.toDate ? slot.startAt.toDate() : new Date(slot.startAt);
+          const slotDateStr = slotDate.toISOString().split('T')[0];
+          
+          if (dateFrom && slotDateStr < dateFrom) return false;
+          if (dateTo && slotDateStr > dateTo) return false;
+        }
+
+        // Event filter
+        if (eventFilter !== 'all' && reg.eventId !== eventFilter) return false;
+
+        // Search filter
+        if (searchInput) {
+          const candidate = reg.candidate || {};
+          const fullName = (candidate.fullName || '').toLowerCase();
+          const phone = (candidate.phone || '').toLowerCase();
+          const email = (candidate.email || '').toLowerCase();
+          
+          if (!fullName.includes(searchInput) && 
+              !phone.includes(searchInput) && 
+              !email.includes(searchInput)) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+    }
+
+    // Render table
+    function renderTable() {
+      const filtered = getFilteredRegistrations();
+      const tbody = document.getElementById('tableBody');
+      const emptyState = document.getElementById('emptyState');
+      
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      filtered.forEach(reg => {
+        const event = eventsMap[reg.eventId] || {};
+        const slot = slotsMap[reg.slotId] || {};
+        const candidate = reg.candidate || {};
+        const confirmedCount = getConfirmedCount(reg.eventId, reg.slotId);
+        const capacity = slot.capacity || 0;
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        
+        // Status badge color
+        let statusBadge = '';
+        if (reg.status === 'confirmed') {
+          statusBadge = '<span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Confirmed</span>';
+        } else if (reg.status === 'rejected') {
+          statusBadge = '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Rejected</span>';
+        } else {
+          statusBadge = '<span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Pending</span>';
+        }
+
+        // Capacity display
+        const capacityClass = confirmedCount >= capacity ? 'text-red-600 font-semibold' : 'text-gray-900';
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 text-sm text-gray-900">${formatDateShort(reg.createdAt)}</td>
+          <td class="px-4 py-3">
+            <div class="text-sm font-medium text-gray-900">${escapeHtml(candidate.fullName)}</div>
+            <div class="text-xs text-gray-500">${escapeHtml(candidate.phone)}</div>
+            <div class="text-xs text-gray-500">${escapeHtml(candidate.email)}</div>
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-900">${escapeHtml(event.title)}</td>
+          <td class="px-4 py-3">
+            <div class="text-sm text-gray-900">${formatDateShort(slot.startAt)}</div>
+            <div class="text-xs text-gray-500">${escapeHtml(slot.room)}</div>
+          </td>
+          <td class="px-4 py-3">${statusBadge}</td>
+          <td class="px-4 py-3 text-sm ${capacityClass}">${confirmedCount}/${capacity}</td>
+          <td class="px-4 py-3">
+            <div class="flex gap-2">
+              <button class="view-btn px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded" data-id="${reg.id}">View</button>
+              ${reg.status === 'pending' ? `<button class="confirm-btn px-3 py-1 text-xs font-medium text-green-600 hover:bg-green-50 rounded" data-id="${reg.id}">Confirm</button>` : ''}
+              ${reg.status === 'pending' ? `<button class="reject-btn px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded" data-id="${reg.id}">Reject</button>` : ''}
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      // Attach event listeners
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => openDrawer(btn.dataset.id));
+      });
+
+      document.querySelectorAll('.confirm-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => confirmRegistration(btn.dataset.id, false, e.currentTarget));
+      });
+
+      document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => rejectRegistration(btn.dataset.id, false, e.currentTarget));
+      });
+    }
+
+    // Open drawer
+    function openDrawer(regId) {
+      currentDetailId = regId;
+      const reg = allRegistrations.find(r => r.id === regId);
+      if (!reg) return;
+
+      const event = eventsMap[reg.eventId] || {};
+      const slot = slotsMap[reg.slotId] || {};
+      const candidate = reg.candidate || {};
+      const admin = reg.admin || {};
+      const confirmedCount = getConfirmedCount(reg.eventId, reg.slotId);
+      const capacity = slot.capacity || 0;
+
+      let statusBadge = '';
+      if (reg.status === 'confirmed') {
+        statusBadge = '<span class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Confirmed</span>';
+      } else if (reg.status === 'rejected') {
+        statusBadge = '<span class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">Rejected</span>';
+      } else {
+        statusBadge = '<span class="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">Pending</span>';
+      }
+
+      const content = `
+        <div class="space-y-6">
+          <!-- Status -->
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Status</h3>
+            ${statusBadge}
+          </div>
+
+          <!-- Candidate Info -->
+          <div class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Candidate Information</h3>
+            <div class="space-y-2">
+              <div>
+                <span class="text-sm font-medium text-gray-500">Full Name:</span>
+                <p class="text-sm text-gray-900">${escapeHtml(candidate.fullName)}</p>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-500">Phone:</span>
+                <p class="text-sm text-gray-900">${escapeHtml(candidate.phone)}</p>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-500">Email:</span>
+                <p class="text-sm text-gray-900">${escapeHtml(candidate.email)}</p>
+              </div>
+              ${candidate.notes ? `
+              <div>
+                <span class="text-sm font-medium text-gray-500">Notes:</span>
+                <p class="text-sm text-gray-900">${escapeHtml(candidate.notes)}</p>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Event Info -->
+          <div class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Event Information</h3>
+            <div class="space-y-2">
+              <div>
+                <span class="text-sm font-medium text-gray-500">Title:</span>
+                <p class="text-sm text-gray-900">${escapeHtml(event.title)}</p>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-500">Location:</span>
+                <p class="text-sm text-gray-900">${escapeHtml(event.location)}</p>
+              </div>
+              ${event.notes ? `
+              <div>
+                <span class="text-sm font-medium text-gray-500">Notes:</span>
+                <p class="text-sm text-gray-900">${escapeHtml(event.notes)}</p>
+              </div>
+              ` : ''}
+              <div>
+                <span class="text-sm font-medium text-gray-500">Registration Window:</span>
+                <p class="text-sm text-gray-900">${formatDate(event.regOpenAt)} - ${formatDate(event.regCloseAt)}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slot Info -->
+          <div class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Slot Information</h3>
+            <div class="space-y-2">
+              <div>
+                <span class="text-sm font-medium text-gray-500">Start Time:</span>
+                <p class="text-sm text-gray-900">${formatDate(slot.startAt)}</p>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-500">Room:</span>
+                <p class="text-sm text-gray-900">${escapeHtml(slot.room)}</p>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-500">Capacity:</span>
+                <p class="text-sm text-gray-900 ${confirmedCount >= capacity ? 'text-red-600 font-semibold' : ''}">${confirmedCount}/${capacity} confirmed</p>
+              </div>
+              <div>
+                <span class="text-sm font-medium text-gray-500">Slot Status:</span>
+                <p class="text-sm text-gray-900">${slot.status === 'open' ? '✓ Open' : '✗ Closed'}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Admin Fields -->
+          <div class="border-t pt-4">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Admin Actions</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Confirmed By</label>
+                <input type="text" id="confirmedByInput" value="${escapeHtml(admin.confirmedBy || '')}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Admin Note</label>
+                <textarea id="adminNoteInput" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">${escapeHtml(admin.note || '')}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timestamps -->
+          <div class="border-t pt-4 text-xs text-gray-500 space-y-1">
+            <p>Created: ${formatDate(reg.createdAt)}</p>
+            ${reg.updatedAt ? `<p>Updated: ${formatDate(reg.updatedAt)}</p>` : ''}
+            ${reg.confirmedAt ? `<p>Confirmed: ${formatDate(reg.confirmedAt)}</p>` : ''}
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="border-t pt-4 flex gap-3">
+            ${reg.status === 'pending' ? `
+              <button id="drawerConfirmBtn" class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium">Confirm</button>
+              <button id="drawerRejectBtn" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium">Reject</button>
+            ` : ''}
+            ${reg.status !== 'pending' ? `
+              <button id="drawerPendingBtn" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 font-medium">Set to Pending</button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('drawerContent').innerHTML = content;
+      document.getElementById('drawer').classList.add('open');
+      document.getElementById('overlay').classList.remove('hidden');
+
+      // Attach button listeners
+      const confirmBtn = document.getElementById('drawerConfirmBtn');
+      const rejectBtn = document.getElementById('drawerRejectBtn');
+      const pendingBtn = document.getElementById('drawerPendingBtn');
+
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => confirmRegistration(regId, true));
+      }
+      if (rejectBtn) {
+        rejectBtn.addEventListener('click', () => rejectRegistration(regId, true));
+      }
+      if (pendingBtn) {
+        pendingBtn.addEventListener('click', () => setToPending(regId));
+      }
+    }
+
+    // Close drawer
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('open');
+      document.getElementById('overlay').classList.add('hidden');
+      currentDetailId = null;
+    }
+
+    // Confirm registration
+    async function confirmRegistration(regId, fromDrawer = false, btnEl = null) {
+      const reg = allRegistrations.find(r => r.id === regId);
+      if (!reg) return;
+
+      const slot = slotsMap[reg.slotId];
+      if (!slot) {
+        showToast('Slot information not found', 'error');
+        return;
+      }
+
+      // Disable button
+      const btn = fromDrawer ? document.getElementById('drawerConfirmBtn') : btnEl;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+      }
+
+      try {
+        // Live check occupied count (pending + confirmed)
+        const occupied = await recalculateOccupiedCount(reg.eventId, reg.slotId);
+        
+        // If the registration is currently pending, it's already counted in occupied
+        // So we only need to check if occupied exceeds capacity
+        // If it's not pending (rare case), we need to check if adding it would exceed
+        if (reg.status === 'pending') {
+          if (occupied > slot.capacity) {
+            showToast('Slot is full. Cannot confirm this registration.', 'error');
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Confirm';
+            }
+            return;
+          }
+        } else {
+          if (occupied >= slot.capacity) {
+            showToast('Slot is full. Cannot confirm this registration.', 'error');
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Confirm';
+            }
+            return;
+          }
+        }
+
+        // Get admin fields
+        let confirmedBy = '';
+        let adminNote = '';
+        
+        if (fromDrawer) {
+          confirmedBy = document.getElementById('confirmedByInput').value;
+          adminNote = document.getElementById('adminNoteInput').value;
+        } else {
+          // Preserve existing admin fields when confirming from table
+          confirmedBy = reg.admin?.confirmedBy || '';
+          adminNote = reg.admin?.note || '';
+        }
+
+        // Update document
+        const docRef = doc(db, 'mockTestRegistrations', regId);
+        await updateDoc(docRef, {
+          status: 'confirmed',
+          'admin.confirmedBy': confirmedBy,
+          'admin.note': adminNote,
+          updatedAt: serverTimestamp(),
+          confirmedAt: Timestamp.now()
+        });
+
+        // Update local state
+        const index = allRegistrations.findIndex(r => r.id === regId);
+        if (index !== -1) {
+          allRegistrations[index].status = 'confirmed';
+          allRegistrations[index].admin = { confirmedBy, note: adminNote };
+          allRegistrations[index].updatedAt = Timestamp.now();
+          allRegistrations[index].confirmedAt = Timestamp.now();
+        }
+
+        await calculateConfirmedCounts();
+        renderTable();
+        
+        showToast('Registration confirmed successfully!');
+        
+        if (fromDrawer) {
+          closeDrawer();
+        }
+      } catch (error) {
+        console.error('Error confirming registration:', error);
+        showToast('Failed to confirm registration: ' + error.message, 'error');
+        
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Confirm';
+        }
+      }
+    }
+
+    // Reject registration
+    async function rejectRegistration(regId, fromDrawer = false, btnEl = null) {
+      const reg = allRegistrations.find(r => r.id === regId);
+      if (!reg) return;
+
+      // Disable button
+      const btn = fromDrawer ? document.getElementById('drawerRejectBtn') : btnEl;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+      }
+
+      try {
+        // Get admin fields
+        let confirmedBy = '';
+        let adminNote = '';
+        
+        if (fromDrawer) {
+          confirmedBy = document.getElementById('confirmedByInput').value;
+          adminNote = document.getElementById('adminNoteInput').value;
+        } else {
+          // Preserve existing admin fields when rejecting from table
+          confirmedBy = reg.admin?.confirmedBy || '';
+          adminNote = reg.admin?.note || '';
+        }
+
+        // Update document
+        const docRef = doc(db, 'mockTestRegistrations', regId);
+        await updateDoc(docRef, {
+          status: 'rejected',
+          'admin.confirmedBy': confirmedBy,
+          'admin.note': adminNote,
+          updatedAt: serverTimestamp(),
+          confirmedAt: null
+        });
+
+        // Update local state
+        const index = allRegistrations.findIndex(r => r.id === regId);
+        if (index !== -1) {
+          allRegistrations[index].status = 'rejected';
+          allRegistrations[index].admin = { confirmedBy, note: adminNote };
+          allRegistrations[index].updatedAt = Timestamp.now();
+          allRegistrations[index].confirmedAt = null;
+        }
+
+        await calculateConfirmedCounts();
+        renderTable();
+        
+        showToast('Registration rejected');
+        
+        if (fromDrawer) {
+          closeDrawer();
+        }
+      } catch (error) {
+        console.error('Error rejecting registration:', error);
+        showToast('Failed to reject registration: ' + error.message, 'error');
+        
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Reject';
+        }
+      }
+    }
+
+    // Set to pending
+    async function setToPending(regId) {
+      const btn = document.getElementById('drawerPendingBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+      }
+
+      try {
+        // Get admin fields
+        const confirmedBy = document.getElementById('confirmedByInput').value;
+        const adminNote = document.getElementById('adminNoteInput').value;
+
+        // Update document
+        const docRef = doc(db, 'mockTestRegistrations', regId);
+        await updateDoc(docRef, {
+          status: 'pending',
+          'admin.confirmedBy': confirmedBy,
+          'admin.note': adminNote,
+          updatedAt: serverTimestamp(),
+          confirmedAt: null
+        });
+
+        // Update local state
+        const index = allRegistrations.findIndex(r => r.id === regId);
+        if (index !== -1) {
+          allRegistrations[index].status = 'pending';
+          allRegistrations[index].admin = { confirmedBy, note: adminNote };
+          allRegistrations[index].updatedAt = Timestamp.now();
+          allRegistrations[index].confirmedAt = null;
+        }
+
+        await calculateConfirmedCounts();
+        renderTable();
+        
+        showToast('Registration set to pending');
+        closeDrawer();
+      } catch (error) {
+        console.error('Error setting to pending:', error);
+        showToast('Failed to update registration: ' + error.message, 'error');
+        
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Set to Pending';
+        }
+      }
+    }
+
+    // Event listeners
+    document.getElementById('statusFilter').addEventListener('change', renderTable);
+    document.getElementById('dateFrom').addEventListener('change', renderTable);
+    document.getElementById('dateTo').addEventListener('change', renderTable);
+    document.getElementById('eventFilter').addEventListener('change', renderTable);
+    document.getElementById('searchInput').addEventListener('input', renderTable);
+    document.getElementById('closeDrawer').addEventListener('click', closeDrawer);
+    document.getElementById('overlay').addEventListener('click', closeDrawer);
+
+    // Initialize
+    loadData();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c3f1c3df6ab4fc8',t:'MTc2OTQyMTA3MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

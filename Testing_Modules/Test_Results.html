@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Test Results</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gradient-to-br from-slate-50 to-blue-50">
+  <div class="h-full flex flex-col"><!-- Header -->
+   <header class="bg-white border-b border-slate-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+     <div>
+      <h1 class="text-2xl font-bold text-slate-900">Mock Test Results</h1>
+      <p class="text-sm text-slate-600 mt-1">Enter results, feedback, and export reports</p>
+     </div>
+     <div class="flex gap-2"><button onclick="exportFiltered('pdf')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors text-sm"> Export PDF </button> <button onclick="exportFiltered('docx')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"> Export DOCX </button> <button onclick="exportFiltered('excel')" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm"> Export Excel </button>
+     </div>
+    </div>
+   </header><!-- Filter Bar -->
+   <div class="bg-white border-b border-slate-200 px-6 py-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3"><select id="filterEvent" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">All Events</option> </select> <select id="filterSlot" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" disabled> <option value="">All Slots</option> </select> <select id="filterType" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="">All Types</option> </select> <select id="filterStatus" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"> <option value="all">All Confirmed</option> <option value="needs">Needs Results</option> <option value="has">Has Results</option> </select> <input type="date" id="filterDateFrom" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="From Date"> <input type="date" id="filterDateTo" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="To Date">
+    </div>
+    <div class="mt-3"><input type="text" id="filterSearch" placeholder="Search name, phone, email, or registration ID..." class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+    </div>
+   </div><!-- Table Container -->
+   <div class="flex-1 overflow-hidden px-6 py-4">
+    <div class="bg-white rounded-lg shadow-sm border border-slate-200 h-full flex flex-col">
+     <div class="overflow-auto flex-1">
+      <table class="w-full">
+       <thead class="bg-slate-50 sticky top-0 z-10">
+        <tr class="border-b border-slate-200">
+         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Slot</th>
+         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Candidate</th>
+         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Event</th>
+         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Room</th>
+         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Status</th>
+         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Overall</th>
+         <th class="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Actions</th>
+        </tr>
+       </thead>
+       <tbody id="resultsTableBody" class="divide-y divide-slate-100">
+        <tr>
+         <td colspan="7" class="px-4 py-8 text-center text-slate-500">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div><p class="mt-2">Loading results...</p></td>
+        </tr>
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+  </div><!-- Result Editor Modal -->
+  <div id="editorModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+   <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+     <h2 class="text-xl font-bold text-slate-900">Edit Test Result</h2>
+     <div class="flex items-center gap-3">
+      <div class="relative"><button onclick="toggleExportMenu()" class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors"> Export ▾ </button>
+       <div id="exportMenuEditor" class="hidden absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 z-50"><button onclick="exportSingle(currentEditingRegId, 'pdf')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">PDF</button> <button onclick="exportSingle(currentEditingRegId, 'docx')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">DOCX</button> <button onclick="exportSingle(currentEditingRegId, 'excel')" class="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Excel</button>
+       </div>
+      </div><button onclick="closeEditor()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">×</button>
+     </div>
+    </div>
+    <div class="flex-1 overflow-auto p-6">
+     <form id="resultForm" onsubmit="return false;"><!-- Candidate Info (Read-only) -->
+      <div class="bg-slate-50 rounded-lg p-4 mb-6">
+       <h3 class="text-sm font-semibold text-slate-700 mb-3">Candidate Information</h3>
+       <div class="grid grid-cols-2 gap-4 text-sm">
+        <div><span class="text-slate-600">Name:</span> <span id="viewName" class="ml-2 font-medium text-slate-900"></span>
+        </div>
+        <div><span class="text-slate-600">Phone:</span> <span id="viewPhone" class="ml-2 font-medium text-slate-900"></span>
+        </div>
+        <div><span class="text-slate-600">Email:</span> <span id="viewEmail" class="ml-2 font-medium text-slate-900"></span>
+        </div>
+        <div><span class="text-slate-600">Registration ID:</span> <span id="viewRegId" class="ml-2 font-medium text-slate-900"></span>
+        </div>
+       </div>
+      </div><!-- Event/Slot Info (Read-only) -->
+      <div class="bg-slate-50 rounded-lg p-4 mb-6">
+       <h3 class="text-sm font-semibold text-slate-700 mb-3">Test Session</h3>
+       <div class="grid grid-cols-2 gap-4 text-sm">
+        <div><span class="text-slate-600">Event:</span> <span id="viewEvent" class="ml-2 font-medium text-slate-900"></span>
+        </div>
+        <div><span class="text-slate-600">Type:</span> <span id="viewType" class="ml-2 font-medium text-slate-900"></span>
+        </div>
+        <div><span class="text-slate-600">Date &amp; Time:</span> <span id="viewSlotTime" class="ml-2 font-medium text-slate-900"></span>
+        </div>
+        <div><span class="text-slate-600">Room:</span> <span id="viewRoom" class="ml-2 font-medium text-slate-900"></span>
+        </div>
+       </div>
+      </div><!-- Component Scores -->
+      <div class="mb-6">
+       <h3 class="text-sm font-semibold text-slate-700 mb-3">Component Scores</h3>
+       <div id="scoresContainer" class="grid grid-cols-2 gap-4"><!-- Dynamically generated score inputs -->
+       </div>
+      </div><!-- Overall & Feedback -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+       <div><label class="block text-sm font-medium text-slate-700 mb-2">Overall Score</label> <input type="text" id="inputOverall" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+       </div>
+       <div><label class="block text-sm font-medium text-slate-700 mb-2">Entered By</label> <input type="text" id="inputEnteredBy" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+       </div>
+      </div>
+      <div class="mb-6"><label class="block text-sm font-medium text-slate-700 mb-2">Feedback for Student</label> <textarea id="inputFeedback" rows="3" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+      </div>
+      <div class="mb-6"><label class="block text-sm font-medium text-slate-700 mb-2">Private Note (Internal)</label> <textarea id="inputPrivateNote" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+      </div>
+     </form>
+    </div><!-- Modal Footer -->
+    <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between"><button id="btnDelete" onclick="deleteResult()" class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"> Delete Result </button>
+     <div class="flex gap-3"><button onclick="closeEditor()" class="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg font-medium transition-colors"> Cancel </button> <button onclick="saveResult(false)" class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"> Save Draft </button> <button onclick="saveResult(true)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"> Save &amp; Mark Final </button>
+     </div>
+    </div>
+   </div>
+  </div><!-- Toast Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let typesMap = {};
+    let eventsMap = {};
+    let slotsMap = {};
+    let registrations = [];
+    let results = {};
+    let filteredRows = [];
+    window.currentEditingRegId = null;
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return String(text || '').replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
+      toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg transition-opacity duration-300`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => container.removeChild(toast), 300);
+      }, 3000);
+    }
+
+    async function init() {
+      try {
+        await loadTypes();
+        await loadEvents();
+        await loadSlots();
+        await loadRegistrations();
+        await loadResults();
+        computeRows();
+        renderTable();
+        setupFilters();
+      } catch (error) {
+        console.error('Initialization error:', error);
+        showToast('Failed to load data', 'error');
+      }
+    }
+
+    async function loadTypes() {
+      const snap = await getDocs(collection(db, 'mockTestTypes'));
+      snap.forEach(doc => {
+        typesMap[doc.id] = { id: doc.id, ...doc.data() };
+      });
+      const typeSelect = document.getElementById('filterType');
+      Object.values(typesMap).forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name || t.id;
+        typeSelect.appendChild(opt);
+      });
+    }
+
+    async function loadEvents() {
+      const snap = await getDocs(collection(db, 'mockTestEvents'));
+      snap.forEach(doc => {
+        eventsMap[doc.id] = { id: doc.id, ...doc.data() };
+      });
+      const eventSelect = document.getElementById('filterEvent');
+      Object.values(eventsMap).forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = e.title || e.id;
+        eventSelect.appendChild(opt);
+      });
+    }
+
+    async function loadSlots() {
+      const snap = await getDocs(collection(db, 'mockTestSlots'));
+      snap.forEach(doc => {
+        slotsMap[doc.id] = { id: doc.id, ...doc.data() };
+      });
+    }
+
+    async function loadRegistrations() {
+      const q = query(collection(db, 'mockTestRegistrations'), where('status', '==', 'confirmed'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      registrations = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async function loadResults() {
+      const snap = await getDocs(collection(db, 'mockTestResults'));
+      results = {};
+      snap.forEach(doc => {
+        results[doc.id] = { id: doc.id, ...doc.data() };
+      });
+    }
+
+    function computeRows() {
+      filteredRows = registrations.map(reg => {
+        const event = eventsMap[reg.eventId] || { title: 'Unknown' };
+        const slot = slotsMap[reg.slotId] || { room: 'Unknown' };
+        const type = typesMap[reg.typeId] || { name: 'Unknown' };
+        const result = results[reg.id];
+        return {
+          regId: reg.id,
+          registration: reg,
+          event,
+          slot,
+          type,
+          result
+        };
+      });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('resultsTableBody');
+      tbody.innerHTML = '';
+
+      if (filteredRows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">No confirmed registrations found</td></tr>';
+        return;
+      }
+
+      filteredRows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50';
+        
+        const slotTime = row.slot.startAt ? formatDateTimeShort(row.slot.startAt) : 'N/A';
+        const candidateName = escapeHtml(row.registration.candidate?.fullName || 'N/A');
+        const candidatePhone = escapeHtml(row.registration.candidate?.phone || '');
+        const candidateEmail = escapeHtml(row.registration.candidate?.email || '');
+        const eventTitle = escapeHtml(row.event.title || 'Unknown');
+        const room = escapeHtml(row.slot.room || 'Unknown');
+        
+        let statusBadge = '';
+        let statusText = '';
+        if (!row.result) {
+          statusBadge = 'bg-yellow-100 text-yellow-800';
+          statusText = 'Missing';
+        } else if (row.result.isFinal) {
+          statusBadge = 'bg-green-100 text-green-800';
+          statusText = 'Final';
+        } else {
+          statusBadge = 'bg-blue-100 text-blue-800';
+          statusText = 'Draft';
+        }
+
+        const overall = escapeHtml(row.result?.overall || '-');
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 text-sm text-slate-700">${slotTime}</td>
+          <td class="px-4 py-3">
+            <div class="text-sm font-medium text-slate-900">${candidateName}</div>
+            <div class="text-xs text-slate-500">${candidatePhone}</div>
+            <div class="text-xs text-slate-500">${candidateEmail}</div>
+          </td>
+          <td class="px-4 py-3 text-sm text-slate-700">${eventTitle}</td>
+          <td class="px-4 py-3 text-sm text-slate-700">${room}</td>
+          <td class="px-4 py-3">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusBadge}">${statusText}</span>
+          </td>
+          <td class="px-4 py-3 text-sm font-medium text-slate-900">${overall}</td>
+          <td class="px-4 py-3 text-right">
+            <div class="flex items-center justify-end gap-2">
+              <button onclick="openEditor('${row.regId}')" class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
+                ${row.result ? 'Edit' : 'Add'}
+              </button>
+              <div class="relative inline-block">
+                <button onclick="toggleRowExport('${row.regId}')" class="px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">⋮</button>
+                <div id="export-${row.regId}" class="hidden absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-slate-200 z-20">
+                  <button onclick="exportSingle('${row.regId}', 'pdf')" class="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50">PDF</button>
+                  <button onclick="exportSingle('${row.regId}', 'docx')" class="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50">DOCX</button>
+                  <button onclick="exportSingle('${row.regId}', 'excel')" class="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50">Excel</button>
+                </div>
+              </div>
+            </div>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    function formatDateTimeShort(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatDateTimeFull(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function setupFilters() {
+      const filterEvent = document.getElementById('filterEvent');
+      const filterSlot = document.getElementById('filterSlot');
+      const filterType = document.getElementById('filterType');
+      const filterStatus = document.getElementById('filterStatus');
+      const filterDateFrom = document.getElementById('filterDateFrom');
+      const filterDateTo = document.getElementById('filterDateTo');
+      const filterSearch = document.getElementById('filterSearch');
+
+      filterEvent.addEventListener('change', () => {
+        const eventId = filterEvent.value;
+        filterSlot.innerHTML = '<option value="">All Slots</option>';
+        if (eventId) {
+          filterSlot.disabled = false;
+          Object.values(slotsMap).filter(s => s.eventId === eventId).forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            const time = s.startAt ? formatDateTimeShort(s.startAt) : 'N/A';
+            opt.textContent = `${time} - ${s.room || 'N/A'}`;
+            filterSlot.appendChild(opt);
+          });
+        } else {
+          filterSlot.disabled = true;
+        }
+        applyFilters();
+      });
+
+      filterSlot.addEventListener('change', applyFilters);
+      filterType.addEventListener('change', applyFilters);
+      filterStatus.addEventListener('change', applyFilters);
+      filterDateFrom.addEventListener('change', applyFilters);
+      filterDateTo.addEventListener('change', applyFilters);
+      filterSearch.addEventListener('input', applyFilters);
+    }
+
+    function applyFilters() {
+      const eventId = document.getElementById('filterEvent').value;
+      const slotId = document.getElementById('filterSlot').value;
+      const typeId = document.getElementById('filterType').value;
+      const status = document.getElementById('filterStatus').value;
+      const dateFrom = document.getElementById('filterDateFrom').value;
+      const dateTo = document.getElementById('filterDateTo').value;
+      const search = document.getElementById('filterSearch').value.toLowerCase();
+
+      computeRows();
+
+      filteredRows = filteredRows.filter(row => {
+        if (eventId && row.registration.eventId !== eventId) return false;
+        if (slotId && row.registration.slotId !== slotId) return false;
+        if (typeId && row.registration.typeId !== typeId) return false;
+
+        if (status === 'needs' && row.result) return false;
+        if (status === 'has' && !row.result) return false;
+
+        if (dateFrom || dateTo) {
+          const slotDate = row.slot.startAt ? (row.slot.startAt.toDate ? row.slot.startAt.toDate() : new Date(row.slot.startAt)) : null;
+          if (slotDate) {
+            const slotDateStr = slotDate.toISOString().split('T')[0];
+            if (dateFrom && slotDateStr < dateFrom) return false;
+            if (dateTo && slotDateStr > dateTo) return false;
+          }
+        }
+
+        if (search) {
+          const searchable = [
+            row.registration.candidate?.fullName || '',
+            row.registration.candidate?.phone || '',
+            row.registration.candidate?.email || '',
+            row.regId
+          ].join(' ').toLowerCase();
+          if (!searchable.includes(search)) return false;
+        }
+
+        return true;
+      });
+
+      renderTable();
+    }
+
+    window.toggleRowExport = function(regId) {
+      const menu = document.getElementById(`export-${regId}`);
+      document.querySelectorAll('[id^="export-"]').forEach(m => {
+        if (m.id !== `export-${regId}`) m.classList.add('hidden');
+      });
+      menu.classList.toggle('hidden');
+    };
+
+    window.toggleExportMenu = function() {
+      const menu = document.getElementById('exportMenuEditor');
+      menu.classList.toggle('hidden');
+    };
+
+    window.openEditor = function(regId) {
+      window.currentEditingRegId = regId;
+      const row = filteredRows.find(r => r.regId === regId);
+      if (!row) return;
+
+      document.getElementById('viewName').textContent = row.registration.candidate?.fullName || 'N/A';
+      document.getElementById('viewPhone').textContent = row.registration.candidate?.phone || 'N/A';
+      document.getElementById('viewEmail').textContent = row.registration.candidate?.email || 'N/A';
+      document.getElementById('viewRegId').textContent = regId;
+      document.getElementById('viewEvent').textContent = row.event.title || 'Unknown';
+      document.getElementById('viewType').textContent = row.type.name || 'Unknown';
+      document.getElementById('viewSlotTime').textContent = formatDateTimeFull(row.slot.startAt);
+      document.getElementById('viewRoom').textContent = row.slot.room || 'Unknown';
+
+      const scoresContainer = document.getElementById('scoresContainer');
+      scoresContainer.innerHTML = '';
+
+      const components = row.type.components || [];
+      components.forEach(comp => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <label class="block text-sm font-medium text-slate-700 mb-2">${escapeHtml(comp)}</label>
+          <input type="text" data-component="${escapeHtml(comp)}" class="component-score w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        `;
+        scoresContainer.appendChild(div);
+      });
+
+      if (row.result) {
+        document.getElementById('inputOverall').value = row.result.overall || '';
+        document.getElementById('inputFeedback').value = row.result.feedback || '';
+        document.getElementById('inputPrivateNote').value = row.result.privateNote || '';
+        document.getElementById('inputEnteredBy').value = row.result.enteredBy || '';
+
+        const scores = row.result.scores || {};
+        document.querySelectorAll('.component-score').forEach(input => {
+          const comp = input.dataset.component;
+          input.value = scores[comp] || '';
+        });
+
+        document.getElementById('btnDelete').style.display = 'block';
+      } else {
+        document.getElementById('inputOverall').value = '';
+        document.getElementById('inputFeedback').value = '';
+        document.getElementById('inputPrivateNote').value = '';
+        document.getElementById('inputEnteredBy').value = '';
+        document.getElementById('btnDelete').style.display = 'none';
+      }
+
+      document.getElementById('editorModal').classList.remove('hidden');
+    };
+
+    window.closeEditor = function() {
+      document.getElementById('editorModal').classList.add('hidden');
+      document.getElementById('exportMenuEditor').classList.add('hidden');
+      window.currentEditingRegId = null;
+    };
+
+    window.saveResult = async function(isFinal) {
+      if (!window.currentEditingRegId) return;
+
+      const row = filteredRows.find(r => r.regId === window.currentEditingRegId);
+      if (!row) return;
+
+      const scores = {};
+      document.querySelectorAll('.component-score').forEach(input => {
+        const comp = input.dataset.component;
+        scores[comp] = input.value;
+      });
+
+      const overall = document.getElementById('inputOverall').value;
+      const feedback = document.getElementById('inputFeedback').value;
+      const privateNote = document.getElementById('inputPrivateNote').value;
+      const enteredBy = document.getElementById('inputEnteredBy').value;
+
+      const resultData = {
+        registrationId: window.currentEditingRegId,
+        eventId: row.registration.eventId,
+        slotId: row.registration.slotId,
+        typeId: row.registration.typeId,
+        candidateSnapshot: row.registration.candidate,
+        scores,
+        overall,
+        feedback,
+        privateNote,
+        enteredBy,
+        isFinal,
+        updatedAt: serverTimestamp()
+      };
+
+      if (!row.result) {
+        resultData.enteredAt = serverTimestamp();
+      }
+
+      try {
+        await setDoc(doc(db, 'mockTestResults', window.currentEditingRegId), resultData, { merge: true });
+        showToast('Result saved successfully');
+        await loadResults();
+        applyFilters();
+        closeEditor();
+      } catch (error) {
+        console.error('Save error:', error);
+        showToast('Failed to save result', 'error');
+      }
+    };
+
+    window.deleteResult = async function() {
+      if (!window.currentEditingRegId) return;
+      
+      const confirmed = confirm('Are you sure you want to delete this result? This action cannot be undone.');
+      if (!confirmed) return;
+
+      try {
+        await deleteDoc(doc(db, 'mockTestResults', window.currentEditingRegId));
+        showToast('Result deleted successfully');
+        await loadResults();
+        applyFilters();
+        closeEditor();
+      } catch (error) {
+        console.error('Delete error:', error);
+        showToast('Failed to delete result', 'error');
+      }
+    };
+
+    // EXPORT FUNCTIONS
+    window.exportSingle = function(regId, format) {
+      const row = filteredRows.find(r => r.regId === regId);
+      if (!row || !row.result) {
+        showToast('No result data to export', 'error');
+        return;
+      }
+      
+      document.getElementById('exportMenuEditor')?.classList.add('hidden');
+      document.querySelectorAll('[id^="export-"]').forEach(m => m.classList.add('hidden'));
+      
+      if (format === 'pdf') exportPDFSingle(row);
+      else if (format === 'docx') exportDOCXSingle(row);
+      else if (format === 'excel') exportExcelSingle(row);
+    };
+
+    window.exportFiltered = function(format) {
+      const rowsWithResults = filteredRows.filter(r => r.result);
+      if (rowsWithResults.length === 0) {
+        showToast('No results to export', 'error');
+        return;
+      }
+      
+      if (format === 'pdf') exportPDFBulk(rowsWithResults);
+      else if (format === 'docx') exportDOCXBulk(rowsWithResults);
+      else if (format === 'excel') exportExcelBulk(rowsWithResults);
+    };
+
+    function exportPDFSingle(row) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      const candidate = row.registration.candidate || {};
+      const result = row.result;
+      
+      doc.setFontSize(16);
+      doc.text('Mock Test Result', 14, 20);
+      
+      doc.setFontSize(10);
+      let y = 35;
+      doc.text(`Event: ${row.event.title || 'Unknown'}`, 14, y);
+      y += 7;
+      doc.text(`Date & Time: ${formatDateTimeFull(row.slot.startAt)}`, 14, y);
+      y += 7;
+      doc.text(`Room: ${row.slot.room || 'Unknown'}`, 14, y);
+      y += 7;
+      doc.text(`Type: ${row.type.name || 'Unknown'}`, 14, y);
+      y += 7;
+      doc.text(`Candidate: ${candidate.fullName || 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`Phone: ${candidate.phone || 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`Email: ${candidate.email || 'N/A'}`, 14, y);
+      y += 7;
+      doc.text(`Registration ID: ${row.regId}`, 14, y);
+      y += 10;
+      
+      const scores = result.scores || {};
+      const tableData = Object.keys(scores).map(comp => [comp, scores[comp]]);
+      if (result.overall) {
+        tableData.push(['Overall', result.overall]);
+      }
+      
+      doc.autoTable({
+        startY: y,
+        head: [['Component', 'Score']],
+        body: tableData,
+        theme: 'grid'
+      });
+      
+      y = doc.lastAutoTable.finalY + 10;
+      
+      if (result.feedback) {
+        doc.setFontSize(12);
+        doc.text('Feedback:', 14, y);
+        y += 7;
+        doc.setFontSize(10);
+        const feedbackLines = doc.splitTextToSize(result.feedback, 180);
+        doc.text(feedbackLines, 14, y);
+        y += feedbackLines.length * 5 + 10;
+      }
+      
+      doc.setFontSize(8);
+      doc.text(`Generated at: ${new Date().toLocaleString('en-US')}`, 14, y);
+      
+      doc.save(`result_${row.regId}.pdf`);
+      showToast('PDF exported successfully');
+    }
+
+    function exportPDFBulk(rows) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      rows.forEach((row, index) => {
+        if (index > 0) doc.addPage();
+        
+        const candidate = row.registration.candidate || {};
+        const result = row.result;
+        
+        doc.setFontSize(16);
+        doc.text('Mock Test Result', 14, 20);
+        
+        doc.setFontSize(10);
+        let y = 35;
+        doc.text(`Event: ${row.event.title || 'Unknown'}`, 14, y);
+        y += 7;
+        doc.text(`Date & Time: ${formatDateTimeFull(row.slot.startAt)}`, 14, y);
+        y += 7;
+        doc.text(`Room: ${row.slot.room || 'Unknown'}`, 14, y);
+        y += 7;
+        doc.text(`Type: ${row.type.name || 'Unknown'}`, 14, y);
+        y += 7;
+        doc.text(`Candidate: ${candidate.fullName || 'N/A'}`, 14, y);
+        y += 7;
+        doc.text(`Phone: ${candidate.phone || 'N/A'}`, 14, y);
+        y += 7;
+        doc.text(`Email: ${candidate.email || 'N/A'}`, 14, y);
+        y += 7;
+        doc.text(`Registration ID: ${row.regId}`, 14, y);
+        y += 10;
+        
+        const scores = result.scores || {};
+        const tableData = Object.keys(scores).map(comp => [comp, scores[comp]]);
+        if (result.overall) {
+          tableData.push(['Overall', result.overall]);
+        }
+        
+        doc.autoTable({
+          startY: y,
+          head: [['Component', 'Score']],
+          body: tableData,
+          theme: 'grid'
+        });
+        
+        y = doc.lastAutoTable.finalY + 10;
+        
+        if (result.feedback) {
+          doc.setFontSize(12);
+          doc.text('Feedback:', 14, y);
+          y += 7;
+          doc.setFontSize(10);
+          const feedbackLines = doc.splitTextToSize(result.feedback, 180);
+          doc.text(feedbackLines, 14, y);
+        }
+      });
+      
+      doc.setFontSize(8);
+      const finalY = doc.internal.pageSize.height - 10;
+      doc.text(`Generated at: ${new Date().toLocaleString('en-US')}`, 14, finalY);
+      
+      doc.save(`results_bulk_${new Date().getTime()}.pdf`);
+      showToast(`${rows.length} results exported to PDF`);
+    }
+
+    function exportDOCXSingle(row) {
+      const { Document, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, Packer } = docx;
+      
+      const candidate = row.registration.candidate || {};
+      const result = row.result;
+      const scores = result.scores || {};
+      
+      const children = [
+        new Paragraph({
+          text: 'Mock Test Result',
+          heading: 'Heading1',
+          alignment: AlignmentType.CENTER
+        }),
+        new Paragraph({ text: '' }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Event: ', bold: true }),
+            new TextRun(row.event.title || 'Unknown')
+          ]
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Date & Time: ', bold: true }),
+            new TextRun(formatDateTimeFull(row.slot.startAt))
+          ]
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Room: ', bold: true }),
+            new TextRun(row.slot.room || 'Unknown')
+          ]
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Type: ', bold: true }),
+            new TextRun(row.type.name || 'Unknown')
+          ]
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Candidate: ', bold: true }),
+            new TextRun(candidate.fullName || 'N/A')
+          ]
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Phone: ', bold: true }),
+            new TextRun(candidate.phone || 'N/A')
+          ]
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Email: ', bold: true }),
+            new TextRun(candidate.email || 'N/A')
+          ]
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Registration ID: ', bold: true }),
+            new TextRun(row.regId)
+          ]
+        }),
+        new Paragraph({ text: '' }),
+        new Paragraph({
+          text: 'Scores',
+          heading: 'Heading2'
+        })
+      ];
+      
+      const tableRows = [
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph({ text: 'Component', bold: true })] }),
+            new TableCell({ children: [new Paragraph({ text: 'Score', bold: true })] })
+          ]
+        })
+      ];
+      
+      Object.keys(scores).forEach(comp => {
+        tableRows.push(
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph(comp)] }),
+              new TableCell({ children: [new Paragraph(String(scores[comp]))] })
+            ]
+          })
+        );
+      });
+      
+      if (result.overall) {
+        tableRows.push(
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ text: 'Overall', bold: true })] }),
+              new TableCell({ children: [new Paragraph(String(result.overall))] })
+            ]
+          })
+        );
+      }
+      
+      children.push(
+        new Table({
+          rows: tableRows,
+          width: { size: 100, type: WidthType.PERCENTAGE }
+        })
+      );
+      
+      if (result.feedback) {
+        children.push(
+          new Paragraph({ text: '' }),
+          new Paragraph({ text: 'Feedback', heading: 'Heading2' }),
+          new Paragraph(result.feedback)
+        );
+      }
+      
+      children.push(
+        new Paragraph({ text: '' }),
+        new Paragraph({
+          text: `Generated at: ${new Date().toLocaleString('en-US')}`,
+          alignment: AlignmentType.RIGHT
+        })
+      );
+      
+      const doc = new Document({
+        sections: [{ children }]
+      });
+      
+      Packer.toBlob(doc).then(blob => {
+        saveAs(blob, `result_${row.regId}.docx`);
+        showToast('DOCX exported successfully');
+      });
+    }
+
+    function exportDOCXBulk(rows) {
+      const { Document, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, PageBreak, Packer } = docx;
+      
+      const children = [];
+      
+      rows.forEach((row, index) => {
+        if (index > 0) {
+          children.push(new Paragraph({ children: [new PageBreak()] }));
+        }
+        
+        const candidate = row.registration.candidate || {};
+        const result = row.result;
+        const scores = result.scores || {};
+        
+        children.push(
+          new Paragraph({
+            text: 'Mock Test Result',
+            heading: 'Heading1',
+            alignment: AlignmentType.CENTER
+          }),
+          new Paragraph({ text: '' }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Event: ', bold: true }),
+              new TextRun(row.event.title || 'Unknown')
+            ]
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Date & Time: ', bold: true }),
+              new TextRun(formatDateTimeFull(row.slot.startAt))
+            ]
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Room: ', bold: true }),
+              new TextRun(row.slot.room || 'Unknown')
+            ]
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Type: ', bold: true }),
+              new TextRun(row.type.name || 'Unknown')
+            ]
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Candidate: ', bold: true }),
+              new TextRun(candidate.fullName || 'N/A')
+            ]
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Phone: ', bold: true }),
+              new TextRun(candidate.phone || 'N/A')
+            ]
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Email: ', bold: true }),
+              new TextRun(candidate.email || 'N/A')
+            ]
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Registration ID: ', bold: true }),
+              new TextRun(row.regId)
+            ]
+          }),
+          new Paragraph({ text: '' }),
+          new Paragraph({
+            text: 'Scores',
+            heading: 'Heading2'
+          })
+        );
+        
+        const tableRows = [
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ text: 'Component', bold: true })] }),
+              new TableCell({ children: [new Paragraph({ text: 'Score', bold: true })] })
+            ]
+          })
+        ];
+        
+        Object.keys(scores).forEach(comp => {
+          tableRows.push(
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph(comp)] }),
+                new TableCell({ children: [new Paragraph(String(scores[comp]))] })
+              ]
+            })
+          );
+        });
+        
+        if (result.overall) {
+          tableRows.push(
+            new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph({ text: 'Overall', bold: true })] }),
+                new TableCell({ children: [new Paragraph(String(result.overall))] })
+              ]
+            })
+          );
+        }
+        
+        children.push(
+          new Table({
+            rows: tableRows,
+            width: { size: 100, type: WidthType.PERCENTAGE }
+          })
+        );
+        
+        if (result.feedback) {
+          children.push(
+            new Paragraph({ text: '' }),
+            new Paragraph({ text: 'Feedback', heading: 'Heading2' }),
+            new Paragraph(result.feedback)
+          );
+        }
+      });
+      
+      children.push(
+        new Paragraph({ text: '' }),
+        new Paragraph({
+          text: `Generated at: ${new Date().toLocaleString('en-US')}`,
+          alignment: AlignmentType.RIGHT
+        })
+      );
+      
+      const doc = new Document({
+        sections: [{ children }]
+      });
+      
+      Packer.toBlob(doc).then(blob => {
+        saveAs(blob, `results_bulk_${new Date().getTime()}.docx`);
+        showToast(`${rows.length} results exported to DOCX`);
+      });
+    }
+
+    function exportExcelSingle(row) {
+      const candidate = row.registration.candidate || {};
+      const result = row.result;
+      const scores = result.scores || {};
+      
+      const data = [
+        ['Mock Test Result', ''],
+        ['', ''],
+        ['Event', row.event.title || 'Unknown'],
+        ['Date & Time', formatDateTimeFull(row.slot.startAt)],
+        ['Room', row.slot.room || 'Unknown'],
+        ['Type', row.type.name || 'Unknown'],
+        ['Candidate', candidate.fullName || 'N/A'],
+        ['Phone', candidate.phone || 'N/A'],
+        ['Email', candidate.email || 'N/A'],
+        ['Registration ID', row.regId],
+        ['', ''],
+        ['Component', 'Score']
+      ];
+      
+      Object.keys(scores).forEach(comp => {
+        data.push([comp, scores[comp]]);
+      });
+      
+      if (result.overall) {
+        data.push(['Overall', result.overall]);
+      }
+      
+      data.push(['', '']);
+      data.push(['Feedback', (result.feedback || '').substring(0, 2000)]);
+      data.push(['', '']);
+      data.push(['Generated at', new Date().toLocaleString('en-US')]);
+      
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Result');
+      
+      XLSX.writeFile(wb, `result_${row.regId}.xlsx`);
+      showToast('Excel exported successfully');
+    }
+
+    function exportExcelBulk(rows) {
+      const components = new Set();
+      rows.forEach(row => {
+        if (row.result?.scores) {
+          Object.keys(row.result.scores).forEach(comp => components.add(comp));
+        }
+      });
+      const componentArray = Array.from(components).sort();
+      
+      const headers = [
+        'Registration ID',
+        'Event Title',
+        'Slot Start',
+        'Room',
+        'Full Name',
+        'Phone',
+        'Email',
+        'Type Name',
+        ...componentArray,
+        'Overall',
+        'Feedback',
+        'Is Final',
+        'Updated At'
+      ];
+      
+      const data = [headers];
+      
+      rows.forEach(row => {
+        const candidate = row.registration.candidate || {};
+        const result = row.result;
+        const scores = result?.scores || {};
+        
+        const rowData = [
+          row.regId,
+          row.event.title || 'Unknown',
+          formatDateTimeFull(row.slot.startAt),
+          row.slot.room || 'Unknown',
+          candidate.fullName || 'N/A',
+          candidate.phone || 'N/A',
+          candidate.email || 'N/A',
+          row.type.name || 'Unknown'
+        ];
+        
+        componentArray.forEach(comp => {
+          rowData.push(scores[comp] || '');
+        });
+        
+        rowData.push(
+          result?.overall || '',
+          (result?.feedback || '').substring(0, 2000),
+          result?.isFinal ? 'Yes' : 'No',
+          result?.updatedAt ? formatDateTimeFull(result.updatedAt) : ''
+        );
+        
+        data.push(rowData);
+      });
+      
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Results');
+      
+      XLSX.writeFile(wb, `results_bulk_${new Date().getTime()}.xlsx`);
+      showToast(`${rows.length} results exported to Excel`);
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('[onclick^="toggleRowExport"]') && !e.target.closest('[id^="export-"]')) {
+        document.querySelectorAll('[id^="export-"]').forEach(m => m.classList.add('hidden'));
+      }
+      if (!e.target.closest('[onclick^="toggleExportMenu"]') && !e.target.closest('#exportMenuEditor')) {
+        document.getElementById('exportMenuEditor')?.classList.add('hidden');
+      }
+    });
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c41247515238106',t:'MTc2OTQ0MjM3OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

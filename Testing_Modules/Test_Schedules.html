@@ -1,0 +1,1010 @@
+<!doctype html><!--
+  Test_Schedules_Core.html
+  Mock Tests - Test Types & Test Schedules Management Module
+  Compatible with Test_Regis module - DO NOT modify collection/field schemas
+-->
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Schedules Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .tab-active {
+      border-bottom: 3px solid #3b82f6;
+      color: #3b82f6;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 500;
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .toast-success { background: #10b981; }
+    .toast-error { background: #ef4444; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      max-width: 700px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .slot-item {
+      border-left: 4px solid #3b82f6;
+    }
+    .slot-item.closed {
+      border-left-color: #ef4444;
+      opacity: 0.7;
+    }
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="bg-gray-50 min-h-screen">
+  <div class="w-full h-full"><!-- Header -->
+   <header class="bg-white border-b border-gray-200 px-6 py-4">
+    <h1 class="text-2xl font-bold text-gray-900">Mock Test Schedules</h1>
+    <p class="text-sm text-gray-600 mt-1">Manage test types, events, and time slots</p>
+   </header><!-- Tabs -->
+   <div class="bg-white border-b border-gray-200 px-6">
+    <div class="flex gap-8"><button id="tabTypes" class="py-4 font-medium text-gray-700 tab-active" onclick="switchTab('types')"> Test Types </button> <button id="tabSchedules" class="py-4 font-medium text-gray-700" onclick="switchTab('schedules')"> Test Schedules </button>
+    </div>
+   </div><!-- Test Types Panel -->
+   <div id="panelTypes" class="p-6">
+    <div class="max-w-4xl mx-auto">
+     <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-semibold text-gray-900">Test Types</h2><button onclick="openTypeModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"> + New Test Type </button>
+     </div>
+     <div id="typesList" class="space-y-4"><!-- Types will be loaded here -->
+     </div>
+    </div>
+   </div><!-- Test Schedules Panel -->
+   <div id="panelSchedules" class="hidden p-6">
+    <div class="grid grid-cols-12 gap-6 max-w-7xl mx-auto"><!-- Events List (Left) -->
+     <div class="col-span-5">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-xl font-semibold text-gray-900">Events</h2><button onclick="openEventModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"> + New Event </button>
+      </div>
+      <div id="eventsList" class="space-y-3"><!-- Events will be loaded here -->
+      </div>
+     </div><!-- Event Details & Slots (Right) -->
+     <div class="col-span-7">
+      <div id="eventDetailsPanel" class="hidden">
+       <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div class="flex justify-between items-start mb-4">
+         <div>
+          <h3 id="selectedEventTitle" class="text-xl font-semibold text-gray-900"></h3>
+          <p id="selectedEventType" class="text-sm text-gray-600 mt-1"></p>
+         </div><button onclick="editSelectedEvent()" class="text-blue-600 hover:text-blue-700 font-medium text-sm"> Edit Event </button>
+        </div>
+        <div id="selectedEventDetails" class="text-sm text-gray-700 space-y-1"></div>
+       </div>
+       <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Registration Tools</h3>
+        <div class="space-y-4"><!-- Base URL Configuration -->
+         <div><label class="block text-sm font-medium text-gray-700 mb-2">Base Registration Page URL</label> <input type="text" id="baseRegUrl" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" placeholder="https://yoursite.com/Test_Regis.html" oninput="updateRegistrationLink()">
+          <p class="text-xs text-gray-500 mt-1">Auto-detected or enter custom URL to Test_Regis.html</p>
+         </div><!-- Generated Registration Link -->
+         <div><label class="block text-sm font-medium text-gray-700 mb-2">Registration Link</label>
+          <div class="flex gap-2"><input type="text" id="generatedRegLink" readonly class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm font-mono"> <button onclick="copyRegLink()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"> Copy Link </button> <button onclick="openRegLink()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm"> Open Link </button>
+          </div>
+         </div><!-- Pre-filled Registration Message -->
+         <div><label class="block text-sm font-medium text-gray-700 mb-2">Registration Message (Pre-filled)</label> <textarea id="prefilledRegMessage" readonly rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm font-mono"></textarea> <button onclick="copyRegMessage()" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"> Copy Message </button>
+         </div><!-- QR Code -->
+         <div><label class="block text-sm font-medium text-gray-700 mb-2">QR Code</label>
+          <div id="qrCodeContainer" class="inline-block border border-gray-300 rounded-lg p-3 bg-white"></div>
+          <div class="mt-2 flex gap-2"><button onclick="downloadQR()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm"> Download QR </button>
+          </div>
+         </div>
+        </div>
+       </div>
+       <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <div class="flex justify-between items-center mb-4">
+         <h3 class="text-lg font-semibold text-gray-900">Time Slots</h3><button onclick="openSlotModal()" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-medium text-sm"> + Add Slot </button>
+        </div>
+        <div id="slotsList" class="space-y-3"><!-- Slots will be loaded here -->
+        </div>
+       </div>
+      </div>
+      <div id="noEventSelected" class="bg-white rounded-lg border border-gray-200 p-12 text-center">
+       <p class="text-gray-500">Select an event to view and manage time slots</p>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Modals will be inserted here dynamically -->
+  <div id="modalContainer"></div><!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { 
+      getFirestore, 
+      collection, 
+      doc, 
+      getDocs, 
+      addDoc, 
+      updateDoc, 
+      deleteDoc, 
+      query, 
+      where, 
+      orderBy,
+      Timestamp 
+    } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDzv0HseeLfijzyXZjKWFh9QaLrMB4afo",
+      authDomain: "tnl2026.firebaseapp.com",
+      projectId: "tnl2026",
+      storageBucket: "tnl2026.firebasestorage.app",
+      messagingSenderId: "883525152224",
+      appId: "1:883525152224:web:619ae152cd8df3fcca8f85",
+      measurementId: "G-3K6LXCKHZ9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Global state
+    window.appState = {
+      types: [],
+      events: [],
+      selectedEventId: null,
+      selectedEventData: null,
+      slots: []
+    };
+
+    // Utility functions
+    window.formatDate = function(timestamp) {
+      if (!timestamp) return 'N/A';
+      const date = timestamp.toDate();
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    window.toTimestampFromLocalInput = function(inputValue) {
+      if (!inputValue) return null;
+      const date = new Date(inputValue);
+      return Timestamp.fromDate(date);
+    };
+
+    window.toLocalInputValue = function(timestamp) {
+      if (!timestamp) return '';
+      const date = timestamp.toDate();
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
+    // Toast notifications
+    window.showToast = function(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    };
+
+    // Tab switching
+    window.switchTab = function(tab) {
+      document.getElementById('tabTypes').classList.remove('tab-active');
+      document.getElementById('tabSchedules').classList.remove('tab-active');
+      document.getElementById('panelTypes').classList.add('hidden');
+      document.getElementById('panelSchedules').classList.add('hidden');
+      
+      if (tab === 'types') {
+        document.getElementById('tabTypes').classList.add('tab-active');
+        document.getElementById('panelTypes').classList.remove('hidden');
+      } else {
+        document.getElementById('tabSchedules').classList.add('tab-active');
+        document.getElementById('panelSchedules').classList.remove('hidden');
+      }
+    };
+
+    // ============ TEST TYPES FUNCTIONS ============
+
+    async function loadTypes() {
+      try {
+        const snapshot = await getDocs(collection(db, 'mockTestTypes'));
+        window.appState.types = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        renderTypes();
+      } catch (error) {
+        console.error('Error loading types:', error);
+        showToast('Failed to load test types', 'error');
+      }
+    }
+
+    function renderTypes() {
+      const container = document.getElementById('typesList');
+      if (window.appState.types.length === 0) {
+        container.innerHTML = '<div class="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">No test types yet. Create one to get started.</div>';
+        return;
+      }
+
+      container.innerHTML = window.appState.types.map(type => {
+        const format = type.format || 'N/A';
+        const components = (type.components && type.components.length > 0) ? type.components.join(', ') : 'N/A';
+        const duration = type.defaultDurationMin ? `${type.defaultDurationMin} min` : 'N/A';
+        const fee = type.defaultFeeVnd ? `${type.defaultFeeVnd.toLocaleString()} VND` : 'N/A';
+        const regMsgPreview = (type.templates?.regMessage || 'No template set').substring(0, 100);
+        
+        return `
+        <div class="bg-white rounded-lg border border-gray-200 p-5">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <h3 class="font-semibold text-gray-900 text-lg">${escapeHtml(type.name)}</h3>
+              <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-700">
+                <div><span class="font-medium text-gray-500">Format:</span> ${escapeHtml(format)}</div>
+                <div><span class="font-medium text-gray-500">Duration:</span> ${escapeHtml(duration)}</div>
+                <div><span class="font-medium text-gray-500">Components:</span> ${escapeHtml(components)}</div>
+                <div><span class="font-medium text-gray-500">Fee:</span> ${escapeHtml(fee)}</div>
+              </div>
+              <div class="mt-3 bg-gray-50 rounded p-3 text-sm text-gray-700">
+                <div class="font-medium text-gray-500 mb-1">Registration Message Preview:</div>
+                <div class="font-mono text-xs text-gray-600">${escapeHtml(regMsgPreview)}${regMsgPreview.length >= 100 ? '...' : ''}</div>
+              </div>
+            </div>
+            <div class="flex gap-2 ml-4">
+              <button onclick="editType('${type.id}')" class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                Edit
+              </button>
+              <button onclick="deleteType('${type.id}')" class="text-red-600 hover:text-red-700 font-medium text-sm">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      }).join('');
+    }
+
+    window.openTypeModal = function(typeId = null) {
+      const type = typeId ? window.appState.types.find(t => t.id === typeId) : null;
+      
+      // Set defaults for new types or missing fields
+      const name = type?.name || '';
+      const format = type?.format || 'IELTS';
+      const components = type?.components || [];
+      const defaultDurationMin = type?.defaultDurationMin || 180;
+      const defaultFeeVnd = type?.defaultFeeVnd || 0;
+      const regMessage = type?.templates?.regMessage || 'You have registered for {EVENT_TITLE}. Your registration ID: {REG_ID}. Link: {REG_LINK}';
+      const confirmMessage = type?.templates?.confirmMessage || '';
+      
+      const allComponents = ['Listening', 'Reading', 'Writing', 'Speaking'];
+      
+      const modalHtml = `
+        <div class="modal-backdrop" onclick="closeModal(event)">
+          <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-xl font-semibold text-gray-900">${type ? 'Edit Test Type' : 'New Test Type'}</h2>
+            </div>
+            <form id="typeForm" class="p-6 space-y-5">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Test Name <span class="text-red-500">*</span></label>
+                <input type="text" id="typeName" value="${escapeHtml(name)}" required
+                  placeholder="e.g., IELTS Academic"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Format <span class="text-red-500">*</span></label>
+                <select id="typeFormat" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="IELTS" ${format === 'IELTS' ? 'selected' : ''}>IELTS</option>
+                  <option value="TOEIC" ${format === 'TOEIC' ? 'selected' : ''}>TOEIC</option>
+                  <option value="TOEFL" ${format === 'TOEFL' ? 'selected' : ''}>TOEFL</option>
+                  <option value="Custom" ${format === 'Custom' ? 'selected' : ''}>Custom</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Test Components <span class="text-red-500">*</span></label>
+                <div class="checkbox-group" id="typeComponents">
+                  ${allComponents.map(comp => `
+                    <label class="checkbox-item">
+                      <input type="checkbox" name="components" value="${comp}" 
+                        ${components.includes(comp) ? 'checked' : ''}
+                        class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                      <span class="text-sm text-gray-700">${comp}</span>
+                    </label>
+                  `).join('')}
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Select at least one component</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Default Duration (minutes) <span class="text-red-500">*</span></label>
+                  <input type="number" id="typeDuration" value="${defaultDurationMin}" min="1" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Default Fee (VND) <span class="text-red-500">*</span></label>
+                  <input type="number" id="typeFee" value="${defaultFeeVnd}" min="0" step="1000" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Registration Message Template</label>
+                <div class="text-xs text-gray-500 mb-2">Use placeholders: {EVENT_TITLE}, {REG_LINK}, {REG_ID}</div>
+                <textarea id="typeRegMessage" rows="4"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm">${escapeHtml(regMessage)}</textarea>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Confirmation Message Template</label>
+                <div class="text-xs text-gray-500 mb-2">Message sent after successful registration (optional)</div>
+                <textarea id="typeConfirmMessage" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm">${escapeHtml(confirmMessage)}</textarea>
+              </div>
+
+              <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                  ${type ? 'Update' : 'Create'} Test Type
+                </button>
+                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      document.getElementById('modalContainer').innerHTML = modalHtml;
+      document.getElementById('typeForm').onsubmit = (e) => saveType(e, typeId);
+    };
+
+    async function saveType(e, typeId) {
+      e.preventDefault();
+      
+      const name = document.getElementById('typeName').value.trim();
+      const format = document.getElementById('typeFormat').value;
+      const duration = parseInt(document.getElementById('typeDuration').value);
+      const fee = parseInt(document.getElementById('typeFee').value);
+      const regMessage = document.getElementById('typeRegMessage').value.trim();
+      const confirmMessage = document.getElementById('typeConfirmMessage').value.trim();
+      
+      // Get selected components
+      const componentCheckboxes = document.querySelectorAll('input[name="components"]:checked');
+      const components = Array.from(componentCheckboxes).map(cb => cb.value);
+
+      // Validation
+      if (!name) {
+        showToast('Test name is required', 'error');
+        return;
+      }
+      if (!format) {
+        showToast('Format is required', 'error');
+        return;
+      }
+      if (components.length === 0) {
+        showToast('Please select at least one component', 'error');
+        return;
+      }
+      if (duration <= 0) {
+        showToast('Duration must be greater than 0', 'error');
+        return;
+      }
+      if (fee < 0) {
+        showToast('Fee cannot be negative', 'error');
+        return;
+      }
+
+      try {
+        const data = {
+          name,
+          format,
+          components,
+          defaultDurationMin: duration,
+          defaultFeeVnd: fee,
+          templates: {
+            regMessage: regMessage || 'You have registered for {EVENT_TITLE}. Your registration ID: {REG_ID}. Link: {REG_LINK}',
+            confirmMessage
+          }
+        };
+
+        if (typeId) {
+          await updateDoc(doc(db, 'mockTestTypes', typeId), data);
+          showToast('Test type updated successfully');
+        } else {
+          await addDoc(collection(db, 'mockTestTypes'), data);
+          showToast('Test type created successfully');
+        }
+
+        closeModal();
+        await loadTypes();
+      } catch (error) {
+        console.error('Error saving type:', error);
+        showToast('Failed to save test type', 'error');
+      }
+    }
+
+    window.editType = function(typeId) {
+      openTypeModal(typeId);
+    };
+
+    window.deleteType = async function(typeId) {
+      // Check if any events reference this type
+      const eventsSnapshot = await getDocs(query(collection(db, 'mockTestEvents'), where('typeId', '==', typeId)));
+      
+      if (!eventsSnapshot.empty) {
+        showToast('Cannot delete: Events are using this test type', 'error');
+        return;
+      }
+
+      if (!confirm('Are you sure you want to delete this test type?')) return;
+
+      try {
+        await deleteDoc(doc(db, 'mockTestTypes', typeId));
+        showToast('Test type deleted successfully');
+        await loadTypes();
+      } catch (error) {
+        console.error('Error deleting type:', error);
+        showToast('Failed to delete test type', 'error');
+      }
+    };
+
+    // ============ EVENTS FUNCTIONS ============
+
+    async function loadEvents() {
+      try {
+        const snapshot = await getDocs(collection(db, 'mockTestEvents'));
+        window.appState.events = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        renderEvents();
+      } catch (error) {
+        console.error('Error loading events:', error);
+        showToast('Failed to load events', 'error');
+      }
+    }
+
+    function renderEvents() {
+      const container = document.getElementById('eventsList');
+      if (window.appState.events.length === 0) {
+        container.innerHTML = '<div class="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">No events scheduled yet.</div>';
+        return;
+      }
+
+      container.innerHTML = window.appState.events.map(event => {
+        const type = window.appState.types.find(t => t.id === event.typeId);
+        const isSelected = event.id === window.appState.selectedEventId;
+        return `
+          <div class="bg-white rounded-lg border ${isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'} p-4 cursor-pointer hover:border-blue-300 transition-colors"
+               onclick="selectEvent('${event.id}')">
+            <h3 class="font-semibold text-gray-900">${escapeHtml(event.title)}</h3>
+            <p class="text-xs text-gray-600 mt-1">${type ? escapeHtml(type.name) : 'Unknown Type'}</p>
+            <div class="text-xs text-gray-500 mt-2 space-y-1">
+              <div>📍 ${escapeHtml(event.location)}</div>
+              <div>📅 Open: ${formatDate(event.regOpenAt)}</div>
+              <div>🔒 Close: ${formatDate(event.regCloseAt)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.selectEvent = async function(eventId) {
+      window.appState.selectedEventId = eventId;
+      window.appState.selectedEventData = window.appState.events.find(e => e.id === eventId);
+      renderEvents();
+      document.getElementById('eventDetailsPanel').classList.remove('hidden');
+      document.getElementById('noEventSelected').classList.add('hidden');
+      
+      // Display event details
+      const event = window.appState.selectedEventData;
+      const type = window.appState.types.find(t => t.id === event.typeId);
+      document.getElementById('selectedEventTitle').textContent = event.title;
+      document.getElementById('selectedEventType').textContent = type ? type.name : 'Unknown Type';
+      document.getElementById('selectedEventDetails').innerHTML = `
+        <div><strong>Location:</strong> ${escapeHtml(event.location)}</div>
+        <div><strong>Registration Opens:</strong> ${formatDate(event.regOpenAt)}</div>
+        <div><strong>Registration Closes:</strong> ${formatDate(event.regCloseAt)}</div>
+        ${event.notes ? `<div class="mt-2"><strong>Notes:</strong> ${escapeHtml(event.notes)}</div>` : ''}
+      `;
+
+      // Initialize base URL for registration tools
+      const detectedUrl = detectBaseUrl();
+      document.getElementById('baseRegUrl').value = detectedUrl;
+
+      // Generate registration link and QR code
+      updateRegistrationLink();
+
+      await loadSlots(eventId);
+    };
+
+    window.openEventModal = function(eventId = null) {
+      const event = eventId ? window.appState.events.find(e => e.id === eventId) : null;
+      const modalHtml = `
+        <div class="modal-backdrop" onclick="closeModal(event)">
+          <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-xl font-semibold text-gray-900">${event ? 'Edit Event' : 'New Event'}</h2>
+            </div>
+            <form id="eventForm" class="p-6 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Test Type</label>
+                <select id="eventTypeId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="">Select a test type</option>
+                  ${window.appState.types.map(t => `
+                    <option value="${t.id}" ${event && event.typeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Event Title</label>
+                <input type="text" id="eventTitle" value="${event ? escapeHtml(event.title) : ''}" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <input type="text" id="eventLocation" value="${event ? escapeHtml(event.location) : ''}" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Registration Opens</label>
+                <input type="datetime-local" id="eventRegOpenAt" value="${event ? toLocalInputValue(event.regOpenAt) : ''}" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Registration Closes</label>
+                <input type="datetime-local" id="eventRegCloseAt" value="${event ? toLocalInputValue(event.regCloseAt) : ''}" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                <textarea id="eventNotes" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">${event ? escapeHtml(event.notes || '') : ''}</textarea>
+              </div>
+              <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                  ${event ? 'Update' : 'Create'} Event
+                </button>
+                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      document.getElementById('modalContainer').innerHTML = modalHtml;
+      document.getElementById('eventForm').onsubmit = (e) => saveEvent(e, eventId);
+    };
+
+    async function saveEvent(e, eventId) {
+      e.preventDefault();
+      const typeId = document.getElementById('eventTypeId').value;
+      const title = document.getElementById('eventTitle').value.trim();
+      const location = document.getElementById('eventLocation').value.trim();
+      const regOpenAt = toTimestampFromLocalInput(document.getElementById('eventRegOpenAt').value);
+      const regCloseAt = toTimestampFromLocalInput(document.getElementById('eventRegCloseAt').value);
+      const notes = document.getElementById('eventNotes').value.trim();
+
+      if (!typeId || !title || !location || !regOpenAt || !regCloseAt) {
+        showToast('Please fill all required fields', 'error');
+        return;
+      }
+
+      try {
+        const data = { typeId, title, location, regOpenAt, regCloseAt, notes };
+
+        if (eventId) {
+          await updateDoc(doc(db, 'mockTestEvents', eventId), data);
+          showToast('Event updated successfully');
+        } else {
+          await addDoc(collection(db, 'mockTestEvents'), data);
+          showToast('Event created successfully');
+        }
+
+        closeModal();
+        await loadEvents();
+        if (eventId && eventId === window.appState.selectedEventId) {
+          await selectEvent(eventId);
+        }
+      } catch (error) {
+        console.error('Error saving event:', error);
+        showToast('Failed to save event', 'error');
+      }
+    }
+
+    window.editSelectedEvent = function() {
+      if (window.appState.selectedEventId) {
+        openEventModal(window.appState.selectedEventId);
+      }
+    };
+
+    window.deleteEvent = async function(eventId) {
+      // Check for slots
+      const slotsSnapshot = await getDocs(query(collection(db, 'mockTestSlots'), where('eventId', '==', eventId)));
+      
+      if (!slotsSnapshot.empty) {
+        if (!confirm('This event has time slots. Deleting the event will also require manual cleanup of slots. Continue?')) {
+          return;
+        }
+      }
+
+      // Check for registrations
+      try {
+        const regsSnapshot = await getDocs(query(collection(db, 'mockTestRegistrations'), where('eventId', '==', eventId)));
+        if (!regsSnapshot.empty) {
+          if (!confirm('WARNING: This event has registrations. Deleting may affect student records. Are you absolutely sure?')) {
+            return;
+          }
+        }
+      } catch (error) {
+        // Collection might not exist yet, continue
+      }
+
+      try {
+        await deleteDoc(doc(db, 'mockTestEvents', eventId));
+        showToast('Event deleted successfully');
+        window.appState.selectedEventId = null;
+        document.getElementById('eventDetailsPanel').classList.add('hidden');
+        document.getElementById('noEventSelected').classList.remove('hidden');
+        await loadEvents();
+      } catch (error) {
+        console.error('Error deleting event:', error);
+        showToast('Failed to delete event', 'error');
+      }
+    };
+
+    // ============ SLOTS FUNCTIONS ============
+
+    async function loadSlots(eventId) {
+      try {
+        const q = query(collection(db, 'mockTestSlots'), where('eventId', '==', eventId), orderBy('startAt', 'asc'));
+        const snapshot = await getDocs(q);
+        window.appState.slots = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        renderSlots();
+      } catch (error) {
+        console.error('Error loading slots:', error);
+        showToast('Failed to load slots', 'error');
+      }
+    }
+
+    function renderSlots() {
+      const container = document.getElementById('slotsList');
+      if (window.appState.slots.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-4">No time slots yet. Add one to get started.</div>';
+        return;
+      }
+
+      container.innerHTML = window.appState.slots.map(slot => `
+        <div class="slot-item ${slot.status === 'closed' ? 'closed' : ''} bg-gray-50 rounded-lg p-4 pl-5">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="font-semibold text-gray-900">${formatDate(slot.startAt)}</div>
+              <div class="text-sm text-gray-600 mt-1">
+                Room: ${escapeHtml(slot.room)} • Capacity: ${slot.capacity} • Status: <span class="font-medium ${slot.status === 'open' ? 'text-green-600' : 'text-red-600'}">${slot.status.toUpperCase()}</span>
+              </div>
+            </div>
+            <div class="flex gap-2 ml-4">
+              <button onclick="toggleSlotStatus('${slot.id}', '${slot.status}')" 
+                class="text-sm font-medium ${slot.status === 'open' ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}">
+                ${slot.status === 'open' ? 'Close' : 'Reopen'}
+              </button>
+              <button onclick="editSlot('${slot.id}')" class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                Edit
+              </button>
+              <button onclick="deleteSlot('${slot.id}')" class="text-red-600 hover:text-red-700 font-medium text-sm">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.openSlotModal = function(slotId = null) {
+      if (!window.appState.selectedEventId) {
+        showToast('Please select an event first', 'error');
+        return;
+      }
+
+      const slot = slotId ? window.appState.slots.find(s => s.id === slotId) : null;
+      const modalHtml = `
+        <div class="modal-backdrop" onclick="closeModal(event)">
+          <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="p-6 border-b border-gray-200">
+              <h2 class="text-xl font-semibold text-gray-900">${slot ? 'Edit Time Slot' : 'New Time Slot'}</h2>
+            </div>
+            <form id="slotForm" class="p-6 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                <input type="datetime-local" id="slotStartAt" value="${slot ? toLocalInputValue(slot.startAt) : ''}" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Room</label>
+                <input type="text" id="slotRoom" value="${slot ? escapeHtml(slot.room) : ''}" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Capacity</label>
+                <input type="number" id="slotCapacity" value="${slot ? slot.capacity : 30}" min="1" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select id="slotStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                  <option value="open" ${!slot || slot.status === 'open' ? 'selected' : ''}>Open</option>
+                  <option value="closed" ${slot && slot.status === 'closed' ? 'selected' : ''}>Closed</option>
+                </select>
+              </div>
+              <div class="flex gap-3 pt-4">
+                <button type="submit" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium">
+                  ${slot ? 'Update' : 'Create'} Slot
+                </button>
+                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      document.getElementById('modalContainer').innerHTML = modalHtml;
+      document.getElementById('slotForm').onsubmit = (e) => saveSlot(e, slotId);
+    };
+
+    async function saveSlot(e, slotId) {
+      e.preventDefault();
+      const startAt = toTimestampFromLocalInput(document.getElementById('slotStartAt').value);
+      const room = document.getElementById('slotRoom').value.trim();
+      const capacity = parseInt(document.getElementById('slotCapacity').value);
+      const status = document.getElementById('slotStatus').value;
+
+      if (!startAt || !room || !capacity) {
+        showToast('Please fill all fields', 'error');
+        return;
+      }
+
+      try {
+        const data = {
+          eventId: window.appState.selectedEventId,
+          startAt,
+          room,
+          capacity,
+          status
+        };
+
+        if (slotId) {
+          await updateDoc(doc(db, 'mockTestSlots', slotId), data);
+          showToast('Slot updated successfully');
+        } else {
+          await addDoc(collection(db, 'mockTestSlots'), data);
+          showToast('Slot created successfully');
+        }
+
+        closeModal();
+        await loadSlots(window.appState.selectedEventId);
+      } catch (error) {
+        console.error('Error saving slot:', error);
+        showToast('Failed to save slot', 'error');
+      }
+    }
+
+    window.editSlot = function(slotId) {
+      openSlotModal(slotId);
+    };
+
+    window.toggleSlotStatus = async function(slotId, currentStatus) {
+      const newStatus = currentStatus === 'open' ? 'closed' : 'open';
+      try {
+        await updateDoc(doc(db, 'mockTestSlots', slotId), { status: newStatus });
+        showToast(`Slot ${newStatus === 'open' ? 'reopened' : 'closed'} successfully`);
+        await loadSlots(window.appState.selectedEventId);
+      } catch (error) {
+        console.error('Error toggling slot status:', error);
+        showToast('Failed to update slot status', 'error');
+      }
+    };
+
+    window.deleteSlot = async function(slotId) {
+      // Check for registrations
+      try {
+        const regsSnapshot = await getDocs(query(collection(db, 'mockTestRegistrations'), where('slotId', '==', slotId)));
+        if (!regsSnapshot.empty) {
+          if (!confirm('WARNING: This slot has registrations. Deleting may affect student records. Continue?')) {
+            return;
+          }
+        }
+      } catch (error) {
+        // Collection might not exist, continue
+      }
+
+      if (!confirm('Delete this time slot?')) return;
+
+      try {
+        await deleteDoc(doc(db, 'mockTestSlots', slotId));
+        showToast('Slot deleted successfully');
+        await loadSlots(window.appState.selectedEventId);
+      } catch (error) {
+        console.error('Error deleting slot:', error);
+        showToast('Failed to delete slot', 'error');
+      }
+    };
+
+    // ============ UTILITY FUNCTIONS ============
+
+    window.closeModal = function(event) {
+      if (event && event.target.className !== 'modal-backdrop') return;
+      document.getElementById('modalContainer').innerHTML = '';
+    };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ============ REGISTRATION TOOLS FUNCTIONS ============
+
+    let qrCodeInstance = null;
+
+    function detectBaseUrl() {
+      const origin = window.location.origin;
+      const pathname = window.location.pathname;
+      const folder = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+      return origin + folder + 'Test_Regis.html';
+    }
+
+    window.updateRegistrationLink = function() {
+      if (!window.appState.selectedEventId) return;
+
+      const baseUrl = document.getElementById('baseRegUrl').value.trim() || detectBaseUrl();
+      const eventId = window.appState.selectedEventId;
+      const regLink = `${baseUrl}?eventId=${eventId}`;
+      
+      document.getElementById('generatedRegLink').value = regLink;
+
+      // Update pre-filled message
+      const event = window.appState.selectedEventData;
+      const type = window.appState.types.find(t => t.id === event.typeId);
+      let message = type?.templates?.regMessage || 'You have registered for {EVENT_TITLE}. Your registration ID: {REG_ID}. Link: {REG_LINK}';
+      
+      message = message.replace(/{EVENT_TITLE}/g, event.title);
+      message = message.replace(/{REG_LINK}/g, regLink);
+      message = message.replace(/{REG_ID}/g, '(generated after submission)');
+      
+      document.getElementById('prefilledRegMessage').value = message;
+
+      // Regenerate QR code
+      generateQRCode(regLink);
+    };
+
+    function generateQRCode(url) {
+      const container = document.getElementById('qrCodeContainer');
+      container.innerHTML = ''; // Clear previous QR
+      
+      if (typeof QRCode === 'undefined') {
+        container.innerHTML = '<p class="text-red-500 text-sm">QR library not loaded</p>';
+        return;
+      }
+
+      qrCodeInstance = new QRCode(container, {
+        text: url,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
+
+    window.copyRegLink = function() {
+      const link = document.getElementById('generatedRegLink').value;
+      navigator.clipboard.writeText(link).then(() => {
+        showToast('Registration link copied to clipboard');
+      }).catch(() => {
+        showToast('Failed to copy link', 'error');
+      });
+    };
+
+    window.openRegLink = function() {
+      const link = document.getElementById('generatedRegLink').value;
+      if (link) {
+        window.open(link, '_blank', 'noopener,noreferrer');
+      }
+    };
+
+    window.copyRegMessage = function() {
+      const message = document.getElementById('prefilledRegMessage').value;
+      navigator.clipboard.writeText(message).then(() => {
+        showToast('Registration message copied to clipboard');
+      }).catch(() => {
+        showToast('Failed to copy message', 'error');
+      });
+    };
+
+    window.downloadQR = function() {
+      const container = document.getElementById('qrCodeContainer');
+      const canvas = container.querySelector('canvas');
+      
+      if (!canvas) {
+        showToast('QR code not available', 'error');
+        return;
+      }
+
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `registration-qr-${window.appState.selectedEventId}.png`;
+        link.href = dataUrl;
+        link.click();
+        showToast('QR code downloaded successfully');
+      } catch (error) {
+        console.error('Error downloading QR:', error);
+        showToast('Failed to download QR code', 'error');
+      }
+    };
+
+    // ============ INITIALIZATION ============
+
+    async function init() {
+      try {
+        await loadTypes();
+        await loadEvents();
+        console.log('Test Schedules module loaded successfully');
+      } catch (error) {
+        console.error('Initialization error:', error);
+        showToast('Failed to initialize. Check console for details.', 'error');
+      }
+    }
+
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c3ee498a43b0725',t:'MTc2OTQxODc5Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
