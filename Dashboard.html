@@ -336,8 +336,8 @@
           name: 'Testing services',
           items: [
             { id: 'admission-tests', label: 'Admission', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', roles: ['admin', 'manager'] },
-            { id: 'mock-tests', label: 'Mock tests', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', roles: ['admin', 'manager'] },
-            { id: 'other-testing', label: 'Other testing services', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', roles: ['admin', 'manager'] }
+            { id: 'mock-tests', label: 'Mock tests', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', roles: ['admin', 'manager', 'teacher'] },
+            { id: 'other-testing', label: 'Other testing services', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', roles: ['admin', 'manager', 'teacher'] }
           ]
         },
         {
@@ -384,6 +384,17 @@
         managerTabs: [
           { id: 'summary', label: 'Summary', src: 'Tuition_Modules/Tuition_Summary.html' },
           { id: 'student-links', label: 'Student links', src: 'Tuition_Modules/Student_Portal.html' }
+        ]
+      },
+      mockTestsTabs: {
+        adminManagerTabs: [
+          { id: 'schedules', label: 'Test Schedules', src: 'Testing_Modules/Test_Schedules.html' },
+          { id: 'registration', label: 'Registration', src: 'Testing_Modules/Test_Regis.html' },
+          { id: 'confirmation', label: 'Confirmation', src: 'Testing_Modules/Test_Confirmation.html' },
+          { id: 'results', label: 'Results', src: 'Testing_Modules/Test_Results.html' }
+        ],
+        teacherTabs: [
+          { id: 'results', label: 'Results', src: 'Testing_Modules/Test_Results.html' }
         ]
       }
     };
@@ -571,8 +582,8 @@
         'finance': ['admin'],
         'admission-tests': ['admin', 'manager'],
         'admission-manager': ['manager'],
-        'mock-tests': ['admin', 'manager'],
-        'other-testing': ['admin', 'manager'],
+        'mock-tests': ['admin', 'manager', 'teacher'],
+        'other-testing': ['admin', 'manager', 'teacher'],
         'apps': ['admin', 'manager', 'teacher'],
         'account': ['admin', 'manager', 'teacher'],
         'notifications': ['admin', 'manager', 'teacher']
@@ -1508,29 +1519,58 @@
       `;
     }
 
-    // Mock Tests - Coming soon
+    // Mock Tests - Load module via iframe with role-based tabs
     function renderMockTests() {
+      if (!dashboardConfig) return;
+      
       const pageHost = document.getElementById('page-host');
       const iframeHost = document.getElementById('iframe-host');
       iframeHost.classList.add('hidden');
       pageHost.classList.remove('hidden');
       
+      const role = currentUser.role;
+      
       document.getElementById('page-title').textContent = 'Mock tests';
-      document.getElementById('page-subtitle').textContent = 'Coming soon';
+      document.getElementById('page-subtitle').textContent = role === 'teacher' ? 'View test results' : 'Manage mock tests';
+      
+      const tabs = (role === 'admin' || role === 'manager') ? dashboardConfig.mockTestsTabs.adminManagerTabs : dashboardConfig.mockTestsTabs.teacherTabs;
+      const savedTab = getTabState('mock-tests') || tabs[0].id;
       
       pageHost.innerHTML = `
-        <div class="max-w-7xl mx-auto fade-in">
-          <div class="bg-white rounded-xl border border-slate-200 p-12 text-center">
-            <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <h2 class="text-2xl font-bold text-slate-900 mb-3">Coming Soon</h2>
-            <p class="text-slate-600">Mock tests features are under development</p>
+        <div class="h-full flex flex-col fade-in">
+          <div class="flex justify-center gap-2 mb-3 flex-wrap">
+            ${tabs.map(tab => `
+              <button class="module-tab-button ${savedTab === tab.id ? 'active' : ''} px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 rounded-lg transition-colors" data-module-tab="${tab.id}">
+                ${tab.label}
+              </button>
+            `).join('')}
+          </div>
+          
+          <div class="flex-1 bg-white rounded-xl border border-slate-200 overflow-hidden" id="mock-tests-iframe-container">
           </div>
         </div>
       `;
+      
+      const container = document.getElementById('mock-tests-iframe-container');
+      const activeTab = tabs.find(t => t.id === savedTab) || tabs[0];
+      showIframe(container, activeTab.src, `mock-tests-iframe-${activeTab.id}`);
+      
+      const tabButtons = document.querySelectorAll('[data-module-tab]');
+      
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const tabId = button.getAttribute('data-module-tab');
+          const tab = tabs.find(t => t.id === tabId);
+          
+          if (!tab) return;
+          
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+          
+          saveTabState('mock-tests', tabId);
+          showIframe(container, tab.src, `mock-tests-iframe-${tabId}`);
+        });
+      });
     }
 
     // Other Testing Services - Coming soon
@@ -1539,6 +1579,8 @@
       const iframeHost = document.getElementById('iframe-host');
       iframeHost.classList.add('hidden');
       pageHost.classList.remove('hidden');
+      
+      const role = currentUser.role;
       
       document.getElementById('page-title').textContent = 'Other testing services';
       document.getElementById('page-subtitle').textContent = 'Coming soon';
@@ -1746,5 +1788,5 @@
 
     initApp();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bf6485ad66302ae',t:'MTc2ODY1NzQxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c410e1ff2f6088f',t:'MTc2OTQ0MTQ2NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
