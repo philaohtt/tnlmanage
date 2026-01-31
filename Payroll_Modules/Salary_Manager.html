@@ -58,6 +58,9 @@
     let extraPayFilterMonth = new Date().getMonth() + 1;
     let editingRule = null;
     let editingPayment = null;
+    let hasLoadedStaff = false;
+    let hasLoadedTimesheets = false;
+    let isAutoGenerating = false;
 
     const defaultConfig = {
       module_title: 'Salary Manager',
@@ -116,8 +119,8 @@
       return new Intl.NumberFormat('vi-VN').format(amount || 0);
     }
 
-    function getSalaryDocId(staffId) {
-      return `SAL_${staffId}_${selectedYear}_${String(selectedMonth).padStart(2, '0')}`;
+    function getSalaryDocId(staffKey) {
+      return `SAL_${staffKey}_${selectedYear}_${String(selectedMonth).padStart(2, '0')}`;
     }
 
     function getSalaryRunId() {
@@ -160,13 +163,15 @@
             staff = snap.docs.map(doc => {
               const data = doc.data();
               return {
-                id: data.staffId || doc.id, // Use staffId field, fallback to doc ID
-                docId: doc.id, // Keep original doc ID for updates
+                docRefId: doc.id, // For updating staff document
+                staffKey: data.staffId || doc.id, // For matching timesheets/salaries
                 ...data
               };
             });
             console.log(`[Staff] Loaded ${staff.length} active staff`);
+            hasLoadedStaff = true;
             render();
+            tryAutoGenerate();
           });
         unsubscribers.push(staffUnsub);
 
@@ -179,7 +184,9 @@
               ...doc.data()
             }));
             console.log(`[Timesheets] Loaded ${allTimesheets.length} approved timesheets`);
+            hasLoadedTimesheets = true;
             render();
+            tryAutoGenerate();
           });
         unsubscribers.push(tsUnsub);
 
@@ -234,15 +241,21 @@
         unsubscribers.push(oneTimeUnsub);
 
         showToast('Data loaded successfully', 'success');
-        
-        // Auto-generate salaries for all periods
-        await autoGenerateAllPeriods();
       } catch (error) {
         console.error('[Load Error]', error);
         showToast('Failed to load data: ' + error.message, 'error');
       } finally {
         isLoading = false;
         render();
+      }
+    }
+
+    async function tryAutoGenerate() {
+      if (hasLoadedStaff && hasLoadedTimesheets && !isAutoGenerating) {
+        isAutoGenerating = true;
+        console.log('[Auto-Generate] Both staff and timesheets loaded, regenerating...');
+        await autoGenerateAllPeriods();
+        isAutoGenerating = false;
       }
     }
 
@@ -292,20 +305,20 @@
 
         // Generate salary for each active staff - NO AUTO ADJUSTMENTS
         for (const s of staff) {
-          const ts = allTimesheets.find(t => t.staffId === s.id && t.year === year && t.month === month);
+          const ts = allTimesheets.find(t => t.staffId === s.staffKey && t.year === year && t.month === month);
           const gross = ts?.totalPay || 0;
-          const salDocId = `SAL_${s.id}_${year}_${String(month).padStart(2, '0')}`;
+          const salDocId = `SAL_${s.staffKey}_${year}_${String(month).padStart(2, '0')}`;
           const existing = allSalaries.find(sal => sal.id === salDocId);
           
           // Get manual adjustments only
           const manualAdjustments = (existing?.adjustments || []);
           
           // Apply temporary adjustments if they exist
-          const tempKey = `${s.id}_${year}_${month}`;
+          const tempKey = `${s.staffKey}_${year}_${month}`;
           const finalAdjustments = tempAdjustments[tempKey] || manualAdjustments;
 
           const salaryData = {
-            staffId: s.id,
+            staffId: s.staffKey,
             year: year,
             month: month,
             timesheetId: ts?.id || null,
@@ -442,15 +455,15 @@
       }
     }
 
-    async function saveBanking(staffId, banking) {
-      console.log(`[Banking] Saving for ${staffId}`, banking);
+    async function saveBanking(staffKey, banking) {
+      console.log(`[Banking] Saving for ${staffKey}`, banking);
       isLoading = true;
       render();
 
       try {
         // Find the document ID for this staff member
-        const staffMember = staff.find(s => s.id === staffId);
-        const docId = staffMember?.docId || staffId;
+        const staffMember = staff.find(s => s.staffKey === staffKey);
+        const docId = staffMember?.docRefId || staffKey;
         
         await db.collection('staff').doc(docId).update({
           banking: banking,
@@ -466,7 +479,7 @@
       }
     }
 
-    async function saveSalary(staffId, year, month, adjustments, transferReference) {
+    async function saveSalary(staffKey, year, month, adjustments, transferReference) {
       const salaryRun = allSalaryRuns.find(r => r.year === year && r.month === month);
       
       if (salaryRun?.status === 'finalized') {
@@ -474,12 +487,12 @@
         return;
       }
 
-      console.log(`[Salary] Saving for ${staffId} ${year}-${month}`, adjustments);
+      console.log(`[Salary] Saving for ${staffKey} ${year}-${month}`, adjustments);
       isLoading = true;
       render();
 
       try {
-        const salDocId = `SAL_${staffId}_${year}_${String(month).padStart(2, '0')}`;
+        const salDocId = `SAL_${staffKey}_${year}_${String(month).padStart(2, '0')}`;
         const sal = allSalaries.find(s => s.id === salDocId);
         const gross = sal?.gross || 0;
 
@@ -517,8 +530,8 @@
       }
     }
 
-    async function saveTempAdjustments(staffId, year, month, adjustments) {
-      const key = `${staffId}_${year}_${month}`;
+    async function saveTempAdjustments(staffKey, year, month, adjustments) {
+      const key = `${staffKey}_${year}_${month}`;
       tempAdjustments[key] = adjustments;
       console.log('[Temp] Saved adjustments for', key, adjustments);
       showToast('Adjustments saved', 'success');
@@ -531,8 +544,8 @@
       await generateQRForPeriod(year, month);
     }
 
-    async function togglePaid(staffId, year, month, isPaid) {
-      const salDocId = `SAL_${staffId}_${year}_${String(month).padStart(2, '0')}`;
+    async function togglePaid(staffKey, year, month, isPaid) {
+      const salDocId = `SAL_${staffKey}_${year}_${String(month).padStart(2, '0')}`;
       console.log(`[Paid] Toggle ${salDocId} to ${isPaid}`);
       isLoading = true;
       render();
@@ -692,10 +705,10 @@
                     <div class="flex items-start justify-between mb-4">
                       <div class="flex-1">
                         <div class="font-semibold text-base" style="color: ${config.text_color};">${s.fullName || s.preferredName || 'Unknown'}</div>
-                        <div class="text-xs mt-1" style="color: ${config.text_color}; opacity: 0.5;">${s.id}</div>
+                        <div class="text-xs mt-1" style="color: ${config.text_color}; opacity: 0.5;">${s.staffKey}</div>
                       </div>
                       <span class="px-3 py-1.5 rounded-lg text-xs font-medium ${banking ? 'bg-green-600' : 'bg-red-600'} text-white shadow-sm">
-                        ${banking ? '✓ Complete' : '✗ Missing'}
+                        ${banking ? '��� Complete' : '✗ Missing'}
                       </span>
                     </div>
                     
@@ -720,7 +733,7 @@
                       </div>
                     `}
                     
-                    <button onclick="openBankingModal('${s.id}')" class="w-full px-4 py-2 rounded-lg font-medium text-sm text-white transition-colors" style="background: ${config.primary_color};">
+                    <button onclick="openBankingModal('${s.staffKey}')" class="w-full px-4 py-2 rounded-lg font-medium text-sm text-white transition-colors" style="background: ${config.primary_color};">
                       ${banking ? 'Edit Details' : 'Add Details'}
                     </button>
                   </div>
@@ -802,7 +815,7 @@
     }
 
     function renderRuleRow(rule, config) {
-      const staffMember = staff.find(s => s.id === rule.staffId);
+      const staffMember = staff.find(s => s.staffKey === rule.staffId);
       const staffName = staffMember ? (staffMember.fullName || staffMember.preferredName || 'Unknown') : rule.staffId;
 
       return `
@@ -916,7 +929,7 @@
     }
 
     function renderPaymentRow(payment, config) {
-      const staffMember = staff.find(s => s.id === payment.staffId);
+      const staffMember = staff.find(s => s.staffKey === payment.staffId);
       const staffName = staffMember ? (staffMember.fullName || staffMember.preferredName || 'Unknown') : payment.staffId;
       const hasQR = payment.qr && payment.qr.payload;
 
@@ -1003,8 +1016,8 @@
                 <select id="ruleStaffId" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
                   <option value="">Select staff...</option>
                   ${staff.map(s => `
-                    <option value="${s.id}" ${rule.staffId === s.id ? 'selected' : ''}>
-                      ${s.fullName || s.preferredName} (${s.id})
+                    <option value="${s.staffKey}" ${rule.staffId === s.staffKey ? 'selected' : ''}>
+                      ${s.fullName || s.preferredName} (${s.staffKey})
                     </option>
                   `).join('')}
                 </select>
@@ -1096,8 +1109,8 @@
                 <select id="paymentStaffId" class="w-full px-4 py-3 border rounded-lg text-sm font-medium" style="border-color: #E5E7EB;">
                   <option value="">Select staff...</option>
                   ${staff.map(s => `
-                    <option value="${s.id}" ${payment.staffId === s.id ? 'selected' : ''}>
-                      ${s.fullName || s.preferredName} (${s.id})
+                    <option value="${s.staffKey}" ${payment.staffId === s.staffKey ? 'selected' : ''}>
+                      ${s.fullName || s.preferredName} (${s.staffKey})
                     </option>
                   `).join('')}
                 </select>
@@ -1367,31 +1380,28 @@
               </thead>
               <tbody>
                 ${staff.map(s => {
-                  const ts = allTimesheets.find(t => t.staffId === s.id && t.year === year && t.month === month);
-                  const salDocId = `SAL_${s.id}_${year}_${String(month).padStart(2, '0')}`;
+                  const ts = allTimesheets.find(t => t.staffId === s.staffKey && t.year === year && t.month === month);
+                  const salDocId = `SAL_${s.staffKey}_${year}_${String(month).padStart(2, '0')}`;
                   const sal = allSalaries.find(sal => sal.id === salDocId);
-                  const tempKey = `${s.id}_${year}_${month}`;
+                  const tempKey = `${s.staffKey}_${year}_${month}`;
                   const tempAdj = tempAdjustments[tempKey];
                   const banking = hasBanking(s);
                   
-                  // Calculate values from either saved salary or temp adjustments
-                  let gross = 0;
+                  // ALWAYS prefer timesheet gross when available
+                  let gross = ts?.totalPay ?? sal?.gross ?? 0;
                   let bonusTotal = 0;
                   let deductionTotal = 0;
                   let net = 0;
                   
                   if (sal) {
-                    gross = sal.gross;
                     bonusTotal = sal.bonusTotal;
                     deductionTotal = sal.deductionTotal;
                     net = sal.net;
                   } else if (tempAdj) {
-                    gross = ts?.totalPay || 0;
                     bonusTotal = tempAdj.filter(a => a.type === 'bonus').reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
                     deductionTotal = tempAdj.filter(a => a.type === 'deduction').reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
                     net = Math.max(0, gross + bonusTotal - deductionTotal);
                   } else if (ts) {
-                    gross = ts.totalPay || 0;
                     net = gross;
                   }
                   
@@ -1402,11 +1412,11 @@
                     <tr class="border-b hover:bg-gray-50 cursor-pointer transition-colors" style="border-color: #E5E7EB;" onclick='openStaffForPeriod(${JSON.stringify(s)}, ${year}, ${month})'>
                       <td class="px-4 py-3">
                         <div class="font-medium text-xs" style="color: ${config.text_color};">${s.fullName || s.preferredName || 'Unknown'}</div>
-                        <div class="text-xs" style="color: ${config.text_color}; opacity: 0.5;">${s.id}</div>
+                        <div class="text-xs" style="color: ${config.text_color}; opacity: 0.5;">${s.staffKey}</div>
                         ${tempAdj ? '<div class="text-xs text-orange-600 font-medium mt-0.5">Unsaved</div>' : ''}
                       </td>
                       <td class="px-4 py-3 text-center">
-                        <button onclick="event.stopPropagation(); openBankingModal('${s.id}')" class="px-2 py-1 rounded text-xs font-medium ${banking ? 'badge-ok hover:bg-green-100' : 'badge-missing hover:bg-red-100'} transition-colors">
+                        <button onclick="event.stopPropagation(); openBankingModal('${s.staffKey}')" class="px-2 py-1 rounded text-xs font-medium ${banking ? 'badge-ok hover:bg-green-100' : 'badge-missing hover:bg-red-100'} transition-colors">
                           ${banking ? '✓ Edit' : '✗ Add'}
                         </button>
                       </td>
@@ -1424,13 +1434,13 @@
                       </td>
                       <td class="px-4 py-3 text-center">
                         ${sal?.qr?.payload ? `
-                          <button onclick="event.stopPropagation(); viewQR('${s.id}', ${year}, ${month})" class="px-2 py-1 rounded text-white text-xs font-medium bg-blue-600 hover:bg-blue-700">
+                          <button onclick="event.stopPropagation(); viewQR('${s.staffKey}', ${year}, ${month})" class="px-2 py-1 rounded text-white text-xs font-medium bg-blue-600 hover:bg-blue-700">
                             View
                           </button>
                         ` : '<span class="text-xs" style="opacity: 0.3;">-</span>'}
                       </td>
                       <td class="px-4 py-3 text-center">
-                        ${sal ? `<input type="checkbox" ${sal.isPaid ? 'checked' : ''} onclick="event.stopPropagation(); togglePaid('${s.id}', ${year}, ${month}, this.checked)" class="w-4 h-4 cursor-pointer" ${salaryRun?.status === 'finalized' ? 'disabled' : ''}>` : '-'}
+                        ${sal ? `<input type="checkbox" ${sal.isPaid ? 'checked' : ''} onclick="event.stopPropagation(); togglePaid('${s.staffKey}', ${year}, ${month}, this.checked)" class="w-4 h-4 cursor-pointer" ${salaryRun?.status === 'finalized' ? 'disabled' : ''}>` : '-'}
                       </td>
                     </tr>
                   `;
@@ -1457,11 +1467,11 @@
     function renderSidePanel(config) {
       const s = selectedStaff;
       const { year, month } = selectedPeriod;
-      const salDocId = `SAL_${s.id}_${year}_${String(month).padStart(2, '0')}`;
+      const salDocId = `SAL_${s.staffKey}_${year}_${String(month).padStart(2, '0')}`;
       const sal = allSalaries.find(sal => sal.id === salDocId);
-      const ts = allTimesheets.find(t => t.staffId === s.id && t.year === year && t.month === month);
+      const ts = allTimesheets.find(t => t.staffId === s.staffKey && t.year === year && t.month === month);
       const gross = ts?.totalPay || 0;
-      const tempKey = `${s.id}_${year}_${month}`;
+      const tempKey = `${s.staffKey}_${year}_${month}`;
       
       // Use saved adjustments, temp adjustments, or empty array
       const adjustments = sal?.adjustments || tempAdjustments[tempKey] || [];
@@ -1490,7 +1500,7 @@
             <!-- Staff Info -->
             <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
               <div class="font-semibold text-sm mb-1" style="color: ${config.text_color};">${s.fullName || s.preferredName}</div>
-              <div class="text-xs" style="color: ${config.text_color}; opacity: 0.6;">${s.id}</div>
+              <div class="text-xs" style="color: ${config.text_color}; opacity: 0.6;">${s.staffKey}</div>
               ${ts ? `
                 <div class="mt-2 text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded inline-block border border-blue-200">
                   Timesheet: ${formatCurrency(ts.totalPay)} (${ts.totalSessions || 0} sessions)
@@ -1839,7 +1849,7 @@
       const payment = oneTimePayments.find(p => p.id === paymentId);
       if (!payment) return;
 
-      const staffMember = staff.find(s => s.id === payment.staffId);
+      const staffMember = staff.find(s => s.staffKey === payment.staffId);
       if (!staffMember || !staffMember.banking?.bankCode || !staffMember.banking?.accountNumber) {
         showToast('Banking details missing for this staff member', 'error');
         return;
@@ -1877,7 +1887,7 @@
       const payment = oneTimePayments.find(p => p.id === paymentId);
       if (!payment?.qr?.payload) return;
 
-      const staffMember = staff.find(s => s.id === payment.staffId);
+      const staffMember = staff.find(s => s.staffKey === payment.staffId);
       const staffName = staffMember ? (staffMember.fullName || staffMember.preferredName || 'Unknown') : payment.staffId;
 
       const modal = document.createElement('div');
@@ -1941,7 +1951,7 @@
         return;
       }
 
-      saveBanking(selectedStaff.id, {
+      saveBanking(selectedStaff.staffKey, {
         bankCode,
         accountNumber,
         accountName,
@@ -1953,9 +1963,9 @@
       if (!selectedStaff || !selectedPeriod) return;
       
       const { year, month } = selectedPeriod;
-      const salDocId = `SAL_${selectedStaff.id}_${year}_${String(month).padStart(2, '0')}`;
+      const salDocId = `SAL_${selectedStaff.staffKey}_${year}_${String(month).padStart(2, '0')}`;
       const sal = allSalaries.find(s => s.id === salDocId);
-      const tempKey = `${selectedStaff.id}_${year}_${month}`;
+      const tempKey = `${selectedStaff.staffKey}_${year}_${month}`;
       const tempAdj = tempAdjustments[tempKey];
       
       const currentAdjustments = sal?.adjustments || tempAdj || [];
@@ -1989,9 +1999,9 @@
       if (!selectedStaff || !selectedPeriod) return;
       
       const { year, month } = selectedPeriod;
-      const salDocId = `SAL_${selectedStaff.id}_${year}_${String(month).padStart(2, '0')}`;
+      const salDocId = `SAL_${selectedStaff.staffKey}_${year}_${String(month).padStart(2, '0')}`;
       const sal = allSalaries.find(s => s.id === salDocId);
-      const tempKey = `${selectedStaff.id}_${year}_${month}`;
+      const tempKey = `${selectedStaff.staffKey}_${year}_${month}`;
       const tempAdj = tempAdjustments[tempKey];
       
       const currentAdjustments = [...(sal?.adjustments || tempAdj || [])];
@@ -2028,7 +2038,7 @@
       if (!selectedStaff || !selectedPeriod) return;
 
       const { year, month } = selectedPeriod;
-      const salDocId = `SAL_${selectedStaff.id}_${year}_${String(month).padStart(2, '0')}`;
+      const salDocId = `SAL_${selectedStaff.staffKey}_${year}_${String(month).padStart(2, '0')}`;
       const sal = allSalaries.find(s => s.id === salDocId);
       const adjustments = [...(sal.adjustments || [])];
 
@@ -2043,14 +2053,14 @@
 
       const transferReference = document.getElementById('transferReference')?.value || `Salary ${month}/${year}`;
 
-      saveSalary(selectedStaff.id, year, month, adjustments, transferReference);
+      saveSalary(selectedStaff.staffKey, year, month, adjustments, transferReference);
     };
 
     window.saveTempClick = function() {
       if (!selectedStaff || !selectedPeriod) return;
 
       const { year, month } = selectedPeriod;
-      const tempKey = `${selectedStaff.id}_${year}_${month}`;
+      const tempKey = `${selectedStaff.staffKey}_${year}_${month}`;
       const tempAdj = tempAdjustments[tempKey] || [];
       const adjustments = [...tempAdj];
 
@@ -2063,7 +2073,7 @@
         }
       });
 
-      saveTempAdjustments(selectedStaff.id, year, month, adjustments);
+      saveTempAdjustments(selectedStaff.staffKey, year, month, adjustments);
     };
 
     window.viewQR = function(staffId, year, month) {
@@ -2090,7 +2100,7 @@
     };
 
     window.openBankingModal = function(staffId) {
-      const s = staff.find(st => st.id === staffId);
+      const s = staff.find(st => st.staffKey === staffId);
       if (!s) return;
 
       const config = window.elementSdk?.config || defaultConfig;
@@ -2106,7 +2116,7 @@
           
           <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <p class="text-sm font-medium" style="color: ${config.text_color};">${s.fullName || s.preferredName}</p>
-            <p class="text-xs mt-0.5" style="color: ${config.text_color}; opacity: 0.6;">${s.id}</p>
+            <p class="text-xs mt-0.5" style="color: ${config.text_color}; opacity: 0.6;">${s.staffKey}</p>
           </div>
 
           <div class="space-y-4">
@@ -2196,5 +2206,5 @@
       init();
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c1d63e637cc36f1',t:'MTc2OTA2NzQ5MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c69c3aa337b09cc',t:'MTc2OTg2ODMzMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
