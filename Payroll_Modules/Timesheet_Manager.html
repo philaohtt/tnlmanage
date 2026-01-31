@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Timesheet Manager</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/_sdk/element_sdk.js"></script><!-- Firebase SDK -->
+  <script src="https://cdn.tailwindcss.com"></script><!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -428,6 +427,7 @@
   </style>
   <style>@view-transition { navigation: auto; }</style>
   <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
  </head>
  <body class="h-full">
   <div id="app" class="h-full flex flex-col"><!-- Controls Bar -->
@@ -895,10 +895,11 @@
     }
 
     /**
-     * Clone entries for editing with safe Timestamp handling
-     * Converts Firestore Timestamps to Date objects for editable fields
+     * Clone entries with safe Timestamp handling
+     * Converts Firestore Timestamps to Date objects
+     * This is the main cloning function used throughout the app
      */
-    function cloneEntriesForEdit(entries) {
+    function cloneEntries(entries) {
       return entries.map(entry => {
         const cloned = { ...entry };
         
@@ -924,32 +925,35 @@
     }
 
     /**
+     * Clone entries for editing with safe Timestamp handling
+     * Converts Firestore Timestamps to Date objects for editable fields
+     */
+    function cloneEntriesForEdit(entries) {
+      return cloneEntries(entries);
+    }
+
+    /**
      * Clone entries for baseline comparison
      * Keeps original Timestamp objects for non-editable reference
      */
     function cloneEntriesForBaseline(entries) {
-      return entries.map(entry => {
-        const cloned = { ...entry };
-        
-        // Convert date safely but keep as immutable reference
-        if (entry.date) {
-          if (entry.date.toDate) {
-            // Firestore Timestamp - convert to Date for consistent comparison
-            cloned.date = entry.date.toDate();
-          } else if (entry.date instanceof Date) {
-            // Already a Date - create new instance
-            cloned.date = new Date(entry.date);
-          } else {
-            // Try to parse
-            const parsed = new Date(entry.date);
-            cloned.date = isNaN(parsed.getTime()) ? null : parsed;
-          }
-        } else {
-          cloned.date = null;
-        }
-        
-        return cloned;
-      });
+      return cloneEntries(entries);
+    }
+    
+    /**
+     * Parse date from various formats
+     */
+    function parseDate(dateValue) {
+      if (!dateValue) return null;
+      
+      if (dateValue.toDate) {
+        return dateValue.toDate();
+      } else if (dateValue instanceof Date) {
+        return new Date(dateValue);
+      } else {
+        const parsed = new Date(dateValue);
+        return isNaN(parsed.getTime()) ? null : parsed;
+      }
     }
 
     function toggleSection(sectionId) {
@@ -2558,48 +2562,12 @@
     }
 
     // ============================================
-    // ELEMENT SDK INTEGRATION
+    // ELEMENT SDK INTEGRATION (Disabled - SDK not available)
     // ============================================
     
     async function onConfigChange(cfg) {
       config = { ...defaultConfig, ...cfg };
       // Config applied - no page title needed in dashboard mode
-    }
-
-    function mapToCapabilities(cfg) {
-      return {
-        recolorables: [
-          {
-            get: () => cfg.primary_color || defaultConfig.primary_color,
-            set: (v) => { cfg.primary_color = v; if (window.elementSdk) window.elementSdk.setConfig({ primary_color: v }); }
-          },
-          {
-            get: () => cfg.background_color || defaultConfig.background_color,
-            set: (v) => { cfg.background_color = v; if (window.elementSdk) window.elementSdk.setConfig({ background_color: v }); }
-          },
-          {
-            get: () => cfg.text_color || defaultConfig.text_color,
-            set: (v) => { cfg.text_color = v; if (window.elementSdk) window.elementSdk.setConfig({ text_color: v }); }
-          },
-          {
-            get: () => cfg.accent_color || defaultConfig.accent_color,
-            set: (v) => { cfg.accent_color = v; if (window.elementSdk) window.elementSdk.setConfig({ accent_color: v }); }
-          },
-          {
-            get: () => cfg.secondary_color || defaultConfig.secondary_color,
-            set: (v) => { cfg.secondary_color = v; if (window.elementSdk) window.elementSdk.setConfig({ secondary_color: v }); }
-          }
-        ],
-        borderables: [],
-        fontEditable: undefined,
-        fontSizeable: undefined
-      };
-    }
-
-    function mapToEditPanelValues(cfg) {
-      return new Map([
-        ['page_title', cfg.page_title || defaultConfig.page_title]
-      ]);
     }
 
     // ============================================
@@ -2614,23 +2582,12 @@
         console.log('Firebase initialized:', !!firebase.apps.length);
         console.log('Firestore initialized:', !!db);
         
-        // Initialize Element SDK
-        if (window.elementSdk) {
-          await window.elementSdk.init({
-            defaultConfig,
-            onConfigChange,
-            mapToCapabilities,
-            mapToEditPanelValues
-          });
-          config = { ...defaultConfig, ...window.elementSdk.config };
-          console.log('Element SDK initialized');
-        }
-        
         // Setup event listeners
         console.log('Setting up event listeners...');
         initEventListeners();
         
         // Apply initial config
+        console.log('Applying config...');
         await onConfigChange(config);
         console.log('Config applied');
         
@@ -2653,5 +2610,5 @@
       init();
     }
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9beb7b267108dd39',t:'MTc2ODU0NDE1NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c699f95854e037d',t:'MTc2OTg2Njg1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
